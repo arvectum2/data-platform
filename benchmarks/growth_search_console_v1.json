@@ -1,0 +1,103 @@
+{
+  "name": "growth-search-console-v1",
+  "description": "Observed Google Search Console and Yandex Webmaster query intents from the 2026-10-04 SEO review, evaluated against the freshly reindexed Arvectum site corpus.",
+  "metadata": {
+    "created_at": "2026-10-04",
+    "source": "arvectum-site/docs/seo/SEARCH_OPTIMIZATION_2026-10-04.md",
+    "collection": "growth:arvectum-site:0227dfdd95e47527"
+  },
+  "defaults": {
+    "collections": [
+      "growth:arvectum-site:0227dfdd95e47527"
+    ],
+    "id_field": "canonical_uri",
+    "limit": 5,
+    "mode": "hybrid"
+  },
+  "cases": [
+    {
+      "id": "gsc-automate-procurement",
+      "query": "автоматизировать закупки",
+      "expected_ids": [
+        "https://arvectum.com/solutions/procurement.html"
+      ]
+    },
+    {
+      "id": "gsc-tender-automation",
+      "query": "автоматизация тендеров",
+      "expected_ids": [
+        "https://arvectum.com/services/ai-tender-agent.html"
+      ]
+    },
+    {
+      "id": "gsc-ai-document-check",
+      "query": "ии для проверки документов",
+      "expected_ids": [
+        "https://arvectum.com/solutions/ai-document-checks.html"
+      ]
+    },
+    {
+      "id": "gsc-ai-agent-procurement",
+      "query": "ии агент для закупок",
+      "expected_ids": [
+        "https://arvectum.com/solutions/procurement-ai-agents.html"
+      ]
+    },
+    {
+      "id": "gsc-supplier-selection",
+      "query": "автоматизация выбора поставщика",
+      "expected_ids": [
+        "https://arvectum.com/solutions/procurement.html"
+      ]
+    },
+    {
+      "id": "gsc-closed-loop-ai",
+      "query": "ии в закрытом контуре",
+      "expected_ids": [
+        "https://arvectum.com/solutions/closed-loop-ai-documents.html"
+      ]
+    },
+    {
+      "id": "gsc-rfq-system",
+      "query": "система для rfq",
+      "expected_ids": [
+        "https://arvectum.com/services/rfq-automation.html"
+      ]
+    },
+    {
+      "id": "yandex-rfq-tender",
+      "query": "rfq тендер",
+      "expected_ids": [
+        "https://arvectum.com/services/rfq-automation.html"
+      ]
+    },
+    {
+      "id": "yandex-rfq-what-is",
+      "query": "rfq что это такое в закупках",
+      "expected_ids": [
+        "https://arvectum.com/materials/rfq-automation-guide.html"
+      ]
+    },
+    {
+      "id": "yandex-tkp-comparison",
+      "query": "сравнение ткп",
+      "expected_ids": [
+        "https://arvectum.com/services/tkp-comparison.html"
+      ]
+    },
+    {
+      "id": "yandex-tkp-analysis",
+      "query": "сравнительный анализ ткп",
+      "expected_ids": [
+        "https://arvectum.com/services/tkp-comparison.html"
+      ]
+    },
+    {
+      "id": "yandex-brand",
+      "query": "ооо арвектум",
+      "expected_ids": [
+        "https://arvectum.com/"
+      ]
+    }
+  ]
+}

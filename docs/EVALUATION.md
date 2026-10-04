@@ -116,3 +116,23 @@ production_acceptance_v2 extends the first production snapshot with an authorize
 
 The first v2 run exposed a federation presentation issue: the same canonical product URL appeared from both the site and product collections. Federation now collapses cross-collection duplicates by canonical URI while preserving same-collection chunks. Re-running v2 after the fix kept top-1 accuracy and MRR at 1.0 and returned five unique canonical URIs for the federated Photo Size case.
 
+
+## Search Console intent benchmark
+
+`benchmarks/growth_search_console_v1.json` freezes twelve real Google Search Console / Yandex Webmaster intent formulations observed during the 2026-10-04 SEO review against the active Arvectum site collection.
+
+The first production run, before query variants, produced:
+
+| Metric | Baseline |
+| --- | ---: |
+| Top-1 accuracy | 0.50 |
+| MRR | 0.583 |
+| Hit@3 | 0.75 |
+| Hit@5 | 0.75 |
+| Mean recall@5 | 0.75 |
+| p50 latency | ~119 ms |
+| p95 latency | ~169 ms |
+
+Changing global lexical/vector fusion weights to 1:2 or 1:4 did not improve top-1 accuracy. This is evidence that the remaining failures are query-formulation/domain-language gaps rather than a single global fusion-weight problem.
+
+The benchmark therefore justifies bounded consumer-controlled query variants. Data Platform accepts up to eight deterministic variants per search request. The original query always keeps full weight; variants use a separate `query_variant_weight` in the 0..1 range. Data Platform does not invent domain synonyms internally.
