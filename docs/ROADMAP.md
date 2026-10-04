@@ -265,6 +265,8 @@ Entity resolution is now deterministic and ambiguity-safe: exact normalized alia
 
 Entity relations are now explicit, directed and provenance-aware. A relation links two existing entities with a relation type and may reference a validated collection/resource/document/chunk chain. Relation IDs are deterministic, repeated writes are idempotent, self-links are rejected, and the platform does not infer graph edges automatically from text.
 
+The first production consumer is Arvectum Site. Its product-entity sync resolves Arvectum by domain and published products by canonical URL, then writes deterministic publishes relations backed by exact product-search evidence. Initial production acceptance created 2 entities, 6 aliases and 1 relation; an immediate second run reused the same entity and relation IDs with no duplicates.
+
 Entity graph relations are now explicit, evidence-aware and idempotent: relation IDs are deterministic over source/target/type plus evidence identity; inbound/outbound traversal is supported; provenance mismatches fail closed; the platform does not infer relations automatically.
 
 Federated cross-collection search now requires a consumer-scoped key. Collections can restrict access with allowed_consumers; protected single-collection search uses the same verified consumer identity. Authorization is fail-closed: an unauthorized collection returns 403 and is never silently omitted from a federated result set.
