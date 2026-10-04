@@ -60,6 +60,7 @@ class FakePlatformService:
         content,
         title=None,
         canonical_uri=None,
+        pre_chunked=False,
     ):
         assert content
         return {
@@ -227,8 +228,9 @@ def test_collection_ingest_search_and_extract_contracts() -> None:
         data={
             "collection_id": "tests:knowledge",
             "canonical_uri": "tender-document://doc-1",
+            "pre_chunked": "true",
         },
-        files={"file": ("knowledge.txt", b"silovoi kabel", "text/plain")},
+        files={"file": ("knowledge.txt", b"short", "text/plain")},
     )
     assert ingested.status_code == 200
     assert ingested.json()["embeddings"] == 1

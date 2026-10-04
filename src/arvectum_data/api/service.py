@@ -258,6 +258,7 @@ class DataPlatformService:
         content: bytes,
         title: str | None = None,
         canonical_uri: str | None = None,
+        pre_chunked: bool = False,
     ) -> dict[str, Any]:
         suffix = Path(filename).suffix[:16]
         temporary_path: str | None = None
@@ -270,6 +271,7 @@ class DataPlatformService:
                 collection_id=collection_id,
                 canonical_uri=canonical_uri or f"upload://{filename}",
                 title=title or filename,
+                pre_chunked=pre_chunked,
             )
             return self._persist_and_index(result)
         finally:

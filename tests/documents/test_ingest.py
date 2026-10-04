@@ -55,3 +55,19 @@ def test_xlsx_extraction_preserves_rows(tmp_path: Path) -> None:
     assert "=== Data ===" in text
     assert "Товар\tЦена" in text
     assert "Кабель\t125" in text
+
+
+def test_pre_chunked_short_text_is_preserved(tmp_path):
+    from arvectum_data.documents import ingest_file
+
+    path = tmp_path / "short.txt"
+    path.write_text("short text", encoding="utf-8")
+    result = ingest_file(
+        path,
+        collection_id="tests:pre-chunked",
+        pre_chunked=True,
+    )
+
+    assert len(result.chunks) == 1
+    assert result.chunks[0].text == "short text"
+    assert result.chunks[0].metadata["pre_chunked"] is True

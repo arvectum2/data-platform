@@ -62,6 +62,7 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
         data={
             "collection_id": "api:docs",
             "canonical_uri": "external-document://cable-1",
+            "pre_chunked": "true",
         },
         files={"file": ("cable.txt", content, "text/plain")},
     )

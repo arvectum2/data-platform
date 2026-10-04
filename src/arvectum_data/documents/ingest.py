@@ -108,6 +108,7 @@ def ingest_file(
     canonical_uri: str | None = None,
     title: str | None = None,
     chunking: ChunkingConfig | None = None,
+    pre_chunked: bool = False,
     max_chars: int = 2_000_000,
 ) -> DocumentIngestResult:
     if not collection_id.strip():
@@ -120,6 +121,14 @@ def ingest_file(
     status, text = extract_text(str(file_path), max_chars=max_chars)
     media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
     metadata = {"file_name": file_path.name}
+    resolved_chunking = chunking
+    if pre_chunked:
+        resolved_chunking = ChunkingConfig(
+            chunk_size_chars=max(1, len(text)),
+            overlap_chars=0,
+            min_chunk_chars=1,
+        )
+        metadata["pre_chunked"] = True
 
     return _build_result(
         collection_id=collection_id,
@@ -131,7 +140,7 @@ def ingest_file(
         extraction_status=status,
         content_hash=content_hash,
         metadata=metadata,
-        chunking=chunking,
+        chunking=resolved_chunking,
     )
 
 
