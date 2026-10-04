@@ -71,6 +71,7 @@ sources / URLs / APIs / files
 - [Architecture v1](docs/ARCHITECTURE_V1.md)
 - [Migration roadmap](docs/ROADMAP.md)
 - [Connector SDK](docs/CONNECTORS.md)
+- [Mac mini runtime](docs/RUNTIME_MACMINI.md)
 - [ADR-0001: platform boundary and migration strategy](docs/adr/0001-platform-boundary.md)
 
 ## Immediate next milestone

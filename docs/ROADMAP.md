@@ -162,7 +162,7 @@ Status: COMPLETE.
 
 First production consumer.
 
-Status: CODE INTEGRATION MERGED; runtime rollout and production acceptance pending.
+Status: PRODUCTION RUNTIME ROLLOUT ACCEPTED; legacy parity comparison and removal pending.
 
 Merged in Tender Agent PR #144 (cbd5275).
 
@@ -174,13 +174,17 @@ Merged in Tender Agent PR #144 (cbd5275).
 - [x] run Tender Research regression suite and Tender Operator demo regressions;
 - [x] verify live cross-repository ingest -> pgvector/FTS -> hybrid search -> Tender citation mapping;
 - [x] fail closed when the current versioned Data Platform collection is absent/incomplete;
-- [ ] deploy/supervise the Data Platform service in the Tender runtime;
-- [ ] prepare/reindex real pilot tender(s) against the Data Platform backend;
-- [ ] switch Tender runtime to AI_CORP_RAG_RETRIEVAL_BACKEND=data_platform;
+- [x] deploy/supervise the Data Platform service in the Tender runtime;
+- [x] prepare/reindex real pilot tender(s) against the Data Platform backend;
+- [x] switch Tender runtime to AI_CORP_RAG_RETRIEVAL_BACKEND=data_platform;
 - [ ] compare production retrieval quality, citations and latency against the legacy backend;
 - [ ] remove duplicate legacy JSON-vector/generic retrieval code only after production acceptance.
 
-Code gate passed: existing Tender Agent workflows and CI remain green, and normal retrieval is scoped to one deterministic versioned collection per tender. Production gate remains the controlled runtime rollout above.
+Code gate passed: existing Tender Agent workflows and CI remain green, and normal retrieval is scoped to one deterministic versioned collection per tender.
+
+Production runtime gate passed on the Mac mini on 2026-10-04. Data Platform is supervised by launchd on 127.0.0.1:8094, uses the dedicated arvectum_data database in the existing pgvector PostgreSQL runtime, and uses the local Qwen3-Embedding-4B embedding service on 127.0.0.1:8090. Pilot tender 0187200001726001304 was indexed as 60 resources / 60 documents / 60 chunks / 60 embeddings. Tender readiness became ready_for_analysis=true; a live hybrid query returned 5 mapped Tender hits in about 0.32 s, and retrieval-only analyze_tender fast mode completed 10 sections with 16 unique sources in about 1.5 s with no warnings or errors.
+
+Legacy quality parity is intentionally still open because the configured legacy JSON vector-store path pointed at an unavailable historical volume and the only located copies are pre-2026-08-01 archives. Do not claim current production parity from stale legacy data.
 
 ## DP-INT-002 — Arvectum OS RAG migration
 
