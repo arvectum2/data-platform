@@ -44,3 +44,16 @@ def test_federated_dedup_suppresses_only_cross_collection_uri_duplicates() -> No
         "site-2",
         "other-1",
     ]
+
+
+def test_page_level_collapse_suppresses_all_canonical_uri_duplicates() -> None:
+    hits = [
+        _hit("site-1", "https://example.com/product", "site", 0.040),
+        _hit("site-2", "https://example.com/product", "site", 0.039),
+        _hit("product-1", "https://example.com/product", "products", 0.038),
+        _hit("other-1", "https://example.com/other", "products", 0.037),
+    ]
+
+    collapsed = DataPlatformService._collapse_canonical_hits(hits, limit=3)
+
+    assert [hit.chunk_id for hit in collapsed] == ["site-1", "other-1"]

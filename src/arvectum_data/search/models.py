@@ -63,6 +63,7 @@ class SearchQuery:
     vector_weight: float = 1.0
     query_variants: tuple[str, ...] = ()
     query_variant_weight: float = 0.5
+    collapse_by_canonical_uri: bool = False
 
     def __post_init__(self) -> None:
         if not self.query.strip():

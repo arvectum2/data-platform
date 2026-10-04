@@ -20,6 +20,7 @@ class EvaluationCase:
     vector_weight: float = 1.0
     query_variants: tuple[str, ...] = ()
     query_variant_weight: float = 0.5
+    collapse_by_canonical_uri: bool = False
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -71,6 +72,9 @@ class EvaluationCase:
             ),
             query_variant_weight=float(
                 merged.get("query_variant_weight", 0.5)
+            ),
+            collapse_by_canonical_uri=bool(
+                merged.get("collapse_by_canonical_uri", False)
             ),
             metadata=dict(merged.get("metadata") or {}),
         )

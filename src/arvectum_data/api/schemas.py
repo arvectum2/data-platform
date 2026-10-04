@@ -129,6 +129,7 @@ class SearchRequest(BaseModel):
     vector_weight: float = Field(default=1.0, ge=0.0, le=20.0)
     query_variants: list[str] = Field(default_factory=list, max_length=8)
     query_variant_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    collapse_by_canonical_uri: bool = False
 
     @model_validator(mode="after")
     def normalize_query_variants(self):

@@ -471,6 +471,25 @@ class DataPlatformService:
             }
 
     @staticmethod
+    def _collapse_canonical_hits(
+        hits: Sequence[SearchHit],
+        *,
+        limit: int,
+    ) -> list[SearchHit]:
+        seen: set[str] = set()
+        results: list[SearchHit] = []
+        for hit in hits:
+            canonical_uri = hit.canonical_uri.strip()
+            key = canonical_uri or hit.chunk_id
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(hit)
+            if len(results) >= limit:
+                break
+        return results
+
+    @staticmethod
     def _dedupe_federated_hits(
         hits: Sequence[SearchHit],
         *,
@@ -520,11 +539,15 @@ class DataPlatformService:
                 vector_backend=backend,
                 embedding_provider=self.embedding_provider,
             )
-            if len(request.collections) == 1:
+            if len(request.collections) == 1 and not request.collapse_by_canonical_uri:
                 return engine.search(request)
 
-            overfetch_factor = min(max(len(request.collections), 2), 8)
-            federated_request = SearchQuery(
+            overfetch_factor = (
+                4
+                if request.collapse_by_canonical_uri
+                else min(max(len(request.collections), 2), 8)
+            )
+            expanded_request = SearchQuery(
                 query=request.query,
                 collections=request.collections,
                 filters=request.filters,
@@ -532,8 +555,16 @@ class DataPlatformService:
                 mode=request.mode,
                 lexical_weight=request.lexical_weight,
                 vector_weight=request.vector_weight,
+                query_variants=request.query_variants,
+                query_variant_weight=request.query_variant_weight,
+                collapse_by_canonical_uri=request.collapse_by_canonical_uri,
             )
-            hits = engine.search(federated_request)
+            hits = engine.search(expanded_request)
+            if request.collapse_by_canonical_uri:
+                return self._collapse_canonical_hits(
+                    hits,
+                    limit=request.limit,
+                )
             return self._dedupe_federated_hits(hits, limit=request.limit)
 
 
