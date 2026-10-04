@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import tempfile
 import uuid
@@ -441,6 +442,25 @@ class DataPlatformService:
 
 
 
+    def _index_revision(
+        self,
+        collection: CollectionRow,
+        chunks: Sequence[ChunkRow],
+    ) -> str:
+        payload = "\n".join(
+            [
+                f"provider={self.embedding_provider.provider_name}",
+                f"model={self.embedding_provider.model_name}",
+                f"dimension={self.embedding_provider.dimension}",
+                f"language={collection.default_language}",
+                *[
+                    f"{chunk.chunk_id}:{chunk.content_hash}"
+                    for chunk in sorted(chunks, key=lambda item: item.chunk_id)
+                ],
+            ]
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
     @staticmethod
     def _job_payload(row: PipelineRunRow) -> dict[str, Any]:
         return {
@@ -457,13 +477,37 @@ class DataPlatformService:
     def rebuild_index(self, collection_id: str) -> dict[str, Any]:
         factory = self._require_factory()
         run_id = str(uuid.uuid4())
-        revision = str(uuid.uuid4())
 
         with factory() as session:
             collection = session.get(CollectionRow, collection_id)
             if collection is None:
                 raise CollectionNotFound(collection_id)
             self._validate_embedding_contract(collection)
+            chunks = list(
+                session.scalars(
+                    select(ChunkRow)
+                    .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                    .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                    .where(ResourceRow.collection_id == collection_id)
+                    .order_by(ChunkRow.chunk_id.asc())
+                )
+            )
+            revision = self._index_revision(collection, chunks)
+            if collection.active_index_revision == revision:
+                existing_run = session.scalar(
+                    select(PipelineRunRow)
+                    .where(
+                        PipelineRunRow.collection_id == collection_id,
+                        PipelineRunRow.run_type == "reindex",
+                        PipelineRunRow.revision == revision,
+                        PipelineRunRow.status == "completed",
+                    )
+                    .order_by(PipelineRunRow.completed_at.desc())
+                    .limit(1)
+                )
+                if existing_run is not None:
+                    return self._job_payload(existing_run)
+
             run = PipelineRunRow(
                 run_id=run_id,
                 collection_id=collection_id,
@@ -474,7 +518,19 @@ class DataPlatformService:
                 started_at=datetime.now(UTC),
             )
             session.add(run)
+
+            if collection.active_index_revision == revision:
+                run.status = "completed"
+                run.metrics_json = {
+                    "chunks_seen": len(chunks),
+                    "embeddings_written": 0,
+                    "skipped_unchanged": True,
+                }
+                run.completed_at = datetime.now(UTC)
+
             session.commit()
+            if run.status == "completed":
+                return self._job_payload(run)
 
         try:
             with factory() as session:
@@ -491,6 +547,10 @@ class DataPlatformService:
                         .order_by(ChunkRow.chunk_id.asc())
                     )
                 )
+                current_revision = self._index_revision(collection, chunks)
+                if current_revision != revision:
+                    raise RuntimeError("collection changed before reindex execution")
+
                 vectors = self.embedding_provider.embed_texts(
                     [chunk.text for chunk in chunks]
                 )
@@ -506,6 +566,18 @@ class DataPlatformService:
                         vector=vector,
                     )
 
+                final_chunks = list(
+                    session.scalars(
+                        select(ChunkRow)
+                        .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                        .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                        .where(ResourceRow.collection_id == collection_id)
+                        .order_by(ChunkRow.chunk_id.asc())
+                    )
+                )
+                if self._index_revision(collection, final_chunks) != revision:
+                    raise RuntimeError("collection changed during reindex execution")
+
                 run = session.get(PipelineRunRow, run_id)
                 if run is None:
                     raise RuntimeError("reindex run disappeared")
@@ -513,6 +585,7 @@ class DataPlatformService:
                 run.metrics_json = {
                     "chunks_seen": len(chunks),
                     "embeddings_written": len(vectors),
+                    "skipped_unchanged": False,
                 }
                 run.completed_at = datetime.now(UTC)
                 collection.active_index_revision = revision
