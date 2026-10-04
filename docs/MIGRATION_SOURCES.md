@@ -46,3 +46,14 @@ Those tests depend on Discount Parser source adapters, configuration, parity tel
   - generic EmbeddingConfig
   - local JSON vector backend retained for test/dev
 - verification at promotion: 254 Data Platform tests passed on Python 3.11
+
+
+## DP-STORE-001 — canonical PostgreSQL storage
+
+- implementation is native to Data Platform
+- PostgreSQL schema: collections, resources, documents, records, chunks, embeddings, provenance and pipeline runs
+- pgvector-python baseline verified against current 0.5.x SQLAlchemy API
+- local live acceptance used an isolated temporary database in the existing pgvector PostgreSQL container
+- acceptance path: Alembic upgrade -> file ingest -> chunk persistence -> hashing embeddings -> pgvector cosine search
+- collection isolation verified by a negative cross-collection search
+- temporary acceptance database removed after the test

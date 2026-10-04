@@ -74,4 +74,4 @@ sources / URLs / APIs / files
 
 ## Immediate next milestone
 
-DP-STORE-001: introduce the canonical PostgreSQL schema for collections, resources, documents, chunks, provenance and production vector storage. Discount Parser consumer cutover is already complete.
+DP-LEX-001 + DP-SEARCH-001: add PostgreSQL full-text retrieval and deterministic hybrid fusion over the now-working PostgreSQL/pgvector storage layer.

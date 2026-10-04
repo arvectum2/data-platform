@@ -75,13 +75,15 @@ Status: COMPLETE.
 
 ## DP-STORE-001 — canonical PostgreSQL schema
 
-- [ ] Alembic;
-- [ ] collections/resources/documents/records/chunks;
-- [ ] provenance;
-- [ ] actual vector(N) embedding storage;
-- [ ] ingest/index runs;
-- [ ] active index revision;
-- [ ] collection isolation constraints.
+Status: COMPLETE.
+
+- [x] Alembic;
+- [x] collections/resources/documents/records/chunks;
+- [x] provenance;
+- [x] actual pgvector embedding storage with per-row dimension metadata;
+- [x] ingest/index runs;
+- [x] active index revision;
+- [x] collection isolation constraints.
 
 Gate: empty PostgreSQL + pgvector -> migrate -> ingest/retrieve fixture.
 
@@ -101,11 +103,11 @@ True BM25 is deferred until benchmarks show PostgreSQL FTS is insufficient.
 
 - [ ] VectorIndex protocol;
 - [x] keep JSON/local backend for dev/tests;
-- [ ] pgvector storage/query;
-- [ ] collection-scoped vector query;
+- [x] pgvector storage/query;
+- [x] collection-scoped vector query;
 - [ ] measured HNSW/IVFFlat decision;
 - [ ] model/dimension migration safety;
-- [ ] PostgreSQL integration tests.
+- [x] PostgreSQL integration tests.
 
 Gate: no production search path depends on JsonVectorStore.
 
