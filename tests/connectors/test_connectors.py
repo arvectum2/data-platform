@@ -186,7 +186,7 @@ def test_duckduckgo_parser_is_product_neutral_and_deduplicates() -> None:
 
 
 def test_web_connector_builds_generic_search_request() -> None:
-    search_url_prefix = "https://lite.duckduckgo.com/lite/?q="
+    search_url_prefix = "https://html.duckduckgo.com/html/?q="
     acquisition = FakeAcquisition(
         {
             f"{search_url_prefix}power+cable": (
@@ -203,3 +203,28 @@ def test_web_connector_builds_generic_search_request() -> None:
     page = connector.discover("power cable", limit=5)
 
     assert [item.canonical_uri for item in page.resources] == ["https://example.com/a"]
+
+
+def test_web_connector_marks_challenge_as_degraded() -> None:
+    search_url_prefix = "https://html.duckduckgo.com/html/?q="
+    acquisition = FakeAcquisition(
+        {
+            f"{search_url_prefix}power+cable": (
+                "<html><body>anomaly challenge</body></html>",
+                None,
+            )
+        }
+    )
+    connector = DuckDuckGoHTMLConnector(
+        acquisition=acquisition,
+        policy=ConnectorPolicy(max_attempts=1, min_interval_s=0),
+    )
+
+    import pytest
+
+    with pytest.raises(RuntimeError, match="anti-bot challenge"):
+        connector.discover("power cable", limit=5)
+
+    health = connector.health()
+    assert health.state == ConnectorState.DEGRADED
+    assert health.detail == "DuckDuckGo anti-bot challenge"

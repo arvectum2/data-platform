@@ -98,7 +98,7 @@ def parse_duckduckgo_html(html: str, *, limit: int = 10) -> tuple[DiscoveredReso
 
 class DuckDuckGoHTMLConnector:
     name = "duckduckgo_html"
-    endpoint = "https://lite.duckduckgo.com/lite/"
+    endpoint = "https://html.duckduckgo.com/html/"
 
     def __init__(
         self,
@@ -111,6 +111,7 @@ class DuckDuckGoHTMLConnector:
             renderer=None,
         )
         self.executor = ConnectorExecutor(policy or ConnectorPolicy(min_interval_s=0.5))
+        self._last_error: str | None = None
 
     def discover(
         self,
@@ -135,8 +136,14 @@ class DuckDuckGoHTMLConnector:
             )
         )
         html = result.asset.html or result.asset.text or ""
+        resources = parse_duckduckgo_html(html, limit=limit)
+        lowered = html.lower()
+        if not resources and "anomaly" in lowered and "challenge" in lowered:
+            self._last_error = "DuckDuckGo anti-bot challenge"
+            raise RuntimeError(self._last_error)
+        self._last_error = None
         return DiscoveryPage(
-            resources=parse_duckduckgo_html(html, limit=limit),
+            resources=resources,
             warnings=tuple(result.warnings),
         )
 
@@ -154,7 +161,14 @@ class DuckDuckGoHTMLConnector:
     def health(self) -> ConnectorHealth:
         return ConnectorHealth(
             name=self.name,
-            state=ConnectorState.READY,
+            state=(
+                ConnectorState.DEGRADED
+                if self._last_error
+                else ConnectorState.READY
+            ),
             capabilities=("discover", "fetch"),
-            detail="generic web discovery via DuckDuckGo HTML",
+            detail=(
+                self._last_error
+                or "generic web discovery via DuckDuckGo HTML"
+            ),
         )
