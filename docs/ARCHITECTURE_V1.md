@@ -119,6 +119,8 @@ Every search result must be traceable to source URI/provider/external ID, resour
 
 Entity resolution is a reusable exact-match primitive. Entities have a stable ID, type, canonical name and aliases. Alias normalization uses Unicode NFKC, case-folding and whitespace collapsing only. Aliases are not globally unique, so resolution returns resolved, ambiguous or unresolved. Ambiguous candidates are never auto-merged. Product-specific identity authority rules remain in consumers.
 
+Entity relations are stored only when a consumer explicitly records them. Each relation has source entity, target entity, relation type, optional collection/resource/document/chunk evidence and metadata. Relation IDs are deterministic for the same fact/evidence tuple, making repeated writes idempotent. The platform supports inbound, outbound and bidirectional traversal, but does not infer new edges.
+
 ## 6. Search contract
 
 Normal product search requires explicit collections.
@@ -185,6 +187,17 @@ Collections may additionally declare an access policy at create/update time:
 ~~~
 
 If `allowed_consumers` is non-empty, even single-collection search requires a valid consumer-scoped identity and the consumer must be listed. A federated request is authorized only when the consumer key is valid and every requested collection permits that consumer. Search never silently drops unauthorized collections or broadens scope.
+
+
+## 6.1 Entity resolution and relations
+
+Entity resolution is deliberately conservative. Canonical names and aliases are normalized with Unicode NFKC, case-folding and whitespace collapse. Exact alias lookup returns resolved, ambiguous, or unresolved.
+
+The platform does not automatically merge ambiguous names. Stable identifiers should use a dedicated alias kind such as identifier.
+
+Entity relations are explicit directed edges between existing entities. A relation has a deterministic identity over source entity, target entity, relation type and optional provenance chain. Provenance may reference collection, resource, document and chunk; supplied IDs are validated as one consistent chain before the edge is stored. Repeated identical writes are idempotent.
+
+The platform does not infer relations automatically from free text. Automatic extraction remains a separate future concern and must preserve the same provenance and ambiguity rules.
 
 ## 7. Hybrid ranking v1
 

@@ -314,3 +314,27 @@ class EntityResolveResponse(BaseModel):
     status: str
     normalized_value: str
     candidates: list[EntityResponse] = Field(default_factory=list)
+
+
+class EntityRelationCreateRequest(BaseModel):
+    source_entity_id: str = Field(min_length=1, max_length=36)
+    target_entity_id: str = Field(min_length=1, max_length=36)
+    relation_type: str = Field(min_length=1, max_length=128)
+    source_collection_id: str | None = Field(default=None, max_length=128)
+    resource_id: str | None = Field(default=None, max_length=64)
+    document_id: str | None = Field(default=None, max_length=64)
+    chunk_id: str | None = Field(default=None, max_length=64)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class EntityRelationResponse(BaseModel):
+    relation_id: str
+    source_entity_id: str
+    target_entity_id: str
+    relation_type: str
+    source_collection_id: str | None = None
+    resource_id: str | None = None
+    document_id: str | None = None
+    chunk_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: Any

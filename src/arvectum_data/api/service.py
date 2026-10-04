@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..acquisition import AcquisitionEngine
@@ -40,6 +40,7 @@ from ..storage.postgres import (
     DocumentRow,
     EntityAliasRow,
     EntityRow,
+    EntityRelationRow,
     PipelineRunRow,
     ResourceRow,
     RelevanceFeedbackRow,
@@ -860,6 +861,157 @@ class DataPlatformService:
                     for entity in rows
                 ],
             }
+
+    @staticmethod
+    def _relation_payload(row: EntityRelationRow) -> dict[str, Any]:
+        return {
+            "relation_id": row.relation_id,
+            "source_entity_id": row.source_entity_id,
+            "target_entity_id": row.target_entity_id,
+            "relation_type": row.relation_type,
+            "source_collection_id": row.source_collection_id,
+            "resource_id": row.resource_id,
+            "document_id": row.document_id,
+            "chunk_id": row.chunk_id,
+            "metadata": dict(row.metadata_json or {}),
+            "created_at": row.created_at,
+        }
+
+    def create_entity_relation(
+        self,
+        *,
+        source_entity_id: str,
+        target_entity_id: str,
+        relation_type: str,
+        source_collection_id: str | None = None,
+        resource_id: str | None = None,
+        document_id: str | None = None,
+        chunk_id: str | None = None,
+        metadata: Mapping[str, object] | None = None,
+    ) -> dict[str, Any]:
+        if source_entity_id == target_entity_id:
+            raise ValueError("entity relation cannot target the same entity")
+        normalized_type = relation_type.strip()
+        if not normalized_type:
+            raise ValueError("relation_type is required")
+
+        with self._require_factory()() as session:
+            if session.get(EntityRow, source_entity_id) is None:
+                raise EntityNotFound(source_entity_id)
+            if session.get(EntityRow, target_entity_id) is None:
+                raise EntityNotFound(target_entity_id)
+
+            resolved_collection = source_collection_id
+            resolved_resource = resource_id
+            resolved_document = document_id
+            resolved_chunk = chunk_id
+
+            if resolved_chunk is not None:
+                chunk = session.get(ChunkRow, resolved_chunk)
+                if chunk is None:
+                    raise ValueError("relation chunk does not exist")
+                if resolved_document is not None and resolved_document != chunk.document_id:
+                    raise ValueError("relation chunk/document mismatch")
+                resolved_document = chunk.document_id
+
+            if resolved_document is not None:
+                document = session.get(DocumentRow, resolved_document)
+                if document is None:
+                    raise ValueError("relation document does not exist")
+                if resolved_resource is not None and resolved_resource != document.resource_id:
+                    raise ValueError("relation document/resource mismatch")
+                resolved_resource = document.resource_id
+
+            if resolved_resource is not None:
+                resource = session.get(ResourceRow, resolved_resource)
+                if resource is None:
+                    raise ValueError("relation resource does not exist")
+                if (
+                    resolved_collection is not None
+                    and resolved_collection != resource.collection_id
+                ):
+                    raise ValueError("relation resource/collection mismatch")
+                resolved_collection = resource.collection_id
+            elif resolved_collection is not None:
+                if session.get(CollectionRow, resolved_collection) is None:
+                    raise CollectionNotFound(resolved_collection)
+
+            identity = "\n".join(
+                [
+                    source_entity_id,
+                    target_entity_id,
+                    normalized_type,
+                    resolved_collection or "",
+                    resolved_resource or "",
+                    resolved_document or "",
+                    resolved_chunk or "",
+                ]
+            )
+            relation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+            existing = session.get(EntityRelationRow, relation_id)
+            if existing is not None:
+                return self._relation_payload(existing)
+
+            row = EntityRelationRow(
+                relation_id=relation_id,
+                source_entity_id=source_entity_id,
+                target_entity_id=target_entity_id,
+                relation_type=normalized_type,
+                source_collection_id=resolved_collection,
+                resource_id=resolved_resource,
+                document_id=resolved_document,
+                chunk_id=resolved_chunk,
+                metadata_json=dict(metadata or {}),
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return self._relation_payload(row)
+
+    def list_entity_relations(
+        self,
+        entity_id: str,
+        *,
+        direction: str = "both",
+        relation_type: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        normalized_direction = direction.strip().lower()
+        if normalized_direction not in {"outbound", "inbound", "both"}:
+            raise ValueError("direction must be outbound, inbound or both")
+
+        with self._require_factory()() as session:
+            if session.get(EntityRow, entity_id) is None:
+                raise EntityNotFound(entity_id)
+
+            statement = select(EntityRelationRow)
+            if normalized_direction == "outbound":
+                statement = statement.where(
+                    EntityRelationRow.source_entity_id == entity_id
+                )
+            elif normalized_direction == "inbound":
+                statement = statement.where(
+                    EntityRelationRow.target_entity_id == entity_id
+                )
+            else:
+                statement = statement.where(
+                    or_(
+                        EntityRelationRow.source_entity_id == entity_id,
+                        EntityRelationRow.target_entity_id == entity_id,
+                    )
+                )
+            if relation_type:
+                statement = statement.where(
+                    EntityRelationRow.relation_type == relation_type.strip()
+                )
+            statement = statement.order_by(
+                EntityRelationRow.created_at.asc(),
+                EntityRelationRow.relation_id.asc(),
+            ).limit(max(1, min(limit, 500)))
+            return [
+                self._relation_payload(row)
+                for row in session.scalars(statement).all()
+            ]
 
     @staticmethod
     def _feedback_payload(row: RelevanceFeedbackRow) -> dict[str, Any]:

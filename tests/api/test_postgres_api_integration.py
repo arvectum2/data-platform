@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import uuid
 
 import pytest
 from alembic import command
@@ -213,6 +214,85 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
         hit["metadata"]["collection_id"] for hit in federation.json()["hits"]
     }
     assert {"api:docs", "api:protected"} <= federation_collections
+
+    first_entity = client.post(
+        "/v1/entities",
+        headers=headers,
+        json={
+            "entity_type": "supplier",
+            "canonical_name": "ООО Ромашка",
+            "aliases": [
+                {
+                    "alias_kind": "identifier",
+                    "value": "7701234567",
+                    "metadata": {"scheme": "inn"},
+                }
+            ],
+        },
+    )
+    assert first_entity.status_code == 200
+
+    second_entity = client.post(
+        "/v1/entities",
+        headers=headers,
+        json={
+            "entity_type": "supplier",
+            "canonical_name": "ООО   Ромашка",
+            "aliases": [
+                {
+                    "alias_kind": "identifier",
+                    "value": "7807654321",
+                    "metadata": {"scheme": "inn"},
+                }
+            ],
+        },
+    )
+    assert second_entity.status_code == 200
+
+    ambiguous = client.post(
+        "/v1/entities/resolve",
+        headers=headers,
+        json={
+            "entity_type": "supplier",
+            "value": "  ооо ромашка ",
+            "alias_kind": "name",
+        },
+    )
+    assert ambiguous.status_code == 200
+    ambiguous_payload = ambiguous.json()
+    assert ambiguous_payload["status"] == "ambiguous"
+    assert len(ambiguous_payload["candidates"]) == 2
+
+    resolved_identifier = client.post(
+        "/v1/entities/resolve",
+        headers=headers,
+        json={
+            "entity_type": "supplier",
+            "value": "7701234567",
+            "alias_kind": "identifier",
+        },
+    )
+    assert resolved_identifier.status_code == 200
+    resolved_payload = resolved_identifier.json()
+    assert resolved_payload["status"] == "resolved"
+    assert len(resolved_payload["candidates"]) == 1
+    assert (
+        resolved_payload["candidates"][0]["entity_id"]
+        == first_entity.json()["entity_id"]
+    )
+
+    unresolved = client.post(
+        "/v1/entities/resolve",
+        headers=headers,
+        json={
+            "entity_type": "supplier",
+            "value": "9999999999",
+            "alias_kind": "identifier",
+        },
+    )
+    assert unresolved.status_code == 200
+    assert unresolved.json()["status"] == "unresolved"
+    assert unresolved.json()["candidates"] == []
 
     top_hit = hits[0]
     feedback_query = "силовой кабель для промышленного объекта"
@@ -625,3 +705,145 @@ def test_entity_resolution_is_ambiguity_safe() -> None:
         and alias["value"] == "7701000001"
         for alias in aliases
     )
+
+def test_entity_relations_are_idempotent_and_provenance_checked() -> None:
+    database_url = _database_url()
+    os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url
+    command.upgrade(Config("alembic.ini"), "head")
+
+    app = create_app(
+        Settings(
+            environment="test",
+            log_level="WARNING",
+            database_url=database_url,
+            internal_api_key="test-secret",
+            embedding_provider="hashing",
+            embedding_model="entity-relation-test-hash",
+            embedding_dimension=32,
+        )
+    )
+    client = TestClient(app)
+    headers = {"X-Arvectum-Key": "test-secret"}
+
+    suffix = uuid.uuid4().hex[:8]
+    collection_id = f"relations:test:{suffix}"
+    created_collection = client.post(
+        "/v1/collections",
+        headers=headers,
+        json={
+            "collection_id": collection_id,
+            "owner": "tests",
+            "name": f"Relation test {suffix}",
+            "default_language": "russian",
+        },
+    )
+    assert created_collection.status_code == 200
+
+    ingested = client.post(
+        "/v1/ingest/document",
+        headers=headers,
+        data={
+            "collection_id": collection_id,
+            "canonical_uri": f"external-document://relations-{suffix}",
+            "pre_chunked": "true",
+        },
+        files={
+            "file": (
+                "relation.txt",
+                "ООО Ромашка поставляет кабель на объект.".encode("utf-8"),
+                "text/plain",
+            )
+        },
+    )
+    assert ingested.status_code == 200
+
+    searched = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "поставляет кабель",
+            "collections": [collection_id],
+            "mode": "hybrid",
+            "limit": 1,
+        },
+    )
+    assert searched.status_code == 200
+    hit = searched.json()["hits"][0]
+
+    source_entity = client.post(
+        "/v1/entities",
+        headers=headers,
+        json={
+            "entity_type": f"supplier-{suffix}",
+            "canonical_name": "ООО Ромашка",
+        },
+    )
+    assert source_entity.status_code == 200
+
+    target_entity = client.post(
+        "/v1/entities",
+        headers=headers,
+        json={
+            "entity_type": f"product-{suffix}",
+            "canonical_name": "Кабель ВВГнг",
+        },
+    )
+    assert target_entity.status_code == 200
+
+    relation_payload = {
+        "source_entity_id": source_entity.json()["entity_id"],
+        "target_entity_id": target_entity.json()["entity_id"],
+        "relation_type": "supplies",
+        "source_collection_id": collection_id,
+        "resource_id": hit["resource_id"],
+        "document_id": hit["document_id"],
+        "chunk_id": hit["chunk_id"],
+        "metadata": {"source": "postgres-integration"},
+    }
+
+    created_relation = client.post(
+        "/v1/entity-relations",
+        headers=headers,
+        json=relation_payload,
+    )
+    assert created_relation.status_code == 200
+    relation = created_relation.json()
+    assert relation["source_collection_id"] == collection_id
+    assert relation["chunk_id"] == hit["chunk_id"]
+
+    repeated_relation = client.post(
+        "/v1/entity-relations",
+        headers=headers,
+        json=relation_payload,
+    )
+    assert repeated_relation.status_code == 200
+    assert repeated_relation.json()["relation_id"] == relation["relation_id"]
+
+    outbound = client.get(
+        f"/v1/entities/{source_entity.json()['entity_id']}/relations"
+        "?direction=outbound&relation_type=supplies",
+        headers=headers,
+    )
+    assert outbound.status_code == 200
+    assert [item["relation_id"] for item in outbound.json()] == [
+        relation["relation_id"]
+    ]
+
+    inbound = client.get(
+        f"/v1/entities/{target_entity.json()['entity_id']}/relations"
+        "?direction=inbound&relation_type=supplies",
+        headers=headers,
+    )
+    assert inbound.status_code == 200
+    assert [item["relation_id"] for item in inbound.json()] == [
+        relation["relation_id"]
+    ]
+
+    mismatched = dict(relation_payload)
+    mismatched["document_id"] = "not-the-document"
+    invalid_relation = client.post(
+        "/v1/entity-relations",
+        headers=headers,
+        json=mismatched,
+    )
+    assert invalid_relation.status_code == 400

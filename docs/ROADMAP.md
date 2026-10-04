@@ -246,7 +246,7 @@ Collection stats expose first/last source observation, latest embedding time, la
 Only after three real consumers are integrated:
 
 - [x] entity resolution;
-- [ ] entity graph/relations;
+- [x] entity graph/relations;
 - [ ] benchmark-driven BM25 backend if needed;
 - [ ] learned reranker;
 - [ ] optional bounded LLM reranking;
@@ -262,6 +262,10 @@ Current benchmark evidence does not justify the deferred BM25 backend. On `lexic
 The first post-v1 evaluation harness is consumer-neutral and runs frozen JSON benchmarks against the HTTP search contract. It reports top-1 accuracy, MRR, hit-rate@3/@5, recall@5 and latency p50/p95/max, with CI-style minimum thresholds. Production snapshot production_acceptance_v1 contains nine accepted Tender/Growth cases; its first run on 2026-10-04 scored top-1=1.0, MRR=1.0, hit-rate@5=1.0 and mean recall@5=1.0, with about 103 ms p50 and 214 ms p95 latency. Relevance feedback capture is now durable and consumer-neutral: consumers can attach relevant / partially_relevant / not_relevant judgments to validated search-hit identities, list judgments, and inspect per-collection label summaries. Raw query text is not stored; only SHA-256 query_hash is persisted. Automatic learning/reranking from this feedback remains deliberately out of scope.
 
 Entity resolution is now deterministic and ambiguity-safe: exact normalized aliases return resolved, ambiguous, or unresolved; the platform never auto-merges multiple candidates. Canonical names are stored as name aliases, while stable identifiers can use separate alias kinds.
+
+Entity relations are now explicit, directed and provenance-aware. A relation links two existing entities with a relation type and may reference a validated collection/resource/document/chunk chain. Relation IDs are deterministic, repeated writes are idempotent, self-links are rejected, and the platform does not infer graph edges automatically from text.
+
+Entity graph relations are now explicit, evidence-aware and idempotent: relation IDs are deterministic over source/target/type plus evidence identity; inbound/outbound traversal is supported; provenance mismatches fail closed; the platform does not infer relations automatically.
 
 Federated cross-collection search now requires a consumer-scoped key. Collections can restrict access with allowed_consumers; protected single-collection search uses the same verified consumer identity. Authorization is fail-closed: an unauthorized collection returns 403 and is never silently omitted from a federated result set.
 

@@ -177,6 +177,35 @@ class FakePlatformService:
             "candidates": [candidate][:limit],
         }
 
+    def create_entity_relation(self, **kwargs):
+        return {
+            "relation_id": "r" * 64,
+            "source_entity_id": kwargs["source_entity_id"],
+            "target_entity_id": kwargs["target_entity_id"],
+            "relation_type": kwargs["relation_type"],
+            "source_collection_id": kwargs.get("source_collection_id"),
+            "resource_id": kwargs.get("resource_id"),
+            "document_id": kwargs.get("document_id"),
+            "chunk_id": kwargs.get("chunk_id"),
+            "metadata": dict(kwargs.get("metadata") or {}),
+            "created_at": "2026-10-04T10:00:00Z",
+        }
+
+    def list_entity_relations(
+        self,
+        entity_id,
+        *,
+        direction="both",
+        relation_type=None,
+        limit=100,
+    ):
+        relation = self.create_entity_relation(
+            source_entity_id=entity_id,
+            target_entity_id="entity-2",
+            relation_type=relation_type or "related_to",
+        )
+        return [relation][:limit]
+
     def record_relevance_feedback(self, **kwargs):
         return {
             "feedback_id": "feedback-1",
@@ -585,6 +614,35 @@ def test_entity_resolution_contract() -> None:
     assert resolved.json()["candidates"]
 
 
+def test_entity_relation_contract() -> None:
+    client = _client()
+    headers = {"X-Arvectum-Key": "secret"}
+
+    created = client.post(
+        "/v1/entity-relations",
+        headers=headers,
+        json={
+            "source_entity_id": "entity-1",
+            "target_entity_id": "entity-2",
+            "relation_type": "supplies",
+            "source_collection_id": "tests:knowledge",
+            "resource_id": "resource-1",
+            "document_id": "document-1",
+            "chunk_id": "chunk-1",
+            "metadata": {"source": "unit"},
+        },
+    )
+    assert created.status_code == 200
+    assert len(created.json()["relation_id"]) == 64
+
+    listed = client.get(
+        "/v1/entities/entity-1/relations?direction=outbound&relation_type=supplies",
+        headers=headers,
+    )
+    assert listed.status_code == 200
+    assert listed.json()[0]["relation_type"] == "supplies"
+
+
 def test_relevance_feedback_contract() -> None:
     client = _client()
     headers = {"X-Arvectum-Key": "secret"}
@@ -652,6 +710,8 @@ def test_openapi_exposes_core_v1_contract() -> None:
     assert "/v1/entities" in paths
     assert "/v1/entities/resolve" in paths
     assert "/v1/entities/{entity_id}" in paths
+    assert "/v1/entity-relations" in paths
+    assert "/v1/entities/{entity_id}/relations" in paths
     assert "/v1/feedback/relevance" in paths
     assert "/v1/connectors" in paths
     assert "/v1/discover" in paths

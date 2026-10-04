@@ -31,6 +31,8 @@ from .schemas import (
     DiscoveryRequest,
     DiscoveryResponse,
     EntityCreateRequest,
+    EntityRelationCreateRequest,
+    EntityRelationResponse,
     EntityResolveRequest,
     EntityResolveResponse,
     EntityResponse,
@@ -532,6 +534,51 @@ def create_app(
     ):
         try:
             return runtime_service.get_entity(entity_id)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/entity-relations",
+        response_model=EntityRelationResponse,
+        tags=["entities"],
+    )
+    def create_entity_relation_endpoint(
+        payload: EntityRelationCreateRequest,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.create_entity_relation(
+                source_entity_id=payload.source_entity_id,
+                target_entity_id=payload.target_entity_id,
+                relation_type=payload.relation_type,
+                source_collection_id=payload.source_collection_id,
+                resource_id=payload.resource_id,
+                document_id=payload.document_id,
+                chunk_id=payload.chunk_id,
+                metadata=payload.metadata,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.get(
+        "/entities/{entity_id}/relations",
+        response_model=list[EntityRelationResponse],
+        tags=["entities"],
+    )
+    def list_entity_relations_endpoint(
+        entity_id: str,
+        direction: str = "both",
+        relation_type: str | None = None,
+        limit: int = 100,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.list_entity_relations(
+                entity_id,
+                direction=direction,
+                relation_type=relation_type,
+                limit=limit,
+            )
         except Exception as exc:
             raise map_service_error(exc) from exc
 

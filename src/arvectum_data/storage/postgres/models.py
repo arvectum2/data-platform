@@ -339,6 +339,58 @@ class EntityAliasRow(Base):
         Index("ix_dp_entity_alias_entity", "entity_id"),
     )
 
+
+
+class EntityRelationRow(Base):
+    __tablename__ = "dp_entity_relations"
+
+    relation_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_entity_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_entities.entity_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    target_entity_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_entities.entity_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    relation_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    source_collection_id: Mapped[str | None] = mapped_column(
+        ForeignKey("dp_collections.collection_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    resource_id: Mapped[str | None] = mapped_column(
+        ForeignKey("dp_resources.resource_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    document_id: Mapped[str | None] = mapped_column(
+        ForeignKey("dp_documents.document_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    chunk_id: Mapped[str | None] = mapped_column(
+        ForeignKey("dp_chunks.chunk_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(
+        "metadata", JSON_TYPE, default=dict, nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_dp_entity_relations_source_type",
+            "source_entity_id",
+            "relation_type",
+        ),
+        Index(
+            "ix_dp_entity_relations_target_type",
+            "target_entity_id",
+            "relation_type",
+        ),
+        Index("ix_dp_entity_relations_chunk", "chunk_id"),
+    )
+
 class RelevanceFeedbackRow(Base):
     __tablename__ = "dp_relevance_feedback"
 
