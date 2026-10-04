@@ -17,3 +17,13 @@ Product-coupled acceptance/parity tests intentionally remain in Discount Parser:
 - test_source_parity_telemetry.py
 
 Those tests depend on Discount Parser source adapters, configuration, parity telemetry or CLI and therefore validate the consumer integration rather than the neutral platform package.
+
+
+### Consumer cutover
+
+- Data Platform canonical commit: a591256f50a21b8618639129eccb15eb214204d5
+- Discount Parser cutover commit: e0e303999e8fb1c2d6665f9013d3ad0d7ea1c2d7
+- dependency form: pinned public Git VCS dependency
+- focused consumer verification: 289 tests passed
+- full Discount Parser regression: 634 tests passed
+- vendored arvectum_data package removed from Discount Parser after acceptance

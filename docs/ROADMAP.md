@@ -31,7 +31,7 @@ Gate: clean checkout -> install -> pytest -> /health = ok.
 
 ## DP-MIG-001 — promote generic extraction engine
 
-Status: CORE PROMOTION COMPLETE; consumer cutover pending.
+Status: COMPLETE.
 
 Source: discount-parser/arvectum_data.
 
@@ -41,9 +41,9 @@ Source: discount-parser/arvectum_data.
 - [x] preserve public Python imports;
 - [x] reproduce acquisition/crawl/extraction/multi-record/persistence/review/execution behavior;
 - [x] establish Data Platform repository as canonical implementation;
-- [ ] make Discount Parser consume arvectum-data;
-- [ ] run product regressions;
-- [ ] remove duplicate only after acceptance.
+- [x] make Discount Parser consume arvectum-data pinned to canonical commit a591256;
+- [x] run product regressions: 289 DP-engine tests and 634 full product tests passed;
+- [x] remove duplicate only after acceptance; Discount Parser commit e0e3039.
 
 Gate: promoted tests green and offline URL/HTML extraction works end-to-end without Discount Parser imports.
 
