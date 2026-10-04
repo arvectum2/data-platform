@@ -14,6 +14,12 @@ from sqlalchemy.orm import Session, sessionmaker
 from ..acquisition import AcquisitionEngine
 from ..acquisition.security import UnsafeURL, validate_public_url
 from ..documents import ingest_file, ingest_url
+from ..connectors import (
+    ConnectorRegistry,
+    DuckDuckGoHTMLConnector,
+    ManualURLConnector,
+    SitemapConnector,
+)
 from ..engine import AutoDiscoveryProvider, ExtractionEngine, FieldSpec, RawAsset
 from ..orchestration import URLExtractionPipeline
 from ..indexing import (
@@ -83,9 +89,11 @@ class DataPlatformService:
         session_factory: sessionmaker[Session] | None = None,
         embedding_provider: BaseEmbeddingProvider | None = None,
         acquisition: AcquisitionEngine | None = None,
+        connector_registry: ConnectorRegistry | None = None,
     ) -> None:
         self.settings = settings
         self.acquisition = acquisition
+        self.connector_registry = connector_registry or self._default_connector_registry()
         self.embedding_provider = embedding_provider or build_embedding_provider(
             EmbeddingConfig(
                 provider=settings.embedding_provider,
@@ -101,6 +109,40 @@ class DataPlatformService:
             self.session_factory = build_session_factory(build_engine(settings.database_url))
         else:
             self.session_factory = None
+
+    @staticmethod
+    def _default_connector_registry() -> ConnectorRegistry:
+        registry = ConnectorRegistry()
+        registry.register(ManualURLConnector())
+        registry.register(SitemapConnector())
+        registry.register(DuckDuckGoHTMLConnector())
+        return registry
+
+    def connector_status(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": item.name,
+                "state": item.state.value,
+                "capabilities": list(item.capabilities),
+                "detail": item.detail,
+                "metadata": dict(item.metadata),
+            }
+            for item in self.connector_registry.health()
+        ]
+
+    def discover(
+        self,
+        *,
+        connector_name: str,
+        query: str,
+        cursor: str | None = None,
+        limit: int = 10,
+    ):
+        connector = self.connector_registry.get(connector_name)
+        discover = getattr(connector, "discover", None)
+        if discover is None:
+            raise ValueError(f"connector {connector_name!r} does not support discovery")
+        return discover(query, cursor=cursor, limit=limit)
 
     def _require_factory(self) -> sessionmaker[Session]:
         if self.session_factory is None:

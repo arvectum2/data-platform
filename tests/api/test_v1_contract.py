@@ -64,6 +64,32 @@ class FakePlatformService:
             "canonical_uri": url,
         }
 
+    def connector_status(self):
+        return [
+            {
+                "name": "fake",
+                "state": "ready",
+                "capabilities": ["discover"],
+                "detail": "test connector",
+                "metadata": {},
+            }
+        ]
+
+    def discover(self, *, connector_name, query, cursor=None, limit=10):
+        from arvectum_data.connectors import DiscoveryPage, DiscoveredResource
+
+        assert connector_name == "fake"
+        return DiscoveryPage(
+            resources=(
+                DiscoveredResource(
+                    canonical_uri="https://example.com/result",
+                    provider="fake",
+                    title=query,
+                    rank=1,
+                ),
+            )
+        )
+
     def rebuild_index(self, collection_id):
         return {
             "run_id": "job-1",
@@ -223,6 +249,8 @@ def test_openapi_exposes_core_v1_contract() -> None:
     assert "/v1/ingest/url" in paths
     assert "/v1/ingest/document" in paths
     assert "/v1/search" in paths
+    assert "/v1/connectors" in paths
+    assert "/v1/discover" in paths
     assert "/v1/extract" in paths
 
 
@@ -254,6 +282,25 @@ def test_url_guard_rejects_loopback() -> None:
         pass
     else:
         raise AssertionError("loopback URL must be rejected")
+
+
+def test_connector_discovery_contract() -> None:
+    client = _client()
+    headers = {"X-Arvectum-Key": "secret"}
+
+    status = client.get("/v1/connectors", headers=headers)
+    assert status.status_code == 200
+    assert status.json()[0]["name"] == "fake"
+
+    discovered = client.post(
+        "/v1/discover",
+        headers=headers,
+        json={"connector": "fake", "query": "needle", "limit": 5},
+    )
+    assert discovered.status_code == 200
+    item = discovered.json()["resources"][0]
+    assert item["canonical_uri"] == "https://example.com/result"
+    assert item["title"] == "needle"
 
 
 def test_openapi_exposes_stable_v1_paths() -> None:

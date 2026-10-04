@@ -156,3 +156,35 @@ class IndexJobResponse(BaseModel):
     metrics: dict[str, Any] = Field(default_factory=dict)
     started_at: Any
     completed_at: Any | None = None
+
+
+class ConnectorHealthResponse(BaseModel):
+    name: str
+    state: str
+    capabilities: list[str]
+    detail: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class DiscoveryRequest(BaseModel):
+    connector: str = Field(min_length=1, max_length=128)
+    query: str = Field(min_length=1)
+    cursor: str | None = None
+    limit: int = Field(default=10, ge=1, le=200)
+
+
+class DiscoveredResourceResponse(BaseModel):
+    canonical_uri: str
+    provider: str
+    source_type: str
+    external_id: str | None = None
+    title: str | None = None
+    snippet: str | None = None
+    rank: int | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class DiscoveryResponse(BaseModel):
+    resources: list[DiscoveredResourceResponse]
+    next_cursor: str | None = None
+    warnings: list[str] = Field(default_factory=list)

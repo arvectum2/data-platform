@@ -25,6 +25,9 @@ from .config import Settings
 from .schemas import (
     CollectionCreateRequest,
     CollectionResponse,
+    ConnectorHealthResponse,
+    DiscoveryRequest,
+    DiscoveryResponse,
     ExtractDecisionResponse,
     ExtractRequest,
     ExtractResponse,
@@ -269,6 +272,56 @@ def create_app(
                 )
                 for hit in hits
             ],
+        )
+
+    @router.get(
+        "/connectors",
+        response_model=list[ConnectorHealthResponse],
+        tags=["connectors"],
+    )
+    def connector_status_endpoint(runtime_service=Depends(runtime)):
+        try:
+            return runtime_service.connector_status()
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/discover",
+        response_model=DiscoveryResponse,
+        tags=["connectors"],
+    )
+    def discover_endpoint(
+        payload: DiscoveryRequest,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            page = runtime_service.discover(
+                connector_name=payload.connector,
+                query=payload.query,
+                cursor=payload.cursor,
+                limit=payload.limit,
+            )
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="connector not found") from exc
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+        return DiscoveryResponse(
+            resources=[
+                {
+                    "canonical_uri": item.canonical_uri,
+                    "provider": item.provider,
+                    "source_type": item.source_type,
+                    "external_id": item.external_id,
+                    "title": item.title,
+                    "snippet": item.snippet,
+                    "rank": item.rank,
+                    "metadata": dict(item.metadata),
+                }
+                for item in page.resources
+            ],
+            next_cursor=page.next_cursor,
+            warnings=list(page.warnings),
         )
 
     @router.post(

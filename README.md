@@ -70,6 +70,7 @@ sources / URLs / APIs / files
 - [Reuse audit](docs/REUSE_AUDIT.md)
 - [Architecture v1](docs/ARCHITECTURE_V1.md)
 - [Migration roadmap](docs/ROADMAP.md)
+- [Connector SDK](docs/CONNECTORS.md)
 - [ADR-0001: platform boundary and migration strategy](docs/adr/0001-platform-boundary.md)
 
 ## Immediate next milestone

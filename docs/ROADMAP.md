@@ -131,27 +131,30 @@ Gate: lexical and vector retrieval run simultaneously, collection isolation is e
 
 ## DP-API-001 — service v1
 
-Status: CORE API COMPLETE; durable index-job lifecycle remains.
+Status: COMPLETE.
 
 - [x] collections API;
 - [x] ingest URL/document API;
 - [x] extraction API;
 - [x] search API;
-- [ ] index jobs/status;
+- [x] durable index rebuild jobs/status with revision + metrics;
 - [x] request IDs/basic service metrics;
 - [x] internal API-key auth boundary;
 - [x] OpenAPI contract tests.
 
 ## DP-CONN-001 — connector SDK + generic web discovery
 
-- [ ] discover/fetch protocols;
-- [ ] registry;
-- [ ] manual URL;
-- [ ] sitemap/site crawler;
-- [ ] generic web search;
-- [ ] rate limit/retry;
-- [x] SSRF/private-network guard;
-- [ ] health/status.
+Status: COMPLETE.
+
+- [x] discover/fetch protocols;
+- [x] registry;
+- [x] manual URL;
+- [x] sitemap-first discovery with bounded site-crawl fallback;
+- [x] generic web search via product-neutral DuckDuckGo Lite connector;
+- [x] rate limit/retry policy;
+- [x] SSRF/private-network guard including redirect validation for connector HTTP;
+- [x] connector health/status registry and /v1/connectors API;
+- [x] /v1/discover service API.
 
 44-FZ/223-FZ/EIS stay product-specific initially.
 
