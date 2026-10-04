@@ -207,13 +207,17 @@ This integration is retrieval-only. It does not authorize autonomous M-049 Agent
 
 ## DP-INT-003 — Growth / SEO consumer
 
-- [ ] arvectum.com site collection;
+Status: SITE SEARCH CONSUMER MERGED AND PRODUCTION-ACCEPTED; external discovery-result acceptance and research collections pending.
+
+- [x] arvectum.com site collection;
 - [ ] app/product metadata collections;
 - [ ] competitor/research collection;
-- [ ] web discovery workflow;
-- [ ] crawl/index change detection;
-- [ ] Growth Agent Search API client;
-- [ ] provenance-backed results.
+- [~] web discovery workflow — consumer CLI implemented; connector registry healthy, but live DuckDuckGo smoke returned zero resources;
+- [x] crawl/index change detection;
+- [x] Growth Agent Search API client;
+- [x] provenance-backed results.
+
+Arvectum Site PR #2 (merge b6630c0) indexes canonical pages from public/sitemap.xml into deterministic versioned collections and switches the active revision only after collection statistics verify complete indexing. Production acceptance on 2026-10-04 indexed 44 resources / 44 documents / 158 chunks / 158 embeddings into growth:arvectum-site:8f0e23f96d45b1b9. Procurement intent ranked the tender-department page first; Photo Size intent ranked the product landing page first; every result carried canonical URL plus Data Platform resource/document/chunk evidence. A repeated index run detected no content changes and performed no writes.
 
 ## DP-OPS-001 — operational hardening
 
