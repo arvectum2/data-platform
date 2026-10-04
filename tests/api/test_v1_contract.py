@@ -64,6 +64,26 @@ class FakePlatformService:
             "canonical_uri": url,
         }
 
+    def rebuild_index(self, collection_id):
+        return {
+            "run_id": "job-1",
+            "collection_id": collection_id,
+            "run_type": "reindex",
+            "revision": "revision-1",
+            "status": "completed",
+            "metrics": {"chunks_seen": 1, "embeddings_written": 1},
+            "started_at": "2026-10-04T10:00:00Z",
+            "completed_at": "2026-10-04T10:00:01Z",
+        }
+
+    def get_index_job(self, run_id):
+        result = self.rebuild_index("tests:knowledge")
+        result["run_id"] = run_id
+        return result
+
+    def list_index_jobs(self, *, collection_id=None, limit=50):
+        return [self.rebuild_index(collection_id or "tests:knowledge")]
+
     def search(self, request):
         return [
             SearchHit(
@@ -245,3 +265,27 @@ def test_openapi_exposes_stable_v1_paths() -> None:
     assert "/v1/ingest/document" in paths
     assert "/v1/extract" in paths
     assert "/v1/search" in paths
+
+
+def test_index_job_contracts() -> None:
+    client = _client()
+    headers = {"X-Arvectum-Key": "secret"}
+
+    rebuilt = client.post(
+        "/v1/index/rebuild",
+        headers=headers,
+        json={"collection_id": "tests:knowledge"},
+    )
+    assert rebuilt.status_code == 200
+    assert rebuilt.json()["status"] == "completed"
+
+    job = client.get("/v1/index/jobs/job-1", headers=headers)
+    assert job.status_code == 200
+    assert job.json()["metrics"]["embeddings_written"] == 1
+
+    jobs = client.get(
+        "/v1/index/jobs?collection_id=tests%3Aknowledge",
+        headers=headers,
+    )
+    assert jobs.status_code == 200
+    assert jobs.json()[0]["collection_id"] == "tests:knowledge"

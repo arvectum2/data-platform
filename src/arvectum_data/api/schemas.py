@@ -141,3 +141,18 @@ class StatusResponse(BaseModel):
     embedding_dimension: int | None
     metrics: dict[str, int] = Field(default_factory=dict)
     requests: int = 0
+
+
+class IndexRebuildRequest(BaseModel):
+    collection_id: str = Field(min_length=1, max_length=128)
+
+
+class IndexJobResponse(BaseModel):
+    run_id: str
+    collection_id: str
+    run_type: str
+    revision: str
+    status: str
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    started_at: Any
+    completed_at: Any | None = None

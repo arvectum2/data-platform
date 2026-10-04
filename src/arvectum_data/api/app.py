@@ -28,6 +28,8 @@ from .schemas import (
     ExtractDecisionResponse,
     ExtractRequest,
     ExtractResponse,
+    IndexJobResponse,
+    IndexRebuildRequest,
     IngestResponse,
     SearchHitResponse,
     SearchRequest,
@@ -39,6 +41,7 @@ from .service import (
     CollectionNotFound,
     DataPlatformService,
     EmbeddingContractMismatch,
+    IndexJobNotFound,
     PlatformNotConfigured,
 )
 
@@ -99,6 +102,8 @@ def create_app(
             return HTTPException(status_code=503, detail=str(exc))
         if isinstance(exc, CollectionNotFound):
             return HTTPException(status_code=404, detail="collection not found")
+        if isinstance(exc, IndexJobNotFound):
+            return HTTPException(status_code=404, detail="index job not found")
         if isinstance(exc, (EmbeddingContractMismatch, UnsafeURL, ValueError)):
             return HTTPException(status_code=400, detail=str(exc))
         return HTTPException(status_code=500, detail="internal data platform error")
@@ -265,6 +270,52 @@ def create_app(
                 for hit in hits
             ],
         )
+
+    @router.post(
+        "/index/rebuild",
+        response_model=IndexJobResponse,
+        tags=["index"],
+    )
+    def rebuild_index_endpoint(
+        payload: IndexRebuildRequest,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.rebuild_index(payload.collection_id)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.get(
+        "/index/jobs/{run_id}",
+        response_model=IndexJobResponse,
+        tags=["index"],
+    )
+    def get_index_job_endpoint(
+        run_id: str,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.get_index_job(run_id)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.get(
+        "/index/jobs",
+        response_model=list[IndexJobResponse],
+        tags=["index"],
+    )
+    def list_index_jobs_endpoint(
+        collection_id: str | None = None,
+        limit: int = 50,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.list_index_jobs(
+                collection_id=collection_id,
+                limit=limit,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
 
     @router.post(
         "/extract",

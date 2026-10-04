@@ -83,6 +83,24 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert hits[0]["scores"]["vector"] is not None
     assert hits[0]["evidence"][0]["canonical_uri"] == "upload://cable.txt"
 
+    rebuilt = client.post(
+        "/v1/index/rebuild",
+        headers=headers,
+        json={"collection_id": "api:docs"},
+    )
+    assert rebuilt.status_code == 200
+    job = rebuilt.json()
+    assert job["status"] == "completed"
+    assert job["metrics"]["chunks_seen"] > 0
+    assert job["metrics"]["embeddings_written"] == job["metrics"]["chunks_seen"]
+
+    fetched_job = client.get(
+        f"/v1/index/jobs/{job['run_id']}",
+        headers=headers,
+    )
+    assert fetched_job.status_code == 200
+    assert fetched_job.json()["revision"] == job["revision"]
+
     missing_scope = client.post(
         "/v1/search",
         headers=headers,

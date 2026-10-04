@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import os
 import tempfile
+import uuid
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,8 +23,12 @@ from ..indexing import (
 )
 from ..search import HybridSearchEngine, PostgresSearchBackend, SearchHit, SearchQuery
 from ..storage.postgres import (
+    ChunkRow,
     CollectionRow,
     DataRepository,
+    DocumentRow,
+    PipelineRunRow,
+    ResourceRow,
     build_engine,
     build_session_factory,
 )
@@ -48,6 +54,11 @@ class CollectionNotFound(LookupError):
 
 
 class EmbeddingContractMismatch(RuntimeError):
+    pass
+
+
+
+class IndexJobNotFound(LookupError):
     pass
 
 
@@ -273,6 +284,120 @@ class DataPlatformService:
                 embedding_provider=self.embedding_provider,
             )
             return engine.search(request)
+
+
+
+    @staticmethod
+    def _job_payload(row: PipelineRunRow) -> dict[str, Any]:
+        return {
+            "run_id": row.run_id,
+            "collection_id": row.collection_id,
+            "run_type": row.run_type,
+            "revision": row.revision,
+            "status": row.status,
+            "metrics": dict(row.metrics_json or {}),
+            "started_at": row.started_at,
+            "completed_at": row.completed_at,
+        }
+
+    def rebuild_index(self, collection_id: str) -> dict[str, Any]:
+        factory = self._require_factory()
+        run_id = str(uuid.uuid4())
+        revision = str(uuid.uuid4())
+
+        with factory() as session:
+            collection = session.get(CollectionRow, collection_id)
+            if collection is None:
+                raise CollectionNotFound(collection_id)
+            self._validate_embedding_contract(collection)
+            run = PipelineRunRow(
+                run_id=run_id,
+                collection_id=collection_id,
+                run_type="reindex",
+                revision=revision,
+                status="running",
+                metrics_json={},
+                started_at=datetime.now(UTC),
+            )
+            session.add(run)
+            session.commit()
+
+        try:
+            with factory() as session:
+                collection = session.get(CollectionRow, collection_id)
+                if collection is None:
+                    raise CollectionNotFound(collection_id)
+                self._validate_embedding_contract(collection)
+                chunks = list(
+                    session.scalars(
+                        select(ChunkRow)
+                        .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                        .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                        .where(ResourceRow.collection_id == collection_id)
+                        .order_by(ChunkRow.chunk_id.asc())
+                    )
+                )
+                vectors = self.embedding_provider.embed_texts(
+                    [chunk.text for chunk in chunks]
+                )
+                if len(vectors) != len(chunks):
+                    raise RuntimeError("embedding provider returned unexpected vector count")
+
+                repo = DataRepository(session)
+                for chunk, vector in zip(chunks, vectors):
+                    repo.upsert_embedding(
+                        chunk_id=chunk.chunk_id,
+                        provider=self.embedding_provider.provider_name,
+                        model=self.embedding_provider.model_name,
+                        vector=vector,
+                    )
+
+                run = session.get(PipelineRunRow, run_id)
+                if run is None:
+                    raise RuntimeError("reindex run disappeared")
+                run.status = "completed"
+                run.metrics_json = {
+                    "chunks_seen": len(chunks),
+                    "embeddings_written": len(vectors),
+                }
+                run.completed_at = datetime.now(UTC)
+                collection.active_index_revision = revision
+                session.commit()
+                return self._job_payload(run)
+        except Exception as exc:
+            with factory() as session:
+                run = session.get(PipelineRunRow, run_id)
+                if run is not None:
+                    run.status = "failed"
+                    run.metrics_json = {"error_type": type(exc).__name__}
+                    run.completed_at = datetime.now(UTC)
+                    session.commit()
+            raise
+
+    def get_index_job(self, run_id: str) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            row = session.get(PipelineRunRow, run_id)
+            if row is None:
+                raise IndexJobNotFound(run_id)
+            return self._job_payload(row)
+
+    def list_index_jobs(
+        self,
+        *,
+        collection_id: str | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        with self._require_factory()() as session:
+            statement = select(PipelineRunRow)
+            if collection_id:
+                statement = statement.where(
+                    PipelineRunRow.collection_id == collection_id
+                )
+            statement = statement.order_by(
+                PipelineRunRow.started_at.desc(),
+                PipelineRunRow.run_id.asc(),
+            ).limit(max(1, min(limit, 100)))
+            return [self._job_payload(row) for row in session.scalars(statement)]
 
     def extract_url(
         self,
