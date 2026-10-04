@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from arvectum_data.api.app import create_app
 from arvectum_data.api.config import Settings
+from arvectum_data.indexing import EmbeddingServerUnavailableError
 
 
 pytestmark = pytest.mark.postgres
@@ -35,6 +36,9 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
             embedding_provider="hashing",
             embedding_model="api-test-hash",
             embedding_dimension=64,
+            embedding_retry_max_attempts=3,
+            embedding_retry_base_delay_seconds=0,
+            embedding_retry_max_delay_seconds=0,
         )
     )
     client = TestClient(app)
@@ -219,6 +223,120 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert jobs_after_failure[0]["status"] == "failed"
     assert jobs_after_failure[0]["revision"] != job["revision"]
     assert jobs_after_failure[0]["metrics"]["error_type"] == "RuntimeError"
+    failed_run_id = jobs_after_failure[0]["run_id"]
+
+    class FlakyEmbeddingProvider:
+        provider_name = original_provider.provider_name
+        model_name = original_provider.model_name
+        dimension = original_provider.dimension
+
+        def __init__(self):
+            self.calls = 0
+
+        def embed_texts(self, texts):
+            self.calls += 1
+            if self.calls < 3:
+                raise EmbeddingServerUnavailableError("synthetic transient outage")
+            return original_provider.embed_texts(texts)
+
+        def embed_query(self, text):
+            return original_provider.embed_query(text)
+
+    flaky_provider = FlakyEmbeddingProvider()
+    app.state.platform_service.embedding_provider = flaky_provider
+    recovered_rebuild = client.post(
+        "/v1/index/rebuild",
+        headers=headers,
+        json={"collection_id": "api:docs"},
+    )
+    assert recovered_rebuild.status_code == 200
+    recovered_job = recovered_rebuild.json()
+    assert recovered_job["run_id"] == failed_run_id
+    assert recovered_job["status"] == "completed"
+    assert recovered_job["metrics"]["embedding_attempts"] == 3
+    assert flaky_provider.calls == 3
+    recovered_revision = recovered_job["revision"]
+
+    stats_after_recovery = client.get(
+        "/v1/collections/api:docs/stats",
+        headers=headers,
+    )
+    assert stats_after_recovery.status_code == 200
+    assert stats_after_recovery.json()["active_index_revision"] == recovered_revision
+
+    app.state.platform_service.embedding_provider = original_provider
+    third_content = (
+        "Третий документ меняет ревизию индекса и проверяет dead letter. " * 20
+    ).encode("utf-8")
+    third_ingest = client.post(
+        "/v1/ingest/document",
+        headers=headers,
+        data={
+            "collection_id": "api:docs",
+            "canonical_uri": "external-document://cable-3",
+            "pre_chunked": "true",
+        },
+        files={"file": ("cable-3.txt", third_content, "text/plain")},
+    )
+    assert third_ingest.status_code == 200
+
+    class UnavailableEmbeddingProvider:
+        provider_name = original_provider.provider_name
+        model_name = original_provider.model_name
+        dimension = original_provider.dimension
+
+        def __init__(self):
+            self.calls = 0
+
+        def embed_texts(self, texts):
+            self.calls += 1
+            raise EmbeddingServerUnavailableError("synthetic persistent outage")
+
+        def embed_query(self, text):
+            raise EmbeddingServerUnavailableError("synthetic persistent outage")
+
+    unavailable_provider = UnavailableEmbeddingProvider()
+    app.state.platform_service.embedding_provider = unavailable_provider
+    dead_letter_response = client.post(
+        "/v1/index/rebuild",
+        headers=headers,
+        json={"collection_id": "api:docs"},
+    )
+    assert dead_letter_response.status_code == 500
+    assert unavailable_provider.calls == 3
+
+    jobs_after_dead_letter = app.state.platform_service.list_index_jobs(
+        collection_id="api:docs"
+    )
+    dead_letter_job = next(
+        item for item in jobs_after_dead_letter if item["status"] == "dead_letter"
+    )
+    assert dead_letter_job["metrics"]["error_type"] == "EmbeddingServerUnavailableError"
+    assert dead_letter_job["metrics"]["embedding_attempts"] == 3
+    assert dead_letter_job["metrics"]["dead_letter"] is True
+
+    stats_after_dead_letter = client.get(
+        "/v1/collections/api:docs/stats",
+        headers=headers,
+    )
+    assert stats_after_dead_letter.status_code == 200
+    assert (
+        stats_after_dead_letter.json()["active_index_revision"]
+        == recovered_revision
+    )
+
+    app.state.platform_service.embedding_provider = original_provider
+    replayed_dead_letter = client.post(
+        "/v1/index/rebuild",
+        headers=headers,
+        json={"collection_id": "api:docs"},
+    )
+    assert replayed_dead_letter.status_code == 200
+    replayed_job = replayed_dead_letter.json()
+    assert replayed_job["run_id"] == dead_letter_job["run_id"]
+    assert replayed_job["revision"] == dead_letter_job["revision"]
+    assert replayed_job["status"] == "completed"
+    assert replayed_job["metrics"]["embedding_attempts"] == 1
 
     missing_scope = client.post(
         "/v1/search",

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import tempfile
+import time
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
@@ -26,6 +27,7 @@ from ..orchestration import URLExtractionPipeline
 from ..indexing import (
     BaseEmbeddingProvider,
     EmbeddingConfig,
+    EmbeddingServerUnavailableError,
     build_embedding_provider,
 )
 from ..search import HybridSearchEngine, PostgresSearchBackend, SearchHit, SearchQuery
@@ -369,6 +371,28 @@ class DataPlatformService:
                 f"{expected!r} does not match runtime {actual!r}"
             )
 
+    def _embed_texts_with_retry(
+        self,
+        texts: list[str],
+    ) -> tuple[list[list[float]], int]:
+        if not texts:
+            return [], 0
+        max_attempts = self.settings.embedding_retry_max_attempts
+        for attempt in range(1, max_attempts + 1):
+            try:
+                return self.embedding_provider.embed_texts(texts), attempt
+            except EmbeddingServerUnavailableError:
+                if attempt >= max_attempts:
+                    raise
+                delay = min(
+                    self.settings.embedding_retry_max_delay_seconds,
+                    self.settings.embedding_retry_base_delay_seconds
+                    * (2 ** (attempt - 1)),
+                )
+                if delay > 0:
+                    time.sleep(delay)
+        raise RuntimeError("embedding retry loop exited unexpectedly")
+
     def _persist_and_index(self, result) -> dict[str, Any]:
         if len(result.chunks) > self.settings.max_chunks_per_ingest:
             raise ValueError(
@@ -393,7 +417,7 @@ class DataPlatformService:
                 for chunk in result.chunks
                 if chunk.chunk_id not in existing_embedding_ids
             ]
-            vectors = self.embedding_provider.embed_texts(
+            vectors, embedding_attempts = self._embed_texts_with_retry(
                 [chunk.text for chunk in pending_chunks]
             )
             if len(vectors) != len(pending_chunks):
@@ -425,6 +449,7 @@ class DataPlatformService:
                 "embeddings": len(result.chunks),
                 "embeddings_written": len(vectors),
                 "embeddings_skipped_existing": len(existing_embedding_ids),
+                "embedding_attempts": embedding_attempts,
                 "canonical_uri": result.resource.canonical_uri,
                 "extraction_status": result.document.extraction_status,
             }
@@ -498,44 +523,52 @@ class DataPlatformService:
                 )
             )
             revision = self._index_revision(collection, chunks)
-            if collection.active_index_revision == revision:
-                existing_run = session.scalar(
-                    select(PipelineRunRow)
-                    .where(
-                        PipelineRunRow.collection_id == collection_id,
-                        PipelineRunRow.run_type == "reindex",
-                        PipelineRunRow.revision == revision,
-                        PipelineRunRow.status == "completed",
-                    )
-                    .order_by(PipelineRunRow.completed_at.desc())
-                    .limit(1)
+            existing_run = session.scalar(
+                select(PipelineRunRow)
+                .where(
+                    PipelineRunRow.collection_id == collection_id,
+                    PipelineRunRow.run_type == "reindex",
+                    PipelineRunRow.revision == revision,
                 )
-                if existing_run is not None:
-                    return self._job_payload(existing_run)
-
-            run = PipelineRunRow(
-                run_id=run_id,
-                collection_id=collection_id,
-                run_type="reindex",
-                revision=revision,
-                status="running",
-                metrics_json={},
-                started_at=datetime.now(UTC),
+                .limit(1)
             )
-            session.add(run)
 
-            if collection.active_index_revision == revision:
-                run.status = "completed"
-                run.metrics_json = {
-                    "chunks_seen": len(chunks),
-                    "embeddings_written": 0,
-                    "skipped_unchanged": True,
-                }
-                run.completed_at = datetime.now(UTC)
+            if existing_run is not None:
+                if (
+                    collection.active_index_revision == revision
+                    and existing_run.status == "completed"
+                ):
+                    return self._job_payload(existing_run)
+                if existing_run.status in {"failed", "dead_letter"}:
+                    run = existing_run
+                    run_id = run.run_id
+                    run.status = "running"
+                    run.metrics_json = {}
+                    run.started_at = datetime.now(UTC)
+                    run.completed_at = None
+                elif existing_run.status == "running":
+                    return self._job_payload(existing_run)
+                elif existing_run.status == "completed":
+                    collection.active_index_revision = revision
+                    session.commit()
+                    return self._job_payload(existing_run)
+                else:
+                    raise RuntimeError(
+                        f"unsupported reindex job status: {existing_run.status}"
+                    )
+            else:
+                run = PipelineRunRow(
+                    run_id=run_id,
+                    collection_id=collection_id,
+                    run_type="reindex",
+                    revision=revision,
+                    status="running",
+                    metrics_json={},
+                    started_at=datetime.now(UTC),
+                )
+                session.add(run)
 
             session.commit()
-            if run.status == "completed":
-                return self._job_payload(run)
 
         try:
             with factory() as session:
@@ -556,7 +589,7 @@ class DataPlatformService:
                 if current_revision != revision:
                     raise RuntimeError("collection changed before reindex execution")
 
-                vectors = self.embedding_provider.embed_texts(
+                vectors, embedding_attempts = self._embed_texts_with_retry(
                     [chunk.text for chunk in chunks]
                 )
                 if len(vectors) != len(chunks):
@@ -590,6 +623,7 @@ class DataPlatformService:
                 run.metrics_json = {
                     "chunks_seen": len(chunks),
                     "embeddings_written": len(vectors),
+                    "embedding_attempts": embedding_attempts,
                     "skipped_unchanged": False,
                 }
                 run.completed_at = datetime.now(UTC)
@@ -597,11 +631,21 @@ class DataPlatformService:
                 session.commit()
                 return self._job_payload(run)
         except Exception as exc:
+            dead_letter = isinstance(exc, EmbeddingServerUnavailableError)
+            attempts = (
+                self.settings.embedding_retry_max_attempts
+                if dead_letter
+                else 1
+            )
             with factory() as session:
                 run = session.get(PipelineRunRow, run_id)
                 if run is not None:
-                    run.status = "failed"
-                    run.metrics_json = {"error_type": type(exc).__name__}
+                    run.status = "dead_letter" if dead_letter else "failed"
+                    run.metrics_json = {
+                        "error_type": type(exc).__name__,
+                        "embedding_attempts": attempts,
+                        "dead_letter": dead_letter,
+                    }
                     run.completed_at = datetime.now(UTC)
                     session.commit()
             raise

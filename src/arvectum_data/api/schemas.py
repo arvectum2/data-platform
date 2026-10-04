@@ -59,6 +59,7 @@ class IngestResponse(BaseModel):
     embeddings: int = 0
     embeddings_written: int | None = None
     embeddings_skipped_existing: int = 0
+    embedding_attempts: int = 0
     canonical_uri: str | None = None
     extraction_status: str = "unknown"
 

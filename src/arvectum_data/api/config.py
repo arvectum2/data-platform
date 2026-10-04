@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     embedding_base_url: str = "http://127.0.0.1:8090/v1"
     embedding_timeout_seconds: int = 60
     embedding_dimension: str | int | None = 256
+    embedding_retry_max_attempts: int = Field(default=3, ge=1, le=10)
+    embedding_retry_base_delay_seconds: float = Field(default=0.25, ge=0.0)
+    embedding_retry_max_delay_seconds: float = Field(default=2.0, ge=0.0)
 
     @property
     def embeddings_provider(self) -> str:
