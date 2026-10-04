@@ -228,6 +228,8 @@ class DataRepository:
                 conditions.append(DocumentRow.media_type.in_(values))
             elif key == "resource_id":
                 conditions.append(ResourceRow.resource_id.in_(values))
+            elif key == "canonical_uri":
+                conditions.append(ResourceRow.canonical_uri.in_(values))
             else:
                 raise ValueError(f"Unsupported search filter: {key}")
         return conditions

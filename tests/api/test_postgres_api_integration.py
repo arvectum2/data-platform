@@ -151,6 +151,26 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert hits[0]["scores"]["vector"] is not None
     assert hits[0]["evidence"][0]["canonical_uri"] == "external-document://cable-1"
 
+    canonical_filtered = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "силовой кабель",
+            "collections": ["api:docs"],
+            "filters": {
+                "canonical_uri": ["external-document://cable-1"]
+            },
+            "mode": "hybrid",
+            "limit": 5,
+        },
+    )
+    assert canonical_filtered.status_code == 200
+    assert canonical_filtered.json()["hits"]
+    assert {
+        hit["canonical_uri"]
+        for hit in canonical_filtered.json()["hits"]
+    } == {"external-document://cable-1"}
+
     protected = client.post(
         "/v1/collections",
         headers=headers,
