@@ -11,34 +11,36 @@ Legend: [x] done, [ ] ready/planned.
 - [x] Data Platform v1 product boundary fixed.
 - [x] Search architecture fixed: scoped hybrid retrieval, evidence-first, PostgreSQL FTS + pgvector production backend.
 - [x] Migration strategy fixed: compatibility/strangler migration, no big-bang rewrite.
-- [ ] Platform code has not yet been promoted into this repository.
-- [ ] No blockers for starting foundation extraction.
+- [x] Generic platform code has been promoted from Discount Parser into src/arvectum_data.
+- [x] No blockers remain for the platform foundation.
 
 ## DP-FND-001 — repository/package foundation
 
-Status: READY — next task.
+Status: COMPLETE.
 
-- [ ] create pyproject.toml for arvectum-data / arvectum_data;
-- [ ] Python 3.11+ baseline;
-- [ ] ruff/pytest;
-- [ ] CI;
-- [ ] FastAPI service shell with /health;
-- [ ] ARVECTUM_DATA_ settings;
-- [ ] structured logging;
-- [ ] versioning/dev commands.
+- [x] create pyproject.toml for arvectum-data / arvectum_data;
+- [x] Python 3.11+ baseline;
+- [x] ruff/pytest;
+- [x] CI;
+- [x] FastAPI service shell with /health;
+- [x] ARVECTUM_DATA_ settings;
+- [x] structured logging;
+- [x] versioning/dev commands.
 
 Gate: clean checkout -> install -> pytest -> /health = ok.
 
 ## DP-MIG-001 — promote generic extraction engine
 
+Status: CORE PROMOTION COMPLETE; consumer cutover pending.
+
 Source: discount-parser/arvectum_data.
 
-- [ ] move package with traceable source revision;
-- [ ] move focused tests/dp_engine platform coverage;
-- [ ] remove test imports that initialize Discount Parser product modules;
-- [ ] preserve public Python imports;
-- [ ] reproduce acquisition/crawl/extraction/multi-record/persistence/review/execution behavior;
-- [ ] establish Data Platform as canonical implementation;
+- [x] move package with traceable source revision;
+- [x] move focused tests/dp_engine platform coverage;
+- [x] exclude product-coupled acceptance/parity tests from the platform suite;
+- [x] preserve public Python imports;
+- [x] reproduce acquisition/crawl/extraction/multi-record/persistence/review/execution behavior;
+- [x] establish Data Platform repository as canonical implementation;
 - [ ] make Discount Parser consume arvectum-data;
 - [ ] run product regressions;
 - [ ] remove duplicate only after acceptance.
