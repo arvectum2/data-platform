@@ -188,7 +188,7 @@ Legacy parity was rebuilt safely in an isolated temporary JSON-vector index from
 
 ## DP-INT-002 — Arvectum OS RAG migration
 
-Status: CODE INTEGRATION IN PR #147; synthetic production-service acceptance passed; real-data production acceptance pending.
+Status: CODE INTEGRATION MERGED AND RUNTIME DEPLOYED; synthetic production-service acceptance passed; real-data production acceptance pending.
 
 - [x] inventory current knowledge/RAG interfaces;
 - [x] map KnowledgeAssetRecord sources to deterministic versioned per-deal collections;
@@ -196,8 +196,10 @@ Status: CODE INTEGRATION IN PR #147; synthetic production-service acceptance pas
 - [x] add bounded knowledge retrieval through /v1/search;
 - [x] preserve deal-scoped access boundaries and canonical knowledge_asset_id mapping;
 - [x] verify synthetic evidence mapping and latency against the production Data Platform service;
-- [ ] merge Tender Agent PR #147;
+- [x] merge Tender Agent PR #147 (b40cb2b);
 - [ ] run acceptance on the first real production KnowledgeAssetRecord set.
+
+Tender Agent PR #147 was merged and deployed into the Mac mini runtime on 2026-10-04. Focused runtime tests passed 15/15 after deployment; both explicit knowledge endpoints fail closed with 404 not_found for a deal that has no knowledge assets.
 
 The Arvectum OS database contained zero KnowledgeAssetRecord rows during the 2026-10-04 rollout, so the real-data gate cannot yet be closed. A live synthetic asset passed the full path (versioned deal collection -> pre-chunked ingest -> embedding -> hybrid search -> canonical asset mapping + source refs) with a representative search latency of about 0.18 s.
 
