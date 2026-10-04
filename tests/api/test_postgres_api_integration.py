@@ -59,10 +59,14 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     ingested = client.post(
         "/v1/ingest/document",
         headers=headers,
-        data={"collection_id": "api:docs"},
+        data={
+            "collection_id": "api:docs",
+            "canonical_uri": "external-document://cable-1",
+        },
         files={"file": ("cable.txt", content, "text/plain")},
     )
     assert ingested.status_code == 200
+    assert ingested.json()["canonical_uri"] == "external-document://cable-1"
     assert ingested.json()["chunks"] > 0
     assert ingested.json()["embeddings"] == ingested.json()["chunks"]
 
@@ -81,7 +85,7 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert hits
     assert hits[0]["scores"]["lexical"] is not None
     assert hits[0]["scores"]["vector"] is not None
-    assert hits[0]["evidence"][0]["canonical_uri"] == "upload://cable.txt"
+    assert hits[0]["evidence"][0]["canonical_uri"] == "external-document://cable-1"
 
     rebuilt = client.post(
         "/v1/index/rebuild",

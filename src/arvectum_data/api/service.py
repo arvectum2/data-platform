@@ -213,6 +213,7 @@ class DataPlatformService:
         filename: str,
         content: bytes,
         title: str | None = None,
+        canonical_uri: str | None = None,
     ) -> dict[str, Any]:
         suffix = Path(filename).suffix[:16]
         temporary_path: str | None = None
@@ -223,7 +224,7 @@ class DataPlatformService:
             result = ingest_file(
                 temporary_path,
                 collection_id=collection_id,
-                canonical_uri=f"upload://{filename}",
+                canonical_uri=canonical_uri or f"upload://{filename}",
                 title=title or filename,
             )
             return self._persist_and_index(result)

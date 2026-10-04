@@ -202,6 +202,7 @@ def create_app(
         collection_id: str = Form(...),
         file: UploadFile = File(...),
         title: str | None = Form(default=None),
+        canonical_uri: str | None = Form(default=None),
         runtime_service=Depends(runtime),
     ):
         content = await file.read(resolved.max_upload_bytes + 1)
@@ -214,6 +215,7 @@ def create_app(
                 filename=filename,
                 content=content,
                 title=title,
+                canonical_uri=canonical_uri,
             )
         except Exception as exc:
             raise map_service_error(exc) from exc

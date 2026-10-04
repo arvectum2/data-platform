@@ -43,7 +43,15 @@ class FakePlatformService:
             default_language="simple",
         )
 
-    def ingest_document_bytes(self, *, collection_id, filename, content, title=None):
+    def ingest_document_bytes(
+        self,
+        *,
+        collection_id,
+        filename,
+        content,
+        title=None,
+        canonical_uri=None,
+    ):
         assert content
         return {
             "collection_id": collection_id,
@@ -51,7 +59,7 @@ class FakePlatformService:
             "document_id": "document-1",
             "chunks": 1,
             "embeddings": 1,
-            "canonical_uri": f"upload://{filename}",
+            "canonical_uri": canonical_uri or f"upload://{filename}",
         }
 
     def ingest_url(self, *, collection_id, url, title=None):
@@ -199,11 +207,15 @@ def test_collection_ingest_search_and_extract_contracts() -> None:
     ingested = client.post(
         "/v1/ingest/document",
         headers=headers,
-        data={"collection_id": "tests:knowledge"},
+        data={
+            "collection_id": "tests:knowledge",
+            "canonical_uri": "tender-document://doc-1",
+        },
         files={"file": ("knowledge.txt", b"silovoi kabel", "text/plain")},
     )
     assert ingested.status_code == 200
     assert ingested.json()["embeddings"] == 1
+    assert ingested.json()["canonical_uri"] == "tender-document://doc-1"
 
     searched = client.post(
         "/v1/search",
