@@ -344,6 +344,8 @@ def create_app(
                     mode=payload.mode,
                     lexical_weight=payload.lexical_weight,
                     vector_weight=payload.vector_weight,
+                    query_variants=tuple(payload.query_variants),
+                    query_variant_weight=payload.query_variant_weight,
                 ),
                 consumer=consumer,
             )

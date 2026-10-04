@@ -33,6 +33,8 @@ class HttpSearchRunner:
             "mode": case.mode,
             "lexical_weight": case.lexical_weight,
             "vector_weight": case.vector_weight,
+            "query_variants": list(case.query_variants),
+            "query_variant_weight": case.query_variant_weight,
         }
         headers = {"Content-Type": "application/json"}
         if self.api_key:

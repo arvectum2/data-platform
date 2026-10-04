@@ -47,41 +47,45 @@ class HybridSearchEngine:
 
     def search(self, request: SearchQuery) -> list[SearchHit]:
         candidate_limit = min(300, max(20, request.limit * self.candidate_multiplier))
-        lexical_hits: list[BackendHit] = []
-        vector_hits: list[BackendHit] = []
-
-        if request.mode in {SearchMode.LEXICAL, SearchMode.HYBRID}:
-            lexical_hits = self.lexical_backend.search_lexical(
-                request.query,
-                collections=request.collections,
-                filters=request.filters,
-                limit=candidate_limit,
-            )
-
-        if request.mode in {SearchMode.VECTOR, SearchMode.HYBRID}:
-            query_vector = self.embedding_provider.embed_query(request.query)
-            vector_hits = self.vector_backend.search_vector(
-                query_vector,
-                collections=request.collections,
-                filters=request.filters,
-                provider=self.embedding_provider.provider_name,
-                model=self.embedding_provider.model_name,
-                limit=candidate_limit,
-            )
-
         accumulated: dict[str, _AccumulatedHit] = {}
-        self._accumulate(
-            accumulated,
-            lexical_hits,
-            kind="lexical",
-            weight=request.lexical_weight,
+
+        queries = [(request.query, 1.0)]
+        queries.extend(
+            (variant, request.query_variant_weight)
+            for variant in request.query_variants
         )
-        self._accumulate(
-            accumulated,
-            vector_hits,
-            kind="vector",
-            weight=request.vector_weight,
-        )
+
+        for query_text, query_weight in queries:
+            if request.mode in {SearchMode.LEXICAL, SearchMode.HYBRID}:
+                lexical_hits = self.lexical_backend.search_lexical(
+                    query_text,
+                    collections=request.collections,
+                    filters=request.filters,
+                    limit=candidate_limit,
+                )
+                self._accumulate(
+                    accumulated,
+                    lexical_hits,
+                    kind="lexical",
+                    weight=request.lexical_weight * query_weight,
+                )
+
+            if request.mode in {SearchMode.VECTOR, SearchMode.HYBRID}:
+                query_vector = self.embedding_provider.embed_query(query_text)
+                vector_hits = self.vector_backend.search_vector(
+                    query_vector,
+                    collections=request.collections,
+                    filters=request.filters,
+                    provider=self.embedding_provider.provider_name,
+                    model=self.embedding_provider.model_name,
+                    limit=candidate_limit,
+                )
+                self._accumulate(
+                    accumulated,
+                    vector_hits,
+                    kind="vector",
+                    weight=request.vector_weight * query_weight,
+                )
 
         ranked = sorted(
             accumulated.values(),
@@ -104,9 +108,15 @@ class HybridSearchEngine:
             item = accumulated.setdefault(hit.chunk_id, _AccumulatedHit(hit=hit))
             item.fusion_score += weight / (self.rrf_k + rank)
             if kind == "lexical":
-                item.lexical_score = hit.score
+                item.lexical_score = max(
+                    item.lexical_score if item.lexical_score is not None else hit.score,
+                    hit.score,
+                )
             else:
-                item.vector_score = hit.score
+                item.vector_score = max(
+                    item.vector_score if item.vector_score is not None else hit.score,
+                    hit.score,
+                )
 
     @staticmethod
     def _to_search_hit(item: _AccumulatedHit) -> SearchHit:

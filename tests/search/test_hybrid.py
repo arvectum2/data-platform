@@ -137,3 +137,83 @@ def test_hybrid_rejects_zero_zero_fusion_weights() -> None:
             lexical_weight=0.0,
             vector_weight=0.0,
         )
+
+
+class VariantAwareLexical:
+    def search_lexical(self, query, *, collections, filters, limit):
+        if query == "original":
+            return [_hit("original-best", 1.0)]
+        if query == "expanded":
+            return [_hit("expanded-best", 5.0)]
+        return []
+
+
+class VariantAwareEmbedding:
+    provider_name = "variant-test"
+    model_name = "variant-test"
+    dimension = 1
+
+    def embed_query(self, text):
+        return [1.0 if text == "original" else 2.0]
+
+    def embed_texts(self, texts):
+        return [[1.0] for _ in texts]
+
+
+class VariantAwareVector:
+    def search_vector(self, query_vector, *, collections, filters, provider, model, limit):
+        if query_vector == [1.0]:
+            return [_hit("original-best", 0.9)]
+        return [_hit("expanded-best", 0.95)]
+
+
+def test_query_variants_contribute_bounded_rrf_signal() -> None:
+    engine = HybridSearchEngine(
+        lexical_backend=VariantAwareLexical(),
+        vector_backend=VariantAwareVector(),
+        embedding_provider=VariantAwareEmbedding(),
+    )
+
+    without_variant = engine.search(
+        SearchQuery(
+            query="original",
+            collections=("one",),
+            mode=SearchMode.HYBRID,
+        )
+    )
+    with_variant = engine.search(
+        SearchQuery(
+            query="original",
+            collections=("one",),
+            mode=SearchMode.HYBRID,
+            query_variants=("expanded",),
+            query_variant_weight=0.5,
+        )
+    )
+
+    assert without_variant[0].chunk_id == "original-best"
+    assert {hit.chunk_id for hit in with_variant[:2]} == {
+        "original-best",
+        "expanded-best",
+    }
+    assert with_variant[0].chunk_id == "original-best"
+    assert with_variant[1].scores.lexical == 5.0
+    assert with_variant[1].scores.vector == 0.95
+
+
+def test_query_variants_are_deduplicated_and_bounded() -> None:
+    import pytest
+
+    query = SearchQuery(
+        query="original",
+        collections=("one",),
+        query_variants=(" original ", "expanded", "expanded", "   "),
+    )
+    assert query.query_variants == ("expanded",)
+
+    with pytest.raises(ValueError, match="at most 8 query variants"):
+        SearchQuery(
+            query="original",
+            collections=("one",),
+            query_variants=tuple(f"variant-{index}" for index in range(9)),
+        )

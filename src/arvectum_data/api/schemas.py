@@ -127,6 +127,21 @@ class SearchRequest(BaseModel):
     mode: SearchMode = SearchMode.HYBRID
     lexical_weight: float = Field(default=1.0, ge=0.0, le=20.0)
     vector_weight: float = Field(default=1.0, ge=0.0, le=20.0)
+    query_variants: list[str] = Field(default_factory=list, max_length=8)
+    query_variant_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def normalize_query_variants(self):
+        seen = {self.query.strip()}
+        normalized: list[str] = []
+        for variant in self.query_variants:
+            cleaned = variant.strip()
+            if not cleaned or cleaned in seen:
+                continue
+            seen.add(cleaned)
+            normalized.append(cleaned)
+        self.query_variants = normalized
+        return self
 
 
 class SearchScoreResponse(BaseModel):

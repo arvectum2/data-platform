@@ -18,6 +18,8 @@ class EvaluationCase:
     mode: str = "hybrid"
     lexical_weight: float = 1.0
     vector_weight: float = 1.0
+    query_variants: tuple[str, ...] = ()
+    query_variant_weight: float = 0.5
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -40,6 +42,10 @@ class EvaluationCase:
             raise ValueError("limit must be between 1 and 100")
         if self.lexical_weight < 0 or self.vector_weight < 0:
             raise ValueError("fusion weights must be non-negative")
+        if self.query_variant_weight < 0 or self.query_variant_weight > 1:
+            raise ValueError("query_variant_weight must be between 0 and 1")
+        if len(self.query_variants) > 8:
+            raise ValueError("at most 8 query variants are allowed")
 
     @classmethod
     def from_dict(
@@ -60,6 +66,12 @@ class EvaluationCase:
             mode=str(merged.get("mode", "hybrid")),
             lexical_weight=float(merged.get("lexical_weight", 1.0)),
             vector_weight=float(merged.get("vector_weight", 1.0)),
+            query_variants=tuple(
+                str(item) for item in (merged.get("query_variants") or ())
+            ),
+            query_variant_weight=float(
+                merged.get("query_variant_weight", 0.5)
+            ),
             metadata=dict(merged.get("metadata") or {}),
         )
 

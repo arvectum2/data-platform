@@ -61,6 +61,8 @@ class SearchQuery:
     mode: SearchMode = SearchMode.HYBRID
     lexical_weight: float = 1.0
     vector_weight: float = 1.0
+    query_variants: tuple[str, ...] = ()
+    query_variant_weight: float = 0.5
 
     def __post_init__(self) -> None:
         if not self.query.strip():
@@ -75,3 +77,16 @@ class SearchQuery:
             raise ValueError("search fusion weights must be non-negative")
         if self.mode is SearchMode.HYBRID and self.lexical_weight == 0 and self.vector_weight == 0:
             raise ValueError("hybrid search requires at least one positive fusion weight")
+        if self.query_variant_weight < 0 or self.query_variant_weight > 1:
+            raise ValueError("query_variant_weight must be between 0 and 1")
+        normalized_variants: list[str] = []
+        seen = {self.query.strip()}
+        for variant in self.query_variants:
+            cleaned = variant.strip()
+            if not cleaned or cleaned in seen:
+                continue
+            seen.add(cleaned)
+            normalized_variants.append(cleaned)
+        if len(normalized_variants) > 8:
+            raise ValueError("at most 8 query variants are allowed")
+        object.__setattr__(self, "query_variants", tuple(normalized_variants))
