@@ -131,14 +131,16 @@ Gate: lexical and vector retrieval run simultaneously, collection isolation is e
 
 ## DP-API-001 — service v1
 
-- [ ] collections API;
-- [ ] ingest URL/document API;
-- [ ] extraction API;
-- [ ] search API;
+Status: CORE API COMPLETE; durable index-job lifecycle remains.
+
+- [x] collections API;
+- [x] ingest URL/document API;
+- [x] extraction API;
+- [x] search API;
 - [ ] index jobs/status;
-- [ ] request IDs/metrics;
-- [ ] internal auth boundary;
-- [ ] OpenAPI contract tests.
+- [x] request IDs/basic service metrics;
+- [x] internal API-key auth boundary;
+- [x] OpenAPI contract tests.
 
 ## DP-CONN-001 — connector SDK + generic web discovery
 
@@ -148,7 +150,7 @@ Gate: lexical and vector retrieval run simultaneously, collection isolation is e
 - [ ] sitemap/site crawler;
 - [ ] generic web search;
 - [ ] rate limit/retry;
-- [ ] SSRF/private-network guard;
+- [x] SSRF/private-network guard;
 - [ ] health/status.
 
 44-FZ/223-FZ/EIS stay product-specific initially.

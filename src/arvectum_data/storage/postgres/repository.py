@@ -105,6 +105,7 @@ class DataRepository:
             resource.content_hash = result.resource.content_hash
             resource.last_seen_at = now
             resource.metadata_json = dict(result.resource.metadata)
+        self.session.flush()
 
         document = self.session.get(DocumentRow, result.document.document_id)
         if document is None:
@@ -119,31 +120,40 @@ class DataRepository:
                 metadata_json=dict(result.document.metadata),
             )
             self.session.add(document)
+        self.session.flush()
 
+        new_chunks = []
+        provenance_rows = []
         for chunk in result.chunks:
-            if self.session.get(ChunkRow, chunk.chunk_id) is None:
-                self.session.add(
-                    ChunkRow(
-                        chunk_id=chunk.chunk_id,
-                        document_id=chunk.document_id,
-                        ordinal=chunk.ordinal,
-                        text=chunk.text,
-                        content_hash=chunk.content_hash,
-                        char_start=chunk.char_start,
-                        char_end=chunk.char_end,
-                        token_estimate=chunk.token_estimate,
-                        metadata_json=dict(chunk.metadata),
-                    )
+            if self.session.get(ChunkRow, chunk.chunk_id) is not None:
+                continue
+            new_chunks.append(
+                ChunkRow(
+                    chunk_id=chunk.chunk_id,
+                    document_id=chunk.document_id,
+                    ordinal=chunk.ordinal,
+                    text=chunk.text,
+                    content_hash=chunk.content_hash,
+                    char_start=chunk.char_start,
+                    char_end=chunk.char_end,
+                    token_estimate=chunk.token_estimate,
+                    metadata_json=dict(chunk.metadata),
                 )
-                self.session.add(
-                    ProvenanceRow(
-                        resource_id=chunk.provenance.resource_id,
-                        document_id=chunk.provenance.document_id,
-                        chunk_id=chunk.chunk_id,
-                        source_ref=chunk.provenance.canonical_uri,
-                        metadata_json={"content_hash": chunk.provenance.content_hash},
-                    )
+            )
+            provenance_rows.append(
+                ProvenanceRow(
+                    resource_id=chunk.provenance.resource_id,
+                    document_id=chunk.provenance.document_id,
+                    chunk_id=chunk.chunk_id,
+                    source_ref=chunk.provenance.canonical_uri,
+                    metadata_json={"content_hash": chunk.provenance.content_hash},
                 )
+            )
+
+        if new_chunks:
+            self.session.add_all(new_chunks)
+            self.session.flush()
+            self.session.add_all(provenance_rows)
         self.session.flush()
 
     def upsert_embedding(

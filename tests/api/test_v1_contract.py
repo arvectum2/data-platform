@@ -1,0 +1,247 @@
+from __future__ import annotations
+
+from fastapi.testclient import TestClient
+
+from arvectum_data.api.app import create_app
+from arvectum_data.api.config import Settings
+from arvectum_data.api.service import UnsafeUrlError, validate_public_http_url
+from arvectum_data.engine import AutoDiscoveryProvider, ExtractionEngine, RawAsset
+from arvectum_data.search import (
+    SearchEvidence,
+    SearchHit,
+    SearchScores,
+)
+
+
+class FakePlatformService:
+    def status(self):
+        return {
+            "status": "ok",
+            "database_configured": True,
+            "embedding_provider": "hashing",
+            "embedding_model": "local-hash-v1",
+            "embedding_dimension": 16,
+        }
+
+    def create_collection(self, *, collection_id, owner, name, default_language):
+        return {
+            "collection_id": collection_id,
+            "owner": owner,
+            "name": name,
+            "default_language": default_language,
+            "embedding_provider": "hashing",
+            "embedding_model": "local-hash-v1",
+            "embedding_dimension": 16,
+            "active_index_revision": None,
+        }
+
+    def get_collection(self, collection_id):
+        return self.create_collection(
+            collection_id=collection_id,
+            owner="tests",
+            name="Test",
+            default_language="simple",
+        )
+
+    def ingest_document_bytes(self, *, collection_id, filename, content, title=None):
+        assert content
+        return {
+            "collection_id": collection_id,
+            "resource_id": "resource-1",
+            "document_id": "document-1",
+            "chunks": 1,
+            "embeddings": 1,
+            "canonical_uri": f"upload://{filename}",
+        }
+
+    def ingest_url(self, *, collection_id, url, title=None):
+        return {
+            "collection_id": collection_id,
+            "resource_id": "resource-url",
+            "document_id": "document-url",
+            "chunks": 1,
+            "embeddings": 1,
+            "canonical_uri": url,
+        }
+
+    def search(self, request):
+        return [
+            SearchHit(
+                chunk_id="chunk-1",
+                document_id="document-1",
+                resource_id="resource-1",
+                canonical_uri="https://example.com/doc",
+                title="Document",
+                preview="preview",
+                text="full text",
+                scores=SearchScores(lexical=0.5, vector=0.8, fusion=0.03),
+                evidence=(
+                    SearchEvidence(
+                        resource_id="resource-1",
+                        document_id="document-1",
+                        chunk_id="chunk-1",
+                        canonical_uri="https://example.com/doc",
+                    ),
+                ),
+                metadata={"collection_id": request.collections[0]},
+            )
+        ]
+
+    def extract(
+        self,
+        *,
+        asset_id,
+        source_url,
+        text,
+        html,
+        attributes,
+        fields,
+    ):
+        return ExtractionEngine((AutoDiscoveryProvider(),)).extract(
+            RawAsset(
+                asset_id=asset_id,
+                source_url=source_url,
+                text=text,
+                html=html,
+                attributes=attributes,
+            ),
+            fields,
+        )
+
+
+def _client(*, key: str = "secret") -> TestClient:
+    return TestClient(
+        create_app(
+            Settings(
+                environment="test",
+                log_level="WARNING",
+                internal_api_key=key,
+            ),
+            platform_service=FakePlatformService(),
+        )
+    )
+
+
+def test_v1_requires_internal_api_key_but_health_stays_public() -> None:
+    client = _client()
+
+    assert client.get("/health").status_code == 200
+    assert client.get("/v1/status").status_code == 401
+    response = client.get("/v1/status", headers={"X-Arvectum-Key": "secret"})
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"]
+    assert response.json()["requests"] >= 2
+
+
+def test_collection_ingest_search_and_extract_contracts() -> None:
+    client = _client()
+    headers = {"X-Arvectum-Key": "secret"}
+
+    created = client.post(
+        "/v1/collections",
+        headers=headers,
+        json={
+            "collection_id": "tests:knowledge",
+            "owner": "tests",
+            "name": "Knowledge",
+            "default_language": "russian",
+        },
+    )
+    assert created.status_code == 200
+    assert created.json()["collection_id"] == "tests:knowledge"
+
+    ingested = client.post(
+        "/v1/ingest/document",
+        headers=headers,
+        data={"collection_id": "tests:knowledge"},
+        files={"file": ("knowledge.txt", b"silovoi kabel", "text/plain")},
+    )
+    assert ingested.status_code == 200
+    assert ingested.json()["embeddings"] == 1
+
+    searched = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "кабель",
+            "collections": ["tests:knowledge"],
+            "mode": "hybrid",
+        },
+    )
+    assert searched.status_code == 200
+    hit = searched.json()["hits"][0]
+    assert hit["scores"]["lexical"] == 0.5
+    assert hit["scores"]["vector"] == 0.8
+    assert hit["evidence"][0]["resource_id"] == "resource-1"
+
+    extracted = client.post(
+        "/v1/extract",
+        headers=headers,
+        json={
+            "asset_id": "asset-1",
+            "text": "Price: 1999",
+            "fields": [
+                {
+                    "key": "price",
+                    "required": True,
+                    "aliases": ["Price"],
+                    "min_confidence": 0.5,
+                }
+            ],
+        },
+    )
+    assert extracted.status_code == 200
+    assert extracted.json()["values"]["price"] == "1999"
+
+
+def test_openapi_exposes_core_v1_contract() -> None:
+    client = _client()
+    schema = client.get("/openapi.json").json()
+    paths = schema["paths"]
+
+    assert "/v1/collections" in paths
+    assert "/v1/ingest/url" in paths
+    assert "/v1/ingest/document" in paths
+    assert "/v1/search" in paths
+    assert "/v1/extract" in paths
+
+
+def test_unconfigured_service_returns_503_for_data_endpoint() -> None:
+    client = TestClient(
+        create_app(
+            Settings(
+                environment="test",
+                log_level="WARNING",
+                database_url="",
+            )
+        )
+    )
+    response = client.post(
+        "/v1/collections",
+        json={
+            "collection_id": "tests:knowledge",
+            "owner": "tests",
+            "name": "Knowledge",
+        },
+    )
+    assert response.status_code == 503
+
+
+def test_url_guard_rejects_loopback() -> None:
+    try:
+        validate_public_http_url("http://127.0.0.1/test")
+    except UnsafeUrlError:
+        pass
+    else:
+        raise AssertionError("loopback URL must be rejected")
+
+
+def test_openapi_exposes_stable_v1_paths() -> None:
+    client = _client(key="")
+    paths = client.get("/openapi.json").json()["paths"]
+
+    assert "/v1/collections" in paths
+    assert "/v1/ingest/url" in paths
+    assert "/v1/ingest/document" in paths
+    assert "/v1/extract" in paths
+    assert "/v1/search" in paths
