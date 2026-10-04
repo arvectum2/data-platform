@@ -162,7 +162,7 @@ Status: COMPLETE.
 
 First production consumer.
 
-Status: PRODUCTION RUNTIME ROLLOUT ACCEPTED; legacy parity comparison and removal pending.
+Status: PRODUCTION RUNTIME ACCEPTED; legacy removal pending.
 
 Merged in Tender Agent PR #144 (cbd5275).
 
@@ -177,14 +177,14 @@ Merged in Tender Agent PR #144 (cbd5275).
 - [x] deploy/supervise the Data Platform service in the Tender runtime;
 - [x] prepare/reindex real pilot tender(s) against the Data Platform backend;
 - [x] switch Tender runtime to AI_CORP_RAG_RETRIEVAL_BACKEND=data_platform;
-- [ ] compare production retrieval quality, citations and latency against the legacy backend;
+- [x] compare production retrieval quality, citations and latency against the legacy backend;
 - [ ] remove duplicate legacy JSON-vector/generic retrieval code only after production acceptance.
 
 Code gate passed: existing Tender Agent workflows and CI remain green, and normal retrieval is scoped to one deterministic versioned collection per tender.
 
 Production runtime gate passed on the Mac mini on 2026-10-04. Data Platform is supervised by launchd on 127.0.0.1:8094, uses the dedicated arvectum_data database in the existing pgvector PostgreSQL runtime, and uses the local Qwen3-Embedding-4B embedding service on 127.0.0.1:8090. Pilot tender 0187200001726001304 was indexed as 60 resources / 60 documents / 60 chunks / 60 embeddings. Tender readiness became ready_for_analysis=true; a live hybrid query returned 5 mapped Tender hits in about 0.32 s, and retrieval-only analyze_tender fast mode completed 10 sections with 16 unique sources in about 1.5 s with no warnings or errors.
 
-Legacy quality parity is intentionally still open because the configured legacy JSON vector-store path pointed at an unavailable historical volume and the only located copies are pre-2026-08-01 archives. Do not claim current production parity from stale legacy data.
+Legacy parity was rebuilt safely in an isolated temporary JSON-vector index from the same 60 current production chunks using the same Qwen3-Embedding-4B provider, without writing legacy embedding metadata back to production. Across five representative procurement queries, equal-weight Data Platform hybrid retrieval matched legacy semantic top-1 on 4/5 queries and averaged about 0.129 s versus about 0.196 s for legacy retrieval. The one mismatch was traced to a weak singleton PostgreSQL FTS hit over-promoted by equal-weight RRF. Data Platform therefore added generic per-request RRF weights while keeping its platform default at 1:1. Tender Agent PR #146 (4df33d7) selected a semantic-first profile lexical_weight=1, vector_weight=4. Production re-validation then matched the isolated legacy semantic top-1 on 5/5 queries, with Data Platform averaging about 0.159 s for the five-query run. Retrieval-only fast analysis still completed 10 sections with 16 unique sources in about 1.44 s with no warnings or errors.
 
 ## DP-INT-002 — Arvectum OS RAG migration
 

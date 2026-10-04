@@ -99,6 +99,12 @@ A live hybrid retrieval returned five mapped Tender Agent chunks in roughly 0.32
 
 These timings are acceptance observations, not an SLA.
 
+### Retrieval parity follow-up
+
+An isolated current-state legacy baseline was rebuilt from the same 60 Tender Agent chunks with the same Qwen3-Embedding-4B provider. The first equal-weight hybrid profile matched legacy top-1 on four of five representative procurement questions. The mismatch was caused by a weak lexical singleton outranking the semantic top hit through equal-weight RRF.
+
+Data Platform now supports generic per-request RRF weights while preserving 1:1 as the platform default. Tender Agent uses the product-specific semantic-first profile lexical_weight=1 and vector_weight=4. After this change, production top-1 matched the isolated legacy semantic baseline on all five questions. The five Data Platform queries averaged about 0.159 s; a retrieval-only fast analysis completed ten sections with sixteen unique sources in about 1.44 s, with no warnings or errors.
+
 ## Rollback
 
 Application rollback is explicit:
