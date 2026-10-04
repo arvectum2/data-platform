@@ -72,8 +72,9 @@ sources / URLs / APIs / files
 - [Migration roadmap](docs/ROADMAP.md)
 - [Connector SDK](docs/CONNECTORS.md)
 - [Mac mini runtime](docs/RUNTIME_MACMINI.md)
+- [Retrieval evaluation](docs/EVALUATION.md)
 - [ADR-0001: platform boundary and migration strategy](docs/adr/0001-platform-boundary.md)
 
 ## Immediate next milestone
 
-DP-API-001: expose collections, ingest and the working hybrid search engine through stable /v1 HTTP contracts, then begin Tender Agent integration behind its current retrieval facade.
+Post-v1 relevance work is benchmark-driven. Use the frozen evaluation harness before changing lexical search, fusion weights, reranking, query expansion or retrieval backends; add a BM25 backend only when benchmark evidence shows PostgreSQL FTS is insufficient.

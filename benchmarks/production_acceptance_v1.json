@@ -1,0 +1,104 @@
+{
+  "name": "production-acceptance-v1",
+  "description": "Frozen relevance snapshot from production-accepted Tender and Growth consumers on 2026-10-04.",
+  "metadata": {
+    "created_at": "2026-10-04",
+    "embedding_model": "Qwen3-Embedding-4B"
+  },
+  "cases": [
+    {
+      "id": "tender-requirements",
+      "query": "Какие требования к выполнению работ и результату?",
+      "collections": ["tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"],
+      "expected_ids": ["tender-chunk://475445e3-c040-412c-8633-676451a2297c"],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "tender-payment",
+      "query": "Каков порядок оплаты и приемки услуг?",
+      "collections": ["tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"],
+      "expected_ids": ["tender-chunk://7b6747fb-e73e-41d3-a52d-30d8025ef8f0"],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "tender-responsibility",
+      "query": "Какая ответственность предусмотрена за нарушение обязательств?",
+      "collections": ["tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"],
+      "expected_ids": ["tender-chunk://68cdf29e-8562-4eeb-843a-01b8c823a135"],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "tender-deadlines",
+      "query": "Какие сроки оказания услуг?",
+      "collections": ["tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"],
+      "expected_ids": ["tender-chunk://00163c8b-1f49-4bda-9c3d-95c969217aed"],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "tender-reporting",
+      "query": "Какие требования к отчетным документам?",
+      "collections": ["tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"],
+      "expected_ids": ["tender-chunk://7b6a48f2-5742-45c8-b2b8-5efeb3c5ff06"],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "growth-tender-agent",
+      "query": "агент для тендерного отдела",
+      "collections": ["growth:arvectum-site:8f0e23f96d45b1b9"],
+      "expected_ids": ["https://arvectum.com/solutions/tender-department-ai-agent.html"],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "growth-photo-pixels",
+      "query": "уменьшить фото до нужного размера в пикселях",
+      "collections": ["growth:arvectum-site:8f0e23f96d45b1b9"],
+      "expected_ids": [
+        "https://arvectum.com/tools/index.html",
+        "https://arvectum.com/tools/photo-size/index.html",
+        "https://arvectum.com/tools/photo-size/resize-pixels.html"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "product-photo-size",
+      "query": "уменьшить фото до 500 КБ на iPhone",
+      "collections": ["growth:products:e93c4eb90b2b2e3a"],
+      "expected_ids": ["https://arvectum.com/tools/photo-size/index.html"],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "research-photo-resize",
+      "query": "resize image exact file size kilobytes iphone",
+      "collections": ["growth:research:df5477406a:9c4e55c17bb5200d"],
+      "expected_ids": [
+        "https://apps.apple.com/us/app/compress-photos-size-image/id6743341427",
+        "https://apps.apple.com/us/app/image-size/id670766542"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5
+    }
+  ]
+}

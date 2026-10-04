@@ -33,6 +33,7 @@ dev = [
 
 [project.scripts]
 arvectum-data = "arvectum_data.api.app:run"
+arvectum-data-eval = "arvectum_data.evaluation.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

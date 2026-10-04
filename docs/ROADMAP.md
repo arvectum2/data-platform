@@ -253,7 +253,10 @@ Only after three real consumers are integrated:
 - [ ] query expansion;
 - [ ] distributed crawling;
 - [ ] authorized federated cross-collection search;
-- [ ] relevance feedback/evaluation pipeline.
+- [x] relevance evaluation pipeline;
+- [ ] relevance feedback capture loop.
+
+The first post-v1 evaluation harness is consumer-neutral and runs frozen JSON benchmarks against the HTTP search contract. It reports top-1 accuracy, MRR, hit-rate@3/@5, recall@5 and latency p50/p95/max, with CI-style minimum thresholds. Production snapshot production_acceptance_v1 contains nine accepted Tender/Growth cases; its first run on 2026-10-04 scored top-1=1.0, MRR=1.0, hit-rate@5=1.0 and mean recall@5=1.0, with about 103 ms p50 and 214 ms p95 latency. User relevance-feedback capture remains separate and is not claimed complete.
 
 ## Definition of done
 
