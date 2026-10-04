@@ -127,7 +127,9 @@ Conceptual request:
   "collections": ["tender-agent:procurement-documents"],
   "filters": {"source_type": ["document"]},
   "limit": 20,
-  "mode": "hybrid"
+  "mode": "hybrid",
+  "lexical_weight": 1.0,
+  "vector_weight": 1.0
 }
 ~~~
 
@@ -170,6 +172,8 @@ Deterministic path:
 7. optional LLM reranker disabled by default.
 
 RRF is the first fusion strategy because it avoids fragile normalization across incompatible scoring scales and is easy to test.
+
+Hybrid search supports non-negative per-request fusion weights. The platform default is equal-weight RRF (lexical_weight=1, vector_weight=1), so existing consumers keep stable behavior. Products may select a different ranking profile when benchmark evidence justifies it; Tender Agent can prefer semantic retrieval without changing Data Platform defaults for Growth/SEO or Arvectum OS.
 
 ### Lexical backend
 
