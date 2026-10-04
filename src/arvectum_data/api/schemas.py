@@ -158,6 +158,7 @@ class StatusResponse(BaseModel):
     embedding_dimension: int | None
     metrics: dict[str, int] = Field(default_factory=dict)
     requests: int = 0
+    operations: dict[str, dict[str, int]] = Field(default_factory=dict)
 
 
 class IndexRebuildRequest(BaseModel):

@@ -271,6 +271,82 @@ def test_collection_ingest_search_and_extract_contracts() -> None:
     assert extracted.json()["values"]["price"] == "1999"
 
 
+def test_status_exposes_secret_free_operation_metrics() -> None:
+    app = create_app(
+        Settings(
+            environment="test",
+            log_level="WARNING",
+            internal_api_key="super-secret-key",
+            database_url="postgresql+psycopg://user:password@example.invalid/db",
+        ),
+        platform_service=FakePlatformService(),
+    )
+    client = TestClient(app)
+    headers = {"X-Arvectum-Key": "super-secret-key"}
+
+    ingested = client.post(
+        "/v1/ingest/document",
+        headers=headers,
+        data={"collection_id": "tests:knowledge", "pre_chunked": "true"},
+        files={"file": ("knowledge.txt", b"short", "text/plain")},
+    )
+    assert ingested.status_code == 200
+
+    searched = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "кабель",
+            "collections": ["tests:knowledge"],
+            "mode": "hybrid",
+        },
+    )
+    assert searched.status_code == 200
+
+    discovered = client.post(
+        "/v1/discover",
+        headers=headers,
+        json={"connector": "fake", "query": "needle", "limit": 5},
+    )
+    assert discovered.status_code == 200
+
+    rebuilt = client.post(
+        "/v1/index/rebuild",
+        headers=headers,
+        json={"collection_id": "tests:knowledge"},
+    )
+    assert rebuilt.status_code == 200
+
+    unauthorized_search = client.post(
+        "/v1/search",
+        json={
+            "query": "кабель",
+            "collections": ["tests:knowledge"],
+            "mode": "hybrid",
+        },
+    )
+    assert unauthorized_search.status_code == 401
+
+    status = client.get("/v1/status", headers=headers)
+    assert status.status_code == 200
+    payload = status.json()
+
+    for operation in ("ingest", "search", "discover", "reindex"):
+        metric = payload["operations"][operation]
+        assert metric["requests"] >= 1
+        assert metric["total_ms"] >= 0
+        assert metric["max_ms"] >= 0
+
+    assert payload["operations"]["search"]["requests"] == 2
+    assert payload["operations"]["search"]["errors"] == 1
+
+    serialized = status.text
+    assert "super-secret-key" not in serialized
+    assert "password" not in serialized
+    assert "postgresql+psycopg" not in serialized
+    assert "example.invalid" not in serialized
+
+
 def test_openapi_exposes_core_v1_contract() -> None:
     client = _client()
     schema = client.get("/openapi.json").json()

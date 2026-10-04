@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import time
 import uuid
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
@@ -73,14 +74,43 @@ def create_app(
         platform_service if platform_service is not None else DataPlatformService(resolved)
     )
     service.state.request_count = 0
+    service.state.operation_metrics = {
+        name: {"requests": 0, "errors": 0, "total_ms": 0, "max_ms": 0}
+        for name in ("ingest", "search", "discover", "reindex")
+    }
+
+    def operation_name(method: str, path: str) -> str | None:
+        if method == "POST" and path in {"/v1/ingest/document", "/v1/ingest/url"}:
+            return "ingest"
+        if method == "POST" and path == "/v1/search":
+            return "search"
+        if method == "POST" and path == "/v1/discover":
+            return "discover"
+        if method == "POST" and path == "/v1/index/rebuild":
+            return "reindex"
+        return None
 
     @service.middleware("http")
     async def request_context(request, call_next):
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         service.state.request_count += 1
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
-        return response
+        operation = operation_name(request.method, request.url.path)
+        started = time.perf_counter()
+        status_code = 500
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            response.headers["X-Request-ID"] = request_id
+            return response
+        finally:
+            if operation is not None:
+                duration_ms = max(0, int(round((time.perf_counter() - started) * 1000)))
+                metric = service.state.operation_metrics[operation]
+                metric["requests"] += 1
+                if status_code >= 400:
+                    metric["errors"] += 1
+                metric["total_ms"] += duration_ms
+                metric["max_ms"] = max(metric["max_ms"], duration_ms)
 
     @service.get("/health", tags=["system"])
     def health() -> dict[str, str]:
@@ -130,6 +160,10 @@ def create_app(
                 "embedding_dimension": None,
             }
         payload["requests"] = int(service.state.request_count)
+        payload["operations"] = {
+            name: dict(values)
+            for name, values in service.state.operation_metrics.items()
+        }
         return payload
 
     @router.get(
