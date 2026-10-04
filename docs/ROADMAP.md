@@ -188,12 +188,20 @@ Legacy parity was rebuilt safely in an isolated temporary JSON-vector index from
 
 ## DP-INT-002 — Arvectum OS RAG migration
 
-- [ ] inventory current knowledge/RAG interfaces;
-- [ ] map sources to collections;
-- [ ] ingest knowledge assets;
-- [ ] switch retrieval to /v1/search;
-- [ ] preserve access boundaries;
-- [ ] evaluate evidence and latency.
+Status: CODE INTEGRATION IN PR #147; synthetic production-service acceptance passed; real-data production acceptance pending.
+
+- [x] inventory current knowledge/RAG interfaces;
+- [x] map KnowledgeAssetRecord sources to deterministic versioned per-deal collections;
+- [x] add explicit knowledge asset indexing through pre-chunked Data Platform ingest;
+- [x] add bounded knowledge retrieval through /v1/search;
+- [x] preserve deal-scoped access boundaries and canonical knowledge_asset_id mapping;
+- [x] verify synthetic evidence mapping and latency against the production Data Platform service;
+- [ ] merge Tender Agent PR #147;
+- [ ] run acceptance on the first real production KnowledgeAssetRecord set.
+
+The Arvectum OS database contained zero KnowledgeAssetRecord rows during the 2026-10-04 rollout, so the real-data gate cannot yet be closed. A live synthetic asset passed the full path (versioned deal collection -> pre-chunked ingest -> embedding -> hybrid search -> canonical asset mapping + source refs) with a representative search latency of about 0.18 s.
+
+This integration is retrieval-only. It does not authorize autonomous M-049 Agent Registry or M-050 Prompt / Schema Library execution.
 
 ## DP-INT-003 — Growth / SEO consumer
 
