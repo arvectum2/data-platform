@@ -17,7 +17,7 @@ This repository becomes the canonical source of truth for reusable capabilities.
 
 Foundation implementation is active. The repository is now an installable Python package/service and contains the promoted product-neutral acquisition/extraction engine from Discount Parser.
 
-Verified locally on Python 3.11: 242 tests pass, lint passes, the promoted source is byte-identical to the audited Discount Parser revision, and the real HTTP /health endpoint returns 200.
+Verified locally on Python 3.11: 254 tests pass, lint passes, the promoted Discount Parser engine remains unchanged, file/URL document ingestion and embedding primitives are now platform-owned, and the real HTTP /health endpoint returns 200.
 
 Audit baseline:
 
@@ -74,4 +74,4 @@ sources / URLs / APIs / files
 
 ## Immediate next milestone
 
-DP-MIG-001 consumer cutover: switch Discount Parser from its vendored arvectum_data copy to the canonical Data Platform package after this commit is available remotely. In parallel, DP-DOC-001 is the next platform-native capability: generic document ingestion and chunking.
+DP-STORE-001: introduce the canonical PostgreSQL schema for collections, resources, documents, chunks, provenance and production vector storage. Discount Parser consumer cutover is already complete.

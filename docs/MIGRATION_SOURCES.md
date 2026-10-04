@@ -27,3 +27,22 @@ Those tests depend on Discount Parser source adapters, configuration, parity tel
 - focused consumer verification: 289 tests passed
 - full Discount Parser regression: 634 tests passed
 - vendored arvectum_data package removed from Discount Parser after acceptance
+
+
+## DP-DOC-001 / DP-EMB-001 — Tender Agent reusable RAG primitives
+
+- source repository: arvectum2/tender-agent
+- source revision: 3bbca3dc615baedefe645c0ed0036d6534d12998
+- source modules promoted/generalized:
+  - src/tender_research/document_text_extractor.py
+  - src/tender_research/rag/chunker.py
+  - src/tender_research/rag/embeddings.py
+  - src/tender_research/rag/vector_store.py
+- product coupling removed: TenderResearchConfig and TenderRepository are not imported by Data Platform
+- platform additions:
+  - Resource / Document / Chunk / Provenance contracts
+  - deterministic file and URL ingestion
+  - collection identity on resources
+  - generic EmbeddingConfig
+  - local JSON vector backend retained for test/dev
+- verification at promotion: 254 Data Platform tests passed on Python 3.11

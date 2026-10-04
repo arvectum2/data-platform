@@ -49,25 +49,29 @@ Gate: promoted tests green and offline URL/HTML extraction works end-to-end with
 
 ## DP-DOC-001 — generic document ingestion
 
+Status: COMPLETE.
+
 Reuse document_text_extractor, safe format handling and chunker from Tender Agent.
 
-- [ ] Resource, Document and Chunk contracts;
-- [ ] TXT/HTML/PDF/DOCX/XLSX extraction;
-- [ ] deterministic chunking;
-- [ ] content-hash/idempotency;
-- [ ] provenance from resource to chunk.
+- [x] Resource, Document and Chunk contracts;
+- [x] TXT/HTML/PDF/DOCX/XLSX extraction;
+- [x] deterministic chunking;
+- [x] content-hash/idempotency;
+- [x] provenance from resource to chunk.
 
 Gate: file/url -> Resource -> Document -> Chunk[] -> evidence without procurement models.
 
 ## DP-EMB-001 — embedding provider abstraction
 
-- [ ] move provider protocol/errors;
-- [ ] deterministic hashing provider;
-- [ ] local embedding HTTP/llama provider;
-- [ ] decouple configuration from Tender Agent;
-- [ ] model/dimension identity;
-- [ ] batch interface;
-- [ ] health probe.
+Status: COMPLETE.
+
+- [x] move provider protocol/errors;
+- [x] deterministic hashing provider;
+- [x] local embedding HTTP/llama provider;
+- [x] decouple configuration from Tender Agent;
+- [x] model/dimension identity;
+- [x] batch interface;
+- [x] health probe.
 
 ## DP-STORE-001 — canonical PostgreSQL schema
 
@@ -96,7 +100,7 @@ True BM25 is deferred until benchmarks show PostgreSQL FTS is insufficient.
 ## DP-VEC-001 — production pgvector backend
 
 - [ ] VectorIndex protocol;
-- [ ] keep JSON/local backend for dev/tests;
+- [x] keep JSON/local backend for dev/tests;
 - [ ] pgvector storage/query;
 - [ ] collection-scoped vector query;
 - [ ] measured HNSW/IVFFlat decision;
