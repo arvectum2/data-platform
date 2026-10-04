@@ -58,6 +58,19 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     )
     assert created.status_code == 200
 
+    versioned_collection = client.post(
+        "/v1/collections",
+        headers=headers,
+        json={
+            "collection_id": "api:docs:v2",
+            "owner": "tests",
+            "name": "API documents",
+            "default_language": "russian",
+        },
+    )
+    assert versioned_collection.status_code == 200
+    assert versioned_collection.json()["collection_id"] == "api:docs:v2"
+
     content = (
         "Силовой кабель ВВГнг предназначен для промышленного объекта. " * 80
     ).encode("utf-8")

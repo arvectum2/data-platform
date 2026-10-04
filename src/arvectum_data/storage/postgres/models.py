@@ -52,11 +52,6 @@ class CollectionRow(TimestampMixin, Base):
     embedding_dimension: Mapped[int | None] = mapped_column(Integer, nullable=True)
     active_index_revision: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    __table_args__ = (
-        UniqueConstraint("owner", "name", name="uq_dp_collection_owner_name"),
-    )
-
-
 class ResourceRow(TimestampMixin, Base):
     __tablename__ = "dp_resources"
 

@@ -84,6 +84,11 @@ The platform should not force every domain into one giant entity table.
 
 ### Collection
 
+
+### Collection identity
+
+collection_id is the durable identity. Owner and human-readable name are labels, not uniqueness keys. Versioned collections may therefore reuse the same owner/name while changing only their deterministic collection ID/revision. This is required for atomic consumer-side corpus rollover without mutating the previous accepted collection.
+
 Isolation and indexing boundary. Examples:
 
 - tender-agent:procurement-documents
