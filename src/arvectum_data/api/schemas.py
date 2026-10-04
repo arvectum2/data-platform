@@ -207,3 +207,48 @@ class DiscoveryResponse(BaseModel):
     resources: list[DiscoveredResourceResponse]
     next_cursor: str | None = None
     warnings: list[str] = Field(default_factory=list)
+
+
+class RelevanceFeedbackRequest(BaseModel):
+    collection_id: str = Field(min_length=1, max_length=128)
+    resource_id: str = Field(min_length=1, max_length=64)
+    document_id: str = Field(min_length=1, max_length=64)
+    chunk_id: str = Field(min_length=1, max_length=64)
+    query: str = Field(min_length=1, max_length=4096)
+    label: str
+    rank: int | None = Field(default=None, ge=1, le=1000)
+    actor: str | None = Field(default=None, max_length=128)
+    context: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_feedback(self):
+        allowed = {"relevant", "partially_relevant", "not_relevant"}
+        if self.label not in allowed:
+            raise ValueError(
+                "label must be relevant, partially_relevant or not_relevant"
+            )
+        if len(self.context) > 20:
+            raise ValueError("feedback context may contain at most 20 keys")
+        return self
+
+
+class RelevanceFeedbackResponse(BaseModel):
+    feedback_id: str
+    collection_id: str
+    resource_id: str
+    document_id: str
+    chunk_id: str
+    query_hash: str
+    label: str
+    rank: int | None = None
+    actor: str | None = None
+    context: dict[str, Any] = Field(default_factory=dict)
+    created_at: Any
+
+
+class RelevanceFeedbackSummaryResponse(BaseModel):
+    collection_id: str
+    total: int
+    relevant: int
+    partially_relevant: int
+    not_relevant: int

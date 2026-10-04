@@ -62,7 +62,28 @@ Benchmarks are snapshots, not timeless truth. Versioned collection IDs deliberat
 
 The first production snapshot is `benchmarks/production_acceptance_v1.json`. It combines accepted Tender Agent and Growth/SEO cases. The first run on 2026-10-04 produced 9/9 top-1 accuracy, MRR 1.0, hit-rate@5 1.0 and mean recall@5 1.0; p50 latency was about 103 ms and p95 about 214 ms.
 
-This harness evaluates retrieval quality. It does not yet collect user relevance feedback; that feedback capture loop remains a separate backlog item.
+This harness evaluates retrieval quality against frozen accepted cases. Online relevance judgments are captured separately through the Data Platform feedback API.
+
+## Relevance feedback capture
+
+Consumers can record a judgment for a concrete search hit:
+
+~~~http
+POST /v1/feedback/relevance
+~~~
+
+Payload fields are collection/resource/document/chunk identity, the originating query, one of `relevant`, `partially_relevant`, or `not_relevant`, optional rank, optional actor, and bounded structured context.
+
+The durable feedback table does **not** store raw query text. The service hashes the normalized request query with SHA-256 and stores only `query_hash` together with the hit identity and label. This preserves a stable join key for repeated judgments without turning the Data Platform database into a query-log archive.
+
+Consumers can inspect recent judgments or aggregate counts with:
+
+~~~http
+GET /v1/feedback/relevance?collection_id=<collection>
+GET /v1/feedback/relevance/summary?collection_id=<collection>
+~~~
+
+The service validates the full collection -> resource -> document -> chunk relationship before accepting a judgment, so feedback cannot be attached to a hit outside the declared collection. These judgments are input evidence for future relevance tuning; they do not automatically retrain, rerank, or mutate search behavior.
 
 ## Exact-match lexical benchmark
 

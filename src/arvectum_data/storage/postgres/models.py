@@ -271,6 +271,47 @@ class ProvenanceRow(Base):
     )
 
 
+
+
+class RelevanceFeedbackRow(Base):
+    __tablename__ = "dp_relevance_feedback"
+
+    feedback_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    collection_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_collections.collection_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    resource_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_resources.resource_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    document_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_documents.document_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    chunk_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_chunks.chunk_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    query_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    label: Mapped[str] = mapped_column(String(32), nullable=False)
+    rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    actor: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    context_json: Mapped[dict[str, Any]] = mapped_column(
+        "context", JSON_TYPE, default=dict, nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_dp_feedback_collection_created", "collection_id", "created_at"),
+        Index("ix_dp_feedback_query_hash", "query_hash"),
+        Index("ix_dp_feedback_chunk_label", "chunk_id", "label"),
+    )
+
 class PipelineRunRow(Base):
     __tablename__ = "dp_pipeline_runs"
 

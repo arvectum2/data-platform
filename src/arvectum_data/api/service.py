@@ -39,6 +39,7 @@ from ..storage.postgres import (
     DocumentRow,
     PipelineRunRow,
     ResourceRow,
+    RelevanceFeedbackRow,
     build_engine,
     build_session_factory,
 )
@@ -674,6 +675,111 @@ class DataPlatformService:
                 PipelineRunRow.run_id.asc(),
             ).limit(max(1, min(limit, 100)))
             return [self._job_payload(row) for row in session.scalars(statement)]
+
+    @staticmethod
+    def _feedback_payload(row: RelevanceFeedbackRow) -> dict[str, Any]:
+        return {
+            "feedback_id": row.feedback_id,
+            "collection_id": row.collection_id,
+            "resource_id": row.resource_id,
+            "document_id": row.document_id,
+            "chunk_id": row.chunk_id,
+            "query_hash": row.query_hash,
+            "label": row.label,
+            "rank": row.rank,
+            "actor": row.actor,
+            "context": dict(row.context_json or {}),
+            "created_at": row.created_at,
+        }
+
+    def record_relevance_feedback(
+        self,
+        *,
+        collection_id: str,
+        resource_id: str,
+        document_id: str,
+        chunk_id: str,
+        query: str,
+        label: str,
+        rank: int | None = None,
+        actor: str | None = None,
+        context: Mapping[str, object] | None = None,
+    ) -> dict[str, Any]:
+        allowed = {"relevant", "partially_relevant", "not_relevant"}
+        if label not in allowed:
+            raise ValueError("invalid relevance feedback label")
+        query_hash = hashlib.sha256(query.strip().encode("utf-8")).hexdigest()
+
+        with self._require_factory()() as session:
+            chunk = session.get(ChunkRow, chunk_id)
+            document = session.get(DocumentRow, document_id)
+            resource = session.get(ResourceRow, resource_id)
+            if chunk is None or document is None or resource is None:
+                raise ValueError("feedback target does not exist")
+            if chunk.document_id != document_id:
+                raise ValueError("feedback chunk/document mismatch")
+            if document.resource_id != resource_id:
+                raise ValueError("feedback document/resource mismatch")
+            if resource.collection_id != collection_id:
+                raise ValueError("feedback target is outside the collection")
+
+            row = RelevanceFeedbackRow(
+                collection_id=collection_id,
+                resource_id=resource_id,
+                document_id=document_id,
+                chunk_id=chunk_id,
+                query_hash=query_hash,
+                label=label,
+                rank=rank,
+                actor=actor,
+                context_json=dict(context or {}),
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return self._feedback_payload(row)
+
+    def list_relevance_feedback(
+        self,
+        *,
+        collection_id: str,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        with self._require_factory()() as session:
+            if session.get(CollectionRow, collection_id) is None:
+                raise CollectionNotFound(collection_id)
+            rows = session.scalars(
+                select(RelevanceFeedbackRow)
+                .where(RelevanceFeedbackRow.collection_id == collection_id)
+                .order_by(
+                    RelevanceFeedbackRow.created_at.desc(),
+                    RelevanceFeedbackRow.feedback_id.desc(),
+                )
+                .limit(max(1, min(limit, 1000)))
+            ).all()
+            return [self._feedback_payload(row) for row in rows]
+
+    def relevance_feedback_summary(self, collection_id: str) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            if session.get(CollectionRow, collection_id) is None:
+                raise CollectionNotFound(collection_id)
+            counts = dict(
+                session.execute(
+                    select(
+                        RelevanceFeedbackRow.label,
+                        func.count(RelevanceFeedbackRow.feedback_id),
+                    )
+                    .where(RelevanceFeedbackRow.collection_id == collection_id)
+                    .group_by(RelevanceFeedbackRow.label)
+                ).all()
+            )
+            return {
+                "collection_id": collection_id,
+                "total": int(sum(counts.values())),
+                "relevant": int(counts.get("relevant", 0)),
+                "partially_relevant": int(counts.get("partially_relevant", 0)),
+                "not_relevant": int(counts.get("not_relevant", 0)),
+            }
 
     def extract_url(
         self,

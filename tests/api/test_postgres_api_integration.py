@@ -136,6 +136,75 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert hits[0]["scores"]["vector"] is not None
     assert hits[0]["evidence"][0]["canonical_uri"] == "external-document://cable-1"
 
+    top_hit = hits[0]
+    feedback_query = "силовой кабель для промышленного объекта"
+    feedback = client.post(
+        "/v1/feedback/relevance",
+        headers=headers,
+        json={
+            "collection_id": "api:docs",
+            "resource_id": top_hit["resource_id"],
+            "document_id": top_hit["document_id"],
+            "chunk_id": top_hit["chunk_id"],
+            "query": feedback_query,
+            "label": "relevant",
+            "rank": 1,
+            "actor": "postgres-integration",
+            "context": {"surface": "test"},
+        },
+    )
+    assert feedback.status_code == 200
+    feedback_payload = feedback.json()
+    assert feedback_payload["label"] == "relevant"
+    assert feedback_payload["chunk_id"] == top_hit["chunk_id"]
+    assert len(feedback_payload["query_hash"]) == 64
+    assert "query" not in feedback_payload
+
+    listed_feedback = client.get(
+        "/v1/feedback/relevance?collection_id=api%3Adocs",
+        headers=headers,
+    )
+    assert listed_feedback.status_code == 200
+    assert listed_feedback.json()[0]["feedback_id"] == feedback_payload["feedback_id"]
+
+    feedback_summary = client.get(
+        "/v1/feedback/relevance/summary?collection_id=api%3Adocs",
+        headers=headers,
+    )
+    assert feedback_summary.status_code == 200
+    assert feedback_summary.json() == {
+        "collection_id": "api:docs",
+        "total": 1,
+        "relevant": 1,
+        "partially_relevant": 0,
+        "not_relevant": 0,
+    }
+
+    other_collection = client.post(
+        "/v1/collections",
+        headers=headers,
+        json={
+            "collection_id": "api:other",
+            "owner": "tests",
+            "name": "Other API documents",
+            "default_language": "russian",
+        },
+    )
+    assert other_collection.status_code == 200
+    mismatched_feedback = client.post(
+        "/v1/feedback/relevance",
+        headers=headers,
+        json={
+            "collection_id": "api:other",
+            "resource_id": top_hit["resource_id"],
+            "document_id": top_hit["document_id"],
+            "chunk_id": top_hit["chunk_id"],
+            "query": feedback_query,
+            "label": "not_relevant",
+        },
+    )
+    assert mismatched_feedback.status_code == 400
+
     rebuilt = client.post(
         "/v1/index/rebuild",
         headers=headers,

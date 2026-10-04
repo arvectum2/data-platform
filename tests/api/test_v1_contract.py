@@ -128,6 +128,45 @@ class FakePlatformService:
     def list_index_jobs(self, *, collection_id=None, limit=50):
         return [self.rebuild_index(collection_id or "tests:knowledge")]
 
+    def record_relevance_feedback(self, **kwargs):
+        return {
+            "feedback_id": "feedback-1",
+            "collection_id": kwargs["collection_id"],
+            "resource_id": kwargs["resource_id"],
+            "document_id": kwargs["document_id"],
+            "chunk_id": kwargs["chunk_id"],
+            "query_hash": "a" * 64,
+            "label": kwargs["label"],
+            "rank": kwargs.get("rank"),
+            "actor": kwargs.get("actor"),
+            "context": dict(kwargs.get("context") or {}),
+            "created_at": "2026-10-04T10:00:00Z",
+        }
+
+    def list_relevance_feedback(self, *, collection_id, limit=100):
+        return [
+            self.record_relevance_feedback(
+                collection_id=collection_id,
+                resource_id="resource-1",
+                document_id="document-1",
+                chunk_id="chunk-1",
+                query="needle",
+                label="relevant",
+                rank=1,
+                actor="tests",
+                context={"surface": "unit"},
+            )
+        ][:limit]
+
+    def relevance_feedback_summary(self, collection_id):
+        return {
+            "collection_id": collection_id,
+            "total": 1,
+            "relevant": 1,
+            "partially_relevant": 0,
+            "not_relevant": 0,
+        }
+
     def search(self, request):
         return [
             SearchHit(
@@ -413,6 +452,60 @@ def test_capacity_guardrails_fail_closed_before_heavy_work() -> None:
     assert too_many_collections.status_code == 413
 
 
+def test_relevance_feedback_contract() -> None:
+    client = _client()
+    headers = {"X-Arvectum-Key": "secret"}
+
+    recorded = client.post(
+        "/v1/feedback/relevance",
+        headers=headers,
+        json={
+            "collection_id": "tests:knowledge",
+            "resource_id": "resource-1",
+            "document_id": "document-1",
+            "chunk_id": "chunk-1",
+            "query": "кабель для промышленного объекта",
+            "label": "relevant",
+            "rank": 1,
+            "actor": "tests",
+            "context": {"surface": "unit"},
+        },
+    )
+    assert recorded.status_code == 200
+    assert recorded.json()["label"] == "relevant"
+    assert recorded.json()["query_hash"] == "a" * 64
+    assert "query" not in recorded.json()
+
+    listed = client.get(
+        "/v1/feedback/relevance?collection_id=tests%3Aknowledge",
+        headers=headers,
+    )
+    assert listed.status_code == 200
+    assert listed.json()[0]["chunk_id"] == "chunk-1"
+
+    summary = client.get(
+        "/v1/feedback/relevance/summary?collection_id=tests%3Aknowledge",
+        headers=headers,
+    )
+    assert summary.status_code == 200
+    assert summary.json()["total"] == 1
+    assert summary.json()["relevant"] == 1
+
+    invalid = client.post(
+        "/v1/feedback/relevance",
+        headers=headers,
+        json={
+            "collection_id": "tests:knowledge",
+            "resource_id": "resource-1",
+            "document_id": "document-1",
+            "chunk_id": "chunk-1",
+            "query": "needle",
+            "label": "maybe",
+        },
+    )
+    assert invalid.status_code == 422
+
+
 def test_openapi_exposes_core_v1_contract() -> None:
     client = _client()
     schema = client.get("/openapi.json").json()
@@ -423,6 +516,7 @@ def test_openapi_exposes_core_v1_contract() -> None:
     assert "/v1/ingest/url" in paths
     assert "/v1/ingest/document" in paths
     assert "/v1/search" in paths
+    assert "/v1/feedback/relevance" in paths
     assert "/v1/connectors" in paths
     assert "/v1/discover" in paths
     assert "/v1/extract" in paths
