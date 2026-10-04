@@ -247,7 +247,7 @@ Promote arvectum_data preserving behavior, publish/install it, switch Discount P
 
 ### Tender Agent
 
-Add Data Platform interfaces alongside current code, adapt document extraction/chunking/embeddings, introduce Data Platform Search behind the existing RAG facade, run existing RAG/eval suites, and remove duplicates only after acceptance.
+Add Data Platform interfaces alongside current code and introduce Data Platform Search behind the existing RAG facade. Tender Agent remains the canonical owner of procurement-domain documents/chunks and citation IDs; those chunks are sent through the platform's pre-chunked ingest contract so Data Platform owns indexing/retrieval without re-chunking or absorbing procurement semantics. Run existing RAG/eval suites and remove legacy duplicates only after production acceptance.
 
 ### Arvectum OS / Growth
 

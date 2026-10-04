@@ -162,16 +162,25 @@ Status: COMPLETE.
 
 First production consumer.
 
-- [ ] compatibility adapter from Tender RAG to Data Platform;
-- [ ] migrate document extraction/chunking;
-- [ ] migrate embedding/index path;
-- [ ] replace vector-first/lexical-fallback with scoped hybrid search;
-- [ ] preserve procurement filters/human-control boundaries;
-- [ ] run current RAG/search regression and eval suites;
-- [ ] compare citations/evidence;
-- [ ] remove duplicate generic code after acceptance.
+Status: CODE INTEGRATION MERGED; runtime rollout and production acceptance pending.
 
-Gate: existing Tender Agent workflows remain green and no cross-tender leakage is possible.
+Merged in Tender Agent PR #144 (cbd5275).
+
+- [x] compatibility adapter from Tender RAG to Data Platform;
+- [x] preserve Tender Agent as canonical owner of procurement chunks while using Data Platform pre-chunked ingestion;
+- [x] migrate embedding/index path to Data Platform when the data_platform backend is selected;
+- [x] replace vector-first/lexical-fallback retrieval with collection-scoped hybrid search;
+- [x] preserve procurement filters, citation mapping and human-control boundaries;
+- [x] run Tender Research regression suite and Tender Operator demo regressions;
+- [x] verify live cross-repository ingest -> pgvector/FTS -> hybrid search -> Tender citation mapping;
+- [x] fail closed when the current versioned Data Platform collection is absent/incomplete;
+- [ ] deploy/supervise the Data Platform service in the Tender runtime;
+- [ ] prepare/reindex real pilot tender(s) against the Data Platform backend;
+- [ ] switch Tender runtime to AI_CORP_RAG_RETRIEVAL_BACKEND=data_platform;
+- [ ] compare production retrieval quality, citations and latency against the legacy backend;
+- [ ] remove duplicate legacy JSON-vector/generic retrieval code only after production acceptance.
+
+Code gate passed: existing Tender Agent workflows and CI remain green, and normal retrieval is scoped to one deterministic versioned collection per tender. Production gate remains the controlled runtime rollout above.
 
 ## DP-INT-002 — Arvectum OS RAG migration
 
