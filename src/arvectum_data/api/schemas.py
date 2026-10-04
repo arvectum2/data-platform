@@ -267,3 +267,50 @@ class RelevanceFeedbackSummaryResponse(BaseModel):
     relevant: int
     partially_relevant: int
     not_relevant: int
+
+
+class EntityAliasRequest(BaseModel):
+    alias_kind: str = Field(min_length=1, max_length=64)
+    value: str = Field(min_length=1, max_length=4096)
+    source_collection_id: str | None = Field(default=None, max_length=128)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class EntityAliasResponse(BaseModel):
+    alias_id: str
+    alias_kind: str
+    value: str
+    normalized_value: str
+    source_collection_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: Any
+
+
+class EntityCreateRequest(BaseModel):
+    entity_type: str = Field(min_length=1, max_length=128)
+    canonical_name: str = Field(min_length=1, max_length=4096)
+    aliases: list[EntityAliasRequest] = Field(default_factory=list, max_length=100)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class EntityResponse(BaseModel):
+    entity_id: str
+    entity_type: str
+    canonical_name: str
+    aliases: list[EntityAliasResponse] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: Any
+    updated_at: Any
+
+
+class EntityResolveRequest(BaseModel):
+    entity_type: str = Field(min_length=1, max_length=128)
+    value: str = Field(min_length=1, max_length=4096)
+    alias_kind: str = Field(default="name", min_length=1, max_length=64)
+    limit: int = Field(default=20, ge=1, le=100)
+
+
+class EntityResolveResponse(BaseModel):
+    status: str
+    normalized_value: str
+    candidates: list[EntityResponse] = Field(default_factory=list)

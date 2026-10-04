@@ -494,3 +494,134 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
         },
     )
     assert missing_scope.status_code == 404
+
+
+def test_entity_resolution_is_ambiguity_safe() -> None:
+    import uuid
+
+    database_url = _database_url()
+    os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url
+    command.upgrade(Config("alembic.ini"), "head")
+
+    app = create_app(
+        Settings(
+            environment="test",
+            log_level="WARNING",
+            database_url=database_url,
+            internal_api_key="test-secret",
+            embedding_provider="hashing",
+            embedding_model="api-test-hash",
+            embedding_dimension=64,
+        )
+    )
+    client = TestClient(app)
+    headers = {"X-Arvectum-Key": "test-secret"}
+
+    suffix = uuid.uuid4().hex[:8]
+    collection_id = f"entity:test:{suffix}"
+    entity_type = f"supplier-test-{suffix}"
+
+    created_collection = client.post(
+        "/v1/collections",
+        headers=headers,
+        json={
+            "collection_id": collection_id,
+            "owner": "tests",
+            "name": f"Entity test {suffix}",
+            "default_language": "russian",
+        },
+    )
+    assert created_collection.status_code == 200
+
+    first_entity = client.post(
+        "/v1/entities",
+        headers=headers,
+        json={
+            "entity_type": entity_type,
+            "canonical_name": "ООО Ромашка",
+            "aliases": [
+                {
+                    "alias_kind": "identifier",
+                    "value": "7701000001",
+                    "source_collection_id": collection_id,
+                    "metadata": {"scheme": "inn"},
+                }
+            ],
+        },
+    )
+    assert first_entity.status_code == 200
+    first_entity_id = first_entity.json()["entity_id"]
+
+    second_entity = client.post(
+        "/v1/entities",
+        headers=headers,
+        json={
+            "entity_type": entity_type,
+            "canonical_name": "ООО Ромашка",
+            "aliases": [
+                {
+                    "alias_kind": "identifier",
+                    "value": "7701000002",
+                    "source_collection_id": collection_id,
+                    "metadata": {"scheme": "inn"},
+                }
+            ],
+        },
+    )
+    assert second_entity.status_code == 200
+    second_entity_id = second_entity.json()["entity_id"]
+    assert second_entity_id != first_entity_id
+
+    ambiguous_name = client.post(
+        "/v1/entities/resolve",
+        headers=headers,
+        json={
+            "entity_type": entity_type,
+            "value": "  ООО   РОМАШКА  ",
+            "alias_kind": "name",
+        },
+    )
+    assert ambiguous_name.status_code == 200
+    assert ambiguous_name.json()["status"] == "ambiguous"
+    assert {
+        item["entity_id"] for item in ambiguous_name.json()["candidates"]
+    } == {first_entity_id, second_entity_id}
+
+    resolved_identifier = client.post(
+        "/v1/entities/resolve",
+        headers=headers,
+        json={
+            "entity_type": entity_type,
+            "value": "7701000001",
+            "alias_kind": "identifier",
+        },
+    )
+    assert resolved_identifier.status_code == 200
+    assert resolved_identifier.json()["status"] == "resolved"
+    assert resolved_identifier.json()["candidates"][0]["entity_id"] == first_entity_id
+
+    unresolved_identifier = client.post(
+        "/v1/entities/resolve",
+        headers=headers,
+        json={
+            "entity_type": entity_type,
+            "value": "9999999999",
+            "alias_kind": "identifier",
+        },
+    )
+    assert unresolved_identifier.status_code == 200
+    assert unresolved_identifier.json()["status"] == "unresolved"
+    assert unresolved_identifier.json()["candidates"] == []
+
+    fetched_entity = client.get(
+        f"/v1/entities/{first_entity_id}",
+        headers=headers,
+    )
+    assert fetched_entity.status_code == 200
+    aliases = fetched_entity.json()["aliases"]
+    assert any(alias["alias_kind"] == "name" for alias in aliases)
+    assert any(
+        alias["alias_kind"] == "identifier"
+        and alias["value"] == "7701000001"
+        for alias in aliases
+    )

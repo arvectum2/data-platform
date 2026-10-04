@@ -30,6 +30,10 @@ from .schemas import (
     ConnectorHealthResponse,
     DiscoveryRequest,
     DiscoveryResponse,
+    EntityCreateRequest,
+    EntityResolveRequest,
+    EntityResolveResponse,
+    EntityResponse,
     ExtractDecisionResponse,
     ExtractRequest,
     ExtractResponse,
@@ -50,6 +54,7 @@ from .service import (
     CollectionNotFound,
     DataPlatformService,
     EmbeddingContractMismatch,
+    EntityNotFound,
     IndexJobNotFound,
     PlatformNotConfigured,
 )
@@ -158,6 +163,8 @@ def create_app(
             return HTTPException(status_code=403, detail="collection access denied")
         if isinstance(exc, IndexJobNotFound):
             return HTTPException(status_code=404, detail="index job not found")
+        if isinstance(exc, EntityNotFound):
+            return HTTPException(status_code=404, detail="entity not found")
         if isinstance(exc, (EmbeddingContractMismatch, UnsafeURL, ValueError)):
             return HTTPException(status_code=400, detail=str(exc))
         return HTTPException(status_code=500, detail="internal data platform error")
@@ -465,6 +472,66 @@ def create_app(
                 collection_id=collection_id,
                 limit=limit,
             )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/entities",
+        response_model=EntityResponse,
+        tags=["entities"],
+    )
+    def create_entity_endpoint(
+        payload: EntityCreateRequest,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.create_entity(
+                entity_type=payload.entity_type,
+                canonical_name=payload.canonical_name,
+                aliases=[
+                    {
+                        "alias_kind": alias.alias_kind,
+                        "value": alias.value,
+                        "source_collection_id": alias.source_collection_id,
+                        "metadata": alias.metadata,
+                    }
+                    for alias in payload.aliases
+                ],
+                metadata=payload.metadata,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/entities/resolve",
+        response_model=EntityResolveResponse,
+        tags=["entities"],
+    )
+    def resolve_entity_endpoint(
+        payload: EntityResolveRequest,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.resolve_entity(
+                entity_type=payload.entity_type,
+                value=payload.value,
+                alias_kind=payload.alias_kind,
+                limit=payload.limit,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.get(
+        "/entities/{entity_id}",
+        response_model=EntityResponse,
+        tags=["entities"],
+    )
+    def get_entity_endpoint(
+        entity_id: str,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.get_entity(entity_id)
         except Exception as exc:
             raise map_service_error(exc) from exc
 

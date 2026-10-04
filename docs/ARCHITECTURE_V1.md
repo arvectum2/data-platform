@@ -115,6 +115,10 @@ Searchable document segment: chunk ID, document ID, ordinal, text, offsets, toke
 
 Every search result must be traceable to source URI/provider/external ID, resource/document/chunk or record ID, text offsets or structured source ref, acquisition/index revision, timestamp and content hash where applicable.
 
+## 5.1 Entity resolution
+
+Entity resolution is a reusable exact-match primitive. Entities have a stable ID, type, canonical name and aliases. Alias normalization uses Unicode NFKC, case-folding and whitespace collapsing only. Aliases are not globally unique, so resolution returns resolved, ambiguous or unresolved. Ambiguous candidates are never auto-merged. Product-specific identity authority rules remain in consumers.
+
 ## 6. Search contract
 
 Normal product search requires explicit collections.

@@ -137,6 +137,46 @@ class FakePlatformService:
     def list_index_jobs(self, *, collection_id=None, limit=50):
         return [self.rebuild_index(collection_id or "tests:knowledge")]
 
+    def create_entity(self, *, entity_type, canonical_name, aliases=(), metadata=None):
+        return {
+            "entity_id": "entity-1",
+            "entity_type": entity_type,
+            "canonical_name": canonical_name,
+            "aliases": [
+                {
+                    "alias_id": "alias-1",
+                    "alias_kind": "name",
+                    "value": canonical_name,
+                    "normalized_value": canonical_name.casefold(),
+                    "source_collection_id": None,
+                    "metadata": {"canonical": True},
+                    "created_at": "2026-10-04T10:00:00Z",
+                }
+            ],
+            "metadata": dict(metadata or {}),
+            "created_at": "2026-10-04T10:00:00Z",
+            "updated_at": "2026-10-04T10:00:00Z",
+        }
+
+    def get_entity(self, entity_id):
+        result = self.create_entity(
+            entity_type="supplier",
+            canonical_name="Example Supplier",
+        )
+        result["entity_id"] = entity_id
+        return result
+
+    def resolve_entity(self, *, entity_type, value, alias_kind="name", limit=20):
+        candidate = self.create_entity(
+            entity_type=entity_type,
+            canonical_name=value,
+        )
+        return {
+            "status": "resolved",
+            "normalized_value": value.casefold(),
+            "candidates": [candidate][:limit],
+        }
+
     def record_relevance_feedback(self, **kwargs):
         return {
             "feedback_id": "feedback-1",
@@ -503,6 +543,48 @@ def test_federated_search_requires_consumer_scoped_credentials() -> None:
     assert valid.json()["hits"]
 
 
+def test_entity_resolution_contract() -> None:
+    client = _client()
+    headers = {"X-Arvectum-Key": "secret"}
+
+    created = client.post(
+        "/v1/entities",
+        headers=headers,
+        json={
+            "entity_type": "supplier",
+            "canonical_name": "ООО Ромашка",
+            "aliases": [
+                {
+                    "alias_kind": "identifier",
+                    "value": "7701234567",
+                    "metadata": {"scheme": "inn"},
+                }
+            ],
+            "metadata": {"source": "test"},
+        },
+    )
+    assert created.status_code == 200
+    entity_id = created.json()["entity_id"]
+    assert created.json()["entity_type"] == "supplier"
+
+    fetched = client.get(f"/v1/entities/{entity_id}", headers=headers)
+    assert fetched.status_code == 200
+    assert fetched.json()["entity_id"] == entity_id
+
+    resolved = client.post(
+        "/v1/entities/resolve",
+        headers=headers,
+        json={
+            "entity_type": "supplier",
+            "value": "ООО Ромашка",
+            "alias_kind": "name",
+        },
+    )
+    assert resolved.status_code == 200
+    assert resolved.json()["status"] == "resolved"
+    assert resolved.json()["candidates"]
+
+
 def test_relevance_feedback_contract() -> None:
     client = _client()
     headers = {"X-Arvectum-Key": "secret"}
@@ -567,6 +649,9 @@ def test_openapi_exposes_core_v1_contract() -> None:
     assert "/v1/ingest/url" in paths
     assert "/v1/ingest/document" in paths
     assert "/v1/search" in paths
+    assert "/v1/entities" in paths
+    assert "/v1/entities/resolve" in paths
+    assert "/v1/entities/{entity_id}" in paths
     assert "/v1/feedback/relevance" in paths
     assert "/v1/connectors" in paths
     assert "/v1/discover" in paths

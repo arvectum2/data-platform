@@ -23,6 +23,7 @@ from ..connectors import (
     SitemapConnector,
 )
 from ..engine import AutoDiscoveryProvider, ExtractionEngine, FieldSpec, RawAsset
+from ..entities import normalize_entity_value
 from ..orchestration import URLExtractionPipeline
 from ..indexing import (
     BaseEmbeddingProvider,
@@ -37,6 +38,8 @@ from ..storage.postgres import (
     CollectionRow,
     DataRepository,
     DocumentRow,
+    EntityAliasRow,
+    EntityRow,
     PipelineRunRow,
     ResourceRow,
     RelevanceFeedbackRow,
@@ -65,6 +68,10 @@ class CollectionNotFound(LookupError):
 
 
 class CollectionAccessDenied(PermissionError):
+    pass
+
+
+class EntityNotFound(LookupError):
     pass
 
 
@@ -696,6 +703,163 @@ class DataPlatformService:
                 PipelineRunRow.run_id.asc(),
             ).limit(max(1, min(limit, 100)))
             return [self._job_payload(row) for row in session.scalars(statement)]
+
+    @staticmethod
+    def _entity_payload(entity: EntityRow) -> dict[str, Any]:
+        aliases = sorted(
+            entity.aliases,
+            key=lambda item: (
+                item.alias_kind,
+                item.normalized_value,
+                item.alias_id,
+            ),
+        )
+        return {
+            "entity_id": entity.entity_id,
+            "entity_type": entity.entity_type,
+            "canonical_name": entity.canonical_name,
+            "aliases": [
+                {
+                    "alias_id": alias.alias_id,
+                    "alias_kind": alias.alias_kind,
+                    "value": alias.alias_value,
+                    "normalized_value": alias.normalized_value,
+                    "source_collection_id": alias.source_collection_id,
+                    "metadata": dict(alias.metadata_json or {}),
+                    "created_at": alias.created_at,
+                }
+                for alias in aliases
+            ],
+            "metadata": dict(entity.metadata_json or {}),
+            "created_at": entity.created_at,
+            "updated_at": entity.updated_at,
+        }
+
+    def create_entity(
+        self,
+        *,
+        entity_type: str,
+        canonical_name: str,
+        aliases: Sequence[Mapping[str, object]] = (),
+        metadata: Mapping[str, object] | None = None,
+    ) -> dict[str, Any]:
+        normalized_canonical = normalize_entity_value(canonical_name)
+        if not normalized_canonical:
+            raise ValueError("canonical entity name is empty after normalization")
+
+        with self._require_factory()() as session:
+            entity = EntityRow(
+                entity_type=entity_type.strip(),
+                canonical_name=canonical_name.strip(),
+                metadata_json=dict(metadata or {}),
+            )
+            session.add(entity)
+            session.flush()
+
+            alias_specs: list[dict[str, object]] = [
+                {
+                    "alias_kind": "name",
+                    "value": canonical_name,
+                    "source_collection_id": None,
+                    "metadata": {"canonical": True},
+                }
+            ]
+            alias_specs.extend(dict(item) for item in aliases)
+
+            seen: set[tuple[str, str]] = set()
+            for spec in alias_specs:
+                kind = str(spec.get("alias_kind") or "").strip()
+                value = str(spec.get("value") or "").strip()
+                normalized = normalize_entity_value(value)
+                if not kind or not normalized:
+                    raise ValueError("entity alias kind and value are required")
+                identity = (kind, normalized)
+                if identity in seen:
+                    continue
+                seen.add(identity)
+
+                source_collection_id = spec.get("source_collection_id")
+                if source_collection_id is not None:
+                    source_collection_id = str(source_collection_id)
+                    if session.get(CollectionRow, source_collection_id) is None:
+                        raise CollectionNotFound(source_collection_id)
+
+                session.add(
+                    EntityAliasRow(
+                        entity_id=entity.entity_id,
+                        entity_type=entity.entity_type,
+                        alias_kind=kind,
+                        alias_value=value,
+                        normalized_value=normalized,
+                        source_collection_id=source_collection_id,
+                        metadata_json=dict(spec.get("metadata") or {}),
+                    )
+                )
+
+            session.commit()
+            session.refresh(entity)
+            _ = entity.aliases
+            return self._entity_payload(entity)
+
+    def get_entity(self, entity_id: str) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            entity = session.get(EntityRow, entity_id)
+            if entity is None:
+                raise EntityNotFound(entity_id)
+            _ = entity.aliases
+            return self._entity_payload(entity)
+
+    def resolve_entity(
+        self,
+        *,
+        entity_type: str,
+        value: str,
+        alias_kind: str = "name",
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        normalized = normalize_entity_value(value)
+        if not normalized:
+            raise ValueError("entity value is empty after normalization")
+
+        with self._require_factory()() as session:
+            rows = (
+                session.scalars(
+                    select(EntityRow)
+                    .join(
+                        EntityAliasRow,
+                        EntityAliasRow.entity_id == EntityRow.entity_id,
+                    )
+                    .where(
+                        EntityAliasRow.entity_type == entity_type.strip(),
+                        EntityAliasRow.alias_kind == alias_kind.strip(),
+                        EntityAliasRow.normalized_value == normalized,
+                    )
+                    .order_by(
+                        EntityRow.created_at.asc(),
+                        EntityRow.entity_id.asc(),
+                    )
+                    .limit(max(1, min(limit, 100)))
+                )
+                .unique()
+                .all()
+            )
+            for entity in rows:
+                _ = entity.aliases
+            status = (
+                "unresolved"
+                if not rows
+                else "resolved"
+                if len(rows) == 1
+                else "ambiguous"
+            )
+            return {
+                "status": status,
+                "normalized_value": normalized,
+                "candidates": [
+                    self._entity_payload(entity)
+                    for entity in rows
+                ],
+            }
 
     @staticmethod
     def _feedback_payload(row: RelevanceFeedbackRow) -> dict[str, Any]:
