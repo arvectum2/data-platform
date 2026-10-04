@@ -34,6 +34,11 @@ class CollectionStatsResponse(BaseModel):
     documents: int
     chunks: int
     embeddings: int
+    first_seen_at: Any | None = None
+    last_seen_at: Any | None = None
+    latest_embedding_at: Any | None = None
+    latest_reindex_completed_at: Any | None = None
+    active_index_revision: str | None = None
 
 
 class UrlIngestRequest(BaseModel):

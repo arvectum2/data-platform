@@ -103,6 +103,18 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert stats.json()["documents"] == 1
     assert stats.json()["chunks"] == ingested.json()["chunks"]
     assert stats.json()["embeddings"] == ingested.json()["embeddings"]
+    assert stats.json()["first_seen_at"] is not None
+    assert stats.json()["last_seen_at"] is not None
+    assert stats.json()["latest_embedding_at"] is not None
+
+    status = client.get("/v1/status", headers=headers)
+    assert status.status_code == 200
+    metrics = status.json()["metrics"]
+    assert metrics["collections"] >= 1
+    assert metrics["resources"] >= 1
+    assert metrics["documents"] >= 1
+    assert metrics["chunks"] >= 1
+    assert metrics["embeddings"] >= 1
 
     searched = client.post(
         "/v1/search",

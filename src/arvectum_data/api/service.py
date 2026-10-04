@@ -152,13 +152,35 @@ class DataPlatformService:
 
     def status(self) -> dict[str, Any]:
         database_ok = False
+        metrics: dict[str, int] = {}
         if self.session_factory is not None:
             try:
                 with self.session_factory() as session:
                     session.execute(text("SELECT 1"))
+                    metrics = {
+                        "collections": int(
+                            session.scalar(select(func.count()).select_from(CollectionRow)) or 0
+                        ),
+                        "resources": int(
+                            session.scalar(select(func.count()).select_from(ResourceRow)) or 0
+                        ),
+                        "documents": int(
+                            session.scalar(select(func.count()).select_from(DocumentRow)) or 0
+                        ),
+                        "chunks": int(
+                            session.scalar(select(func.count()).select_from(ChunkRow)) or 0
+                        ),
+                        "embeddings": int(
+                            session.scalar(select(func.count()).select_from(ChunkEmbeddingRow)) or 0
+                        ),
+                        "index_jobs": int(
+                            session.scalar(select(func.count()).select_from(PipelineRunRow)) or 0
+                        ),
+                    }
                 database_ok = True
             except Exception:
                 database_ok = False
+                metrics = {}
         return {
             "status": (
                 "ok"
@@ -169,6 +191,7 @@ class DataPlatformService:
             "embedding_provider": self.embedding_provider.provider_name,
             "embedding_model": self.embedding_provider.model_name,
             "embedding_dimension": self.embedding_provider.dimension,
+            "metrics": metrics,
         }
 
     def create_collection(
@@ -242,12 +265,42 @@ class DataPlatformService:
                     ChunkEmbeddingRow.chunk_id.in_(chunk_ids)
                 )
             ) or 0
+            first_seen_at = session.scalar(
+                select(func.min(ResourceRow.first_seen_at)).where(
+                    ResourceRow.collection_id == collection_id
+                )
+            )
+            last_seen_at = session.scalar(
+                select(func.max(ResourceRow.last_seen_at)).where(
+                    ResourceRow.collection_id == collection_id
+                )
+            )
+            latest_embedding_at = session.scalar(
+                select(func.max(ChunkEmbeddingRow.created_at)).where(
+                    ChunkEmbeddingRow.chunk_id.in_(chunk_ids)
+                )
+            )
+            latest_reindex_completed_at = session.scalar(
+                select(func.max(PipelineRunRow.completed_at)).where(
+                    PipelineRunRow.collection_id == collection_id,
+                    PipelineRunRow.run_type == "reindex",
+                    PipelineRunRow.status == "completed",
+                )
+            )
+            collection = session.get(CollectionRow, collection_id)
             return {
                 "collection_id": collection_id,
                 "resources": int(resources),
                 "documents": int(documents),
                 "chunks": int(chunks),
                 "embeddings": int(embeddings),
+                "first_seen_at": first_seen_at,
+                "last_seen_at": last_seen_at,
+                "latest_embedding_at": latest_embedding_at,
+                "latest_reindex_completed_at": latest_reindex_completed_at,
+                "active_index_revision": (
+                    collection.active_index_revision if collection else None
+                ),
             }
 
     def ingest_document_bytes(
