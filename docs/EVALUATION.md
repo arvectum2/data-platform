@@ -114,5 +114,5 @@ The runner requires consumer and consumer key together and fails closed on parti
 
 production_acceptance_v2 extends the first production snapshot with an authorized cross-collection Growth case over the active site and product collections. Its first production run on 2026-10-04 passed all 10 cases with top-1 accuracy 1.0, MRR 1.0, hit-rate@5 1.0 and mean recall@5 1.0; p50 latency was about 126 ms and p95 about 154 ms.
 
-The v2 run also exposed a separate federation presentation issue: the same canonical product URL can appear from more than one requested collection. That duplication is not hidden by the benchmark and should be handled as a distinct retrieval/federation concern rather than by changing expected identities.
+The first v2 run exposed a federation presentation issue: the same canonical product URL appeared from both the site and product collections. Federation now collapses cross-collection duplicates by canonical URI while preserving same-collection chunks. Re-running v2 after the fix kept top-1 accuracy and MRR at 1.0 and returned five unique canonical URIs for the federated Photo Size case.
 

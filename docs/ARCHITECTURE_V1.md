@@ -188,6 +188,8 @@ Collections may additionally declare an access policy at create/update time:
 
 If `allowed_consumers` is non-empty, even single-collection search requires a valid consumer-scoped identity and the consumer must be listed. A federated request is authorized only when the consumer key is valid and every requested collection permits that consumer. Search never silently drops unauthorized collections or broadens scope.
 
+For multi-collection search, duplicate hits with the same canonical URI from different collections are collapsed after ranking. The first-ranked collection wins that URI. Multiple chunks from the same winning collection are preserved, because chunk-level retrieval remains part of the search contract. Federation uses bounded overfetch before deduplication so removing mirrored results does not unnecessarily under-fill the requested limit.
+
 
 ## 6.1 Entity resolution and relations
 

@@ -470,6 +470,28 @@ class DataPlatformService:
                 "extraction_status": result.document.extraction_status,
             }
 
+    @staticmethod
+    def _dedupe_federated_hits(
+        hits: Sequence[SearchHit],
+        *,
+        limit: int,
+    ) -> list[SearchHit]:
+        winners: dict[str, str] = {}
+        results: list[SearchHit] = []
+        for hit in hits:
+            canonical_uri = hit.canonical_uri.strip()
+            collection_id = str(hit.metadata.get("collection_id") or "")
+            if canonical_uri and collection_id:
+                winner = winners.get(canonical_uri)
+                if winner is None:
+                    winners[canonical_uri] = collection_id
+                elif winner != collection_id:
+                    continue
+            results.append(hit)
+            if len(results) >= limit:
+                break
+        return results
+
     def search(
         self,
         request: SearchQuery,
@@ -498,7 +520,21 @@ class DataPlatformService:
                 vector_backend=backend,
                 embedding_provider=self.embedding_provider,
             )
-            return engine.search(request)
+            if len(request.collections) == 1:
+                return engine.search(request)
+
+            overfetch_factor = min(max(len(request.collections), 2), 8)
+            federated_request = SearchQuery(
+                query=request.query,
+                collections=request.collections,
+                filters=request.filters,
+                limit=min(100, request.limit * overfetch_factor),
+                mode=request.mode,
+                lexical_weight=request.lexical_weight,
+                vector_weight=request.vector_weight,
+            )
+            hits = engine.search(federated_request)
+            return self._dedupe_federated_hits(hits, limit=request.limit)
 
 
 

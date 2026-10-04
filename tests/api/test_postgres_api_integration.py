@@ -847,3 +847,101 @@ def test_entity_relations_are_idempotent_and_provenance_checked() -> None:
         json=mismatched,
     )
     assert invalid_relation.status_code == 400
+
+def test_federated_search_deduplicates_same_canonical_uri_across_collections() -> None:
+    database_url = _database_url()
+    os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url
+    command.upgrade(Config("alembic.ini"), "head")
+
+    app = create_app(
+        Settings(
+            environment="test",
+            log_level="WARNING",
+            database_url=database_url,
+            internal_api_key="test-secret",
+            consumer_api_keys={"growth-agent": "growth-secret"},
+            embedding_provider="hashing",
+            embedding_model="federated-dedup-test-hash",
+            embedding_dimension=32,
+        )
+    )
+    client = TestClient(app)
+    headers = {"X-Arvectum-Key": "test-secret"}
+    federation_headers = {
+        **headers,
+        "X-Arvectum-Consumer": "growth-agent",
+        "X-Arvectum-Consumer-Key": "growth-secret",
+    }
+
+    for collection_id in ("dedup:site", "dedup:products"):
+        created = client.post(
+            "/v1/collections",
+            headers=headers,
+            json={
+                "collection_id": collection_id,
+                "owner": "tests",
+                "name": collection_id,
+                "default_language": "russian",
+            },
+        )
+        assert created.status_code == 200
+
+    shared_uri = "https://example.com/photo-size"
+    for collection_id, text_value in (
+        ("dedup:site", "Фото под размер. Изменение размера изображения."),
+        ("dedup:products", "Фото под размер — продукт для iPhone."),
+    ):
+        ingested = client.post(
+            "/v1/ingest/document",
+            headers=headers,
+            data={
+                "collection_id": collection_id,
+                "canonical_uri": shared_uri,
+                "pre_chunked": "true",
+            },
+            files={
+                "file": (
+                    "photo-size.txt",
+                    text_value.encode("utf-8"),
+                    "text/plain",
+                )
+            },
+        )
+        assert ingested.status_code == 200
+
+    extra = client.post(
+        "/v1/ingest/document",
+        headers=headers,
+        data={
+            "collection_id": "dedup:site",
+            "canonical_uri": "https://example.com/other",
+            "pre_chunked": "true",
+        },
+        files={
+            "file": (
+                "other.txt",
+                "Другой инструмент для обработки фото.".encode("utf-8"),
+                "text/plain",
+            )
+        },
+    )
+    assert extra.status_code == 200
+
+    response = client.post(
+        "/v1/search",
+        headers=federation_headers,
+        json={
+            "query": "Фото под размер",
+            "collections": ["dedup:site", "dedup:products"],
+            "mode": "hybrid",
+            "limit": 3,
+        },
+    )
+    assert response.status_code == 200
+    hits = response.json()["hits"]
+    assert [hit["canonical_uri"] for hit in hits].count(shared_uri) == 1
+    assert len(hits) == 2
+    assert {hit["canonical_uri"] for hit in hits} == {
+        shared_uri,
+        "https://example.com/other",
+    }
