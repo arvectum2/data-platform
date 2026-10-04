@@ -280,6 +280,11 @@ def create_app(
         payload: SearchRequest,
         runtime_service=Depends(runtime),
     ):
+        if len(payload.collections) > resolved.max_search_collections:
+            raise HTTPException(
+                status_code=413,
+                detail="too many collections in one search request",
+            )
         try:
             hits = runtime_service.search(
                 SearchQuery(

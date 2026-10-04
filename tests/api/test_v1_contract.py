@@ -347,6 +347,72 @@ def test_status_exposes_secret_free_operation_metrics() -> None:
     assert "example.invalid" not in serialized
 
 
+def test_capacity_guardrails_fail_closed_before_heavy_work() -> None:
+    upload_client = TestClient(
+        create_app(
+            Settings(
+                environment="test",
+                log_level="WARNING",
+                database_url="",
+                max_upload_bytes=4,
+            )
+        )
+    )
+    too_large = upload_client.post(
+        "/v1/ingest/document",
+        data={"collection_id": "tests:knowledge"},
+        files={"file": ("large.txt", b"12345", "text/plain")},
+    )
+    assert too_large.status_code == 413
+
+    chunk_client = TestClient(
+        create_app(
+            Settings(
+                environment="test",
+                log_level="WARNING",
+                database_url="",
+                max_upload_bytes=100_000,
+                max_chunks_per_ingest=1,
+            )
+        )
+    )
+    too_many_chunks = chunk_client.post(
+        "/v1/ingest/document",
+        data={"collection_id": "tests:knowledge"},
+        files={
+            "file": (
+                "many-chunks.txt",
+                ("capacity guardrail text " * 500).encode("utf-8"),
+                "text/plain",
+            )
+        },
+    )
+    assert too_many_chunks.status_code == 400
+    assert "max_chunks_per_ingest=1" in too_many_chunks.json()["detail"]
+
+    search_client = TestClient(
+        create_app(
+            Settings(
+                environment="test",
+                log_level="WARNING",
+                internal_api_key="secret",
+                max_search_collections=2,
+            ),
+            platform_service=FakePlatformService(),
+        )
+    )
+    too_many_collections = search_client.post(
+        "/v1/search",
+        headers={"X-Arvectum-Key": "secret"},
+        json={
+            "query": "кабель",
+            "collections": ["one", "two", "three"],
+            "mode": "hybrid",
+        },
+    )
+    assert too_many_collections.status_code == 413
+
+
 def test_openapi_exposes_core_v1_contract() -> None:
     client = _client()
     schema = client.get("/openapi.json").json()

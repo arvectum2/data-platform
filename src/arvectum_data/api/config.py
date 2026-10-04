@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,7 +19,9 @@ class Settings(BaseSettings):
 
     database_url: str = ""
     internal_api_key: str = ""
-    max_upload_bytes: int = 10_000_000
+    max_upload_bytes: int = Field(default=10_000_000, ge=1)
+    max_chunks_per_ingest: int = Field(default=1000, ge=1)
+    max_search_collections: int = Field(default=32, ge=1)
     allow_private_fetches: bool = False
 
     embedding_provider: str = "hashing"

@@ -370,6 +370,11 @@ class DataPlatformService:
             )
 
     def _persist_and_index(self, result) -> dict[str, Any]:
+        if len(result.chunks) > self.settings.max_chunks_per_ingest:
+            raise ValueError(
+                "ingest exceeds max_chunks_per_ingest="
+                f"{self.settings.max_chunks_per_ingest}"
+            )
         with self._require_factory()() as session:
             collection = session.get(CollectionRow, result.resource.collection_id)
             if collection is None:
