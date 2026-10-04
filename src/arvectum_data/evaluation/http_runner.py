@@ -18,6 +18,8 @@ class EvaluationRequestError(RuntimeError):
 class HttpSearchRunner:
     base_url: str
     api_key: str = ""
+    consumer: str = ""
+    consumer_key: str = ""
     timeout_seconds: float = 30.0
 
     def __call__(
@@ -35,6 +37,13 @@ class HttpSearchRunner:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["X-Arvectum-Key"] = self.api_key
+        if self.consumer or self.consumer_key:
+            if not self.consumer or not self.consumer_key:
+                raise EvaluationRequestError(
+                    "consumer and consumer_key must be configured together"
+                )
+            headers["X-Arvectum-Consumer"] = self.consumer
+            headers["X-Arvectum-Consumer-Key"] = self.consumer_key
         request = urllib.request.Request(
             f"{self.base_url.rstrip('/')}/v1/search",
             data=json.dumps(payload).encode("utf-8"),

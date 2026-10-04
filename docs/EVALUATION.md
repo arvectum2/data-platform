@@ -100,3 +100,19 @@ Production comparison on 2026-10-04:
 Vector-only ranked the exact `500 КБ` landing page and exact `Image Size` App Store page second. Lexical retrieval supplied enough exact-token signal for hybrid search to promote both expected results to rank 1.
 
 This benchmark does **not** justify a BM25 migration today. PostgreSQL FTS already provides a useful complementary exact-match signal and the current hybrid strategy outperforms both single retrievers on the accepted exact-match suite. Reconsider BM25 only when a broader benchmark demonstrates a repeatable lexical relevance gap that cannot be solved by query formulation or fusion.
+
+## Authorized federation benchmark
+
+The HTTP evaluation runner can authenticate consumer-scoped federation without putting consumer secrets into benchmark JSON.
+
+Set the consumer key in an environment variable and pass the consumer identity separately:
+
+    export ARVECTUM_DATA_EVAL_CONSUMER_KEY=<consumer-scoped-secret>
+    arvectum-data-eval benchmarks/production_acceptance_v2.json       --base-url http://127.0.0.1:8094       --consumer growth-agent       --consumer-key-env ARVECTUM_DATA_EVAL_CONSUMER_KEY
+
+The runner requires consumer and consumer key together and fails closed on partial configuration.
+
+production_acceptance_v2 extends the first production snapshot with an authorized cross-collection Growth case over the active site and product collections. Its first production run on 2026-10-04 passed all 10 cases with top-1 accuracy 1.0, MRR 1.0, hit-rate@5 1.0 and mean recall@5 1.0; p50 latency was about 126 ms and p95 about 154 ms.
+
+The v2 run also exposed a separate federation presentation issue: the same canonical product URL can appear from more than one requested collection. That duplication is not hidden by the benchmark and should be handled as a distinct retrieval/federation concern rather than by changing expected identities.
+

@@ -25,6 +25,16 @@ def _parser() -> argparse.ArgumentParser:
         default="ARVECTUM_DATA_EVAL_API_KEY",
         help="Environment variable containing the internal API key.",
     )
+    parser.add_argument(
+        "--consumer",
+        default=os.getenv("ARVECTUM_DATA_EVAL_CONSUMER", ""),
+        help="Consumer identity for federated/restricted search.",
+    )
+    parser.add_argument(
+        "--consumer-key-env",
+        default="ARVECTUM_DATA_EVAL_CONSUMER_KEY",
+        help="Environment variable containing the consumer-scoped key.",
+    )
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--fail-top1-below", type=float)
@@ -39,6 +49,8 @@ def main(argv: list[str] | None = None) -> int:
     runner = HttpSearchRunner(
         base_url=args.base_url,
         api_key=os.getenv(args.api_key_env, ""),
+        consumer=args.consumer,
+        consumer_key=os.getenv(args.consumer_key_env, ""),
         timeout_seconds=args.timeout_seconds,
     )
     summary = evaluate_suite(suite, runner)

@@ -11,6 +11,10 @@ from arvectum_data.evaluation import (
     evaluate_suite,
 )
 from arvectum_data.evaluation.cli import main
+from arvectum_data.evaluation.http_runner import (
+    EvaluationRequestError,
+    HttpSearchRunner,
+)
 
 
 def test_evaluate_case_supports_chunk_identity_and_recall() -> None:
@@ -180,3 +184,68 @@ def test_cli_thresholds_can_fail_ci(monkeypatch, tmp_path) -> None:
         )
         == 2
     )
+
+
+def test_http_runner_requires_complete_consumer_credentials() -> None:
+    case = EvaluationCase(
+        case_id="federated",
+        query="photo size",
+        collections=("site", "products"),
+        expected_ids=("expected",),
+    )
+    runner = HttpSearchRunner(
+        base_url="http://127.0.0.1:9",
+        consumer="growth-agent",
+        consumer_key="",
+        timeout_seconds=0.01,
+    )
+
+    with pytest.raises(EvaluationRequestError, match="configured together"):
+        runner(case)
+
+
+def test_cli_passes_consumer_credentials(monkeypatch, tmp_path) -> None:
+    benchmark = tmp_path / "benchmark.json"
+    benchmark.write_text(
+        json.dumps(
+            {
+                "name": "consumer-cli",
+                "cases": [
+                    {
+                        "id": "case-1",
+                        "query": "query",
+                        "collections": ["one"],
+                        "expected_ids": ["expected"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    captured = {}
+
+    class FakeRunner:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def __call__(self, case):
+            return ([{"canonical_uri": "expected"}], 5.0)
+
+    monkeypatch.setattr("arvectum_data.evaluation.cli.HttpSearchRunner", FakeRunner)
+    monkeypatch.setenv("TEST_CONSUMER_KEY", "scoped-secret")
+
+    assert (
+        main(
+            [
+                str(benchmark),
+                "--consumer",
+                "growth-agent",
+                "--consumer-key-env",
+                "TEST_CONSUMER_KEY",
+            ]
+        )
+        == 0
+    )
+    assert captured["consumer"] == "growth-agent"
+    assert captured["consumer_key"] == "scoped-secret"
