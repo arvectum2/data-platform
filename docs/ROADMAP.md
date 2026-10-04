@@ -207,17 +207,24 @@ This integration is retrieval-only. It does not authorize autonomous M-049 Agent
 
 ## DP-INT-003 — Growth / SEO consumer
 
-Status: SITE SEARCH CONSUMER MERGED AND PRODUCTION-ACCEPTED; external discovery-result acceptance and research collections pending.
+Status: MERGED AND PRODUCTION-ACCEPTED.
 
 - [x] arvectum.com site collection;
-- [ ] app/product metadata collections;
-- [ ] competitor/research collection;
-- [~] web discovery workflow — consumer CLI implemented; connector registry healthy, but live DuckDuckGo smoke returned zero resources;
+- [x] app/product metadata collections;
+- [x] competitor/research collection;
+- [x] web discovery workflow;
 - [x] crawl/index change detection;
 - [x] Growth Agent Search API client;
 - [x] provenance-backed results.
 
-Arvectum Site PR #2 (merge b6630c0) indexes canonical pages from public/sitemap.xml into deterministic versioned collections and switches the active revision only after collection statistics verify complete indexing. Production acceptance on 2026-10-04 indexed 44 resources / 44 documents / 158 chunks / 158 embeddings into growth:arvectum-site:8f0e23f96d45b1b9. Procurement intent ranked the tender-department page first; Photo Size intent ranked the product landing page first; every result carried canonical URL plus Data Platform resource/document/chunk evidence. A repeated index run detected no content changes and performed no writes.
+Arvectum Site PR #2 (merge b6630c0) added the first-party site consumer. Production acceptance indexed 44 canonical pages into growth:arvectum-site:8f0e23f96d45b1b9: 44 resources / 44 documents / 158 chunks / 158 embeddings. Procurement intent ranked the tender-department page first; Photo Size intent ranked the product landing page first; every result carried canonical URL plus Data Platform resource/document/chunk evidence. A repeated index run detected no content changes and performed no writes.
+
+DuckDuckGo production discovery was repaired in Data Platform commits f15b29a and f8dbcbb: anti-bot challenge pages are no longer treated as empty success, and the connector uses the working HTML endpoint with connector-specific browser-compatible headers. A live Growth discovery smoke returned 10 external results for photo resize iphone app.
+
+Arvectum Site PR #3 (merge 4ff7ecc) added deterministic external research collections. Production acceptance discovered five URLs, indexed four successfully with one explicit fetch failure, and produced growth:research:df5477406a:9c4e55c17bb5200d with 4 resources / 4 documents / 53 chunks / 53 embeddings. Evidence-backed research search ranked App Store competitor pages first.
+
+Arvectum Site PR #4 (merge 4d64899) added a separate product-metadata index derived only from public /tools/*/index.html landing pages. The current public product set contains Photo Size, indexed into growth:products:e93c4eb90b2b2e3a as 1 resource / 1 document / 1 chunk / 1 embedding. A product-intent search returned Photo Size with canonical URL and complete evidence. Site, research and product active-state files are independent.
+
 
 ## DP-OPS-001 — operational hardening
 
