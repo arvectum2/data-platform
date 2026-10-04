@@ -254,7 +254,7 @@ Only after three real consumers are integrated:
 - [ ] distributed crawling;
 - [x] authorized federated cross-collection search;
 - [x] relevance evaluation pipeline;
-- [ ] relevance feedback capture loop.
+- [x] relevance feedback capture loop.
 
 
 Current benchmark evidence does not justify the deferred BM25 backend. On `lexical_exact_v1`, current hybrid retrieval scored top-1 1.00 / MRR 1.00, compared with vector-only 0.60 / 0.80 and PostgreSQL FTS lexical-only 0.80 / 0.90. BM25 remains backlog-only until a larger benchmark shows a repeatable lexical gap.

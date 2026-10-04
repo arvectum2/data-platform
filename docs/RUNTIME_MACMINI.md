@@ -147,3 +147,25 @@ The 2026-10-04 production acceptance backed up the live arvectum_data database a
 During rollout, the Tender runtime also revealed a stale PostgreSQL password in its local `.env.local`. The runtime database URL was synchronized to the active PostgreSQL container and verified with a fresh SQL `SELECT 1` before production acceptance.
 
 This credential repair is a Tender runtime operational issue, not a Data Platform schema or API change.
+## Federated search acceptance
+
+Consumer-scoped federation was enabled in production on 2026-10-04. The runtime stores the Growth consumer key outside Git with file mode 0600 and exports it into `ARVECTUM_DATA_CONSUMER_API_KEYS` only at service startup.
+
+Acceptance used the active site and product collections together:
+
+```text
+growth:arvectum-site:8f0e23f96d45b1b9
+growth:products:e93c4eb90b2b2e3a
+```
+
+Observed behavior for query `Фото под размер`:
+
+```text
+no consumer identity -> HTTP 403
+invalid consumer key -> HTTP 403
+valid growth-agent key -> HTTP 200
+hits returned from both requested collections
+```
+
+Federated authorization is fail-closed. The service never silently removes an unauthorized collection from the request.
+
