@@ -117,6 +117,19 @@ Do not silently fall back from Data Platform to legacy retrieval.
 
 Before using legacy as a production rollback, validate its vector-store path and data freshness. At the first Data Platform rollout, the configured legacy vector-store path referenced an unavailable historical volume; located archive copies were pre-2026-08-01 and are not a valid current parity baseline.
 
+## Capacity and retry defaults
+
+Production uses the Data Platform defaults unless explicitly overridden:
+
+    ARVECTUM_DATA_MAX_UPLOAD_BYTES=10000000
+    ARVECTUM_DATA_MAX_CHUNKS_PER_INGEST=1000
+    ARVECTUM_DATA_MAX_SEARCH_COLLECTIONS=32
+    ARVECTUM_DATA_EMBEDDING_RETRY_MAX_ATTEMPTS=3
+    ARVECTUM_DATA_EMBEDDING_RETRY_BASE_DELAY_SECONDS=0.25
+    ARVECTUM_DATA_EMBEDDING_RETRY_MAX_DELAY_SECONDS=2.0
+
+Transient embedding-server unavailability is retried with bounded exponential backoff. Durable reindex jobs move to dead_letter after the final transient failure and preserve the previous active index revision. Re-running the same revision reuses the durable job instead of creating a duplicate. Permanent contract/schema failures are marked failed and are not blindly retried.
+
 ## Backup and restore
 
 Canonical helpers live in scripts/ops/backup-postgres.sh and scripts/ops/restore-postgres.sh. Backups use PostgreSQL custom format, write a SHA-256 sidecar and JSON manifest, and default to file mode 0600.
