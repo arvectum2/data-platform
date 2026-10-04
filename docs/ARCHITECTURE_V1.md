@@ -307,3 +307,12 @@ Integrate only after one existing product successfully consumes the platform. Th
 ## 13. Non-goals for v1
 
 Do not block v1 on a universal entity graph, autonomous LLM crawling, LLM-first ranking, Elasticsearch/OpenSearch, distributed crawler fleet, internet-scale indexing, moving all domain connectors, or replacing product databases.
+
+
+## Architectural boundaries
+
+Data Platform is the owner of reusable data/search infrastructure: acquisition, document text extraction, normalization, chunking, embeddings, lexical/vector/hybrid retrieval, generic indexing and reindex lifecycle, reusable Resource / Document / Chunk / Provenance models, deduplication/retries/storage primitives, and generic search/filter/ranking contracts.
+
+Consumer products depend on Data Platform. Data Platform must not import or encode consumer-domain logic. In particular, Tender Agent keeps EIS/44-FZ/223-FZ semantics, procurement requirements, application composition, Decision Core, Commercial Core, GO/NO-GO, supplier/tender compatibility, procurement rules/evidence mapping, and tender reporting. SEO/research agents and Arvectum OS RAG follow the same consumer direction.
+
+The dependency direction is therefore Tender Agent / SEO / Arvectum OS -> Data Platform, never the reverse. The /v1/process/document endpoint exists specifically so consumers can reuse platform-owned extraction and chunking without copying those implementations into their own repositories; consumers may keep domain-local projections of the resulting chunks when their business logic requires stable local references.

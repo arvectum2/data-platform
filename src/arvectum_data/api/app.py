@@ -42,6 +42,7 @@ from .schemas import (
     IndexJobResponse,
     IndexRebuildRequest,
     IngestResponse,
+    ProcessDocumentResponse,
     RelevanceFeedbackRequest,
     RelevanceFeedbackResponse,
     RelevanceFeedbackSummaryResponse,
@@ -87,10 +88,12 @@ def create_app(
     service.state.request_count = 0
     service.state.operation_metrics = {
         name: {"requests": 0, "errors": 0, "total_ms": 0, "max_ms": 0}
-        for name in ("ingest", "search", "discover", "reindex")
+        for name in ("process", "ingest", "search", "discover", "reindex")
     }
 
     def operation_name(method: str, path: str) -> str | None:
+        if method == "POST" and path == "/v1/process/document":
+            return "process"
         if method == "POST" and path in {"/v1/ingest/document", "/v1/ingest/url"}:
             return "ingest"
         if method == "POST" and path == "/v1/search":
@@ -272,6 +275,46 @@ def create_app(
                 collection_id=payload.collection_id,
                 url=payload.url,
                 title=payload.title,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/process/document",
+        response_model=ProcessDocumentResponse,
+        tags=["process"],
+    )
+    async def process_document_endpoint(
+        collection_id: str = Form(...),
+        file: UploadFile = File(...),
+        title: str | None = Form(default=None),
+        canonical_uri: str | None = Form(default=None),
+        chunk_size_chars: int = Form(default=1500, ge=1, le=200_000),
+        overlap_chars: int = Form(default=200, ge=0, le=100_000),
+        min_chunk_chars: int = Form(default=120, ge=1, le=200_000),
+        max_chars: int = Form(default=2_000_000, ge=1, le=20_000_000),
+        runtime_service=Depends(runtime),
+    ):
+        content = await file.read(resolved.max_upload_bytes + 1)
+        if len(content) > resolved.max_upload_bytes:
+            raise HTTPException(status_code=413, detail="uploaded document is too large")
+        filename = file.filename or "document.bin"
+        if overlap_chars >= chunk_size_chars:
+            raise HTTPException(
+                status_code=422,
+                detail="overlap_chars must be smaller than chunk_size_chars",
+            )
+        try:
+            return runtime_service.process_document_bytes(
+                collection_id=collection_id,
+                filename=filename,
+                content=content,
+                title=title,
+                canonical_uri=canonical_uri,
+                chunk_size_chars=chunk_size_chars,
+                overlap_chars=overlap_chars,
+                min_chunk_chars=min_chunk_chars,
+                max_chars=max_chars,
             )
         except Exception as exc:
             raise map_service_error(exc) from exc

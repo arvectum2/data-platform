@@ -61,6 +61,42 @@ class FakePlatformService:
             "embeddings": 1,
         }
 
+    def process_document_bytes(
+        self,
+        *,
+        collection_id,
+        filename,
+        content,
+        title=None,
+        canonical_uri=None,
+        chunk_size_chars=1500,
+        overlap_chars=200,
+        min_chunk_chars=120,
+        max_chars=2_000_000,
+    ):
+        assert content
+        return {
+            "collection_id": collection_id,
+            "resource_id": "resource-process-1",
+            "document_id": "document-process-1",
+            "canonical_uri": canonical_uri or f"upload://{filename}",
+            "title": title or filename,
+            "media_type": "text/plain",
+            "extraction_status": "extracted",
+            "text": "processed text",
+            "chunks": [
+                {
+                    "chunk_id": "chunk-process-1",
+                    "ordinal": 0,
+                    "text": "processed text",
+                    "content_hash": "hash-process-1",
+                    "char_start": 0,
+                    "char_end": 14,
+                    "token_estimate": 3,
+                }
+            ],
+        }
+
     def ingest_document_bytes(
         self,
         *,
@@ -344,6 +380,24 @@ def test_collection_ingest_search_and_extract_contracts() -> None:
     assert stats.status_code == 200
     assert stats.json()["resources"] == 1
     assert stats.json()["embeddings"] == 1
+
+    processed = client.post(
+        "/v1/process/document",
+        headers=headers,
+        data={
+            "collection_id": "tests:knowledge",
+            "canonical_uri": "tender-document://doc-1",
+            "chunk_size_chars": "1500",
+            "overlap_chars": "200",
+            "min_chunk_chars": "120",
+        },
+        files={"file": ("knowledge.txt", b"short", "text/plain")},
+    )
+    assert processed.status_code == 200
+    processed_body = processed.json()
+    assert processed_body["extraction_status"] == "extracted"
+    assert processed_body["text"] == "processed text"
+    assert processed_body["chunks"][0]["ordinal"] == 0
 
     ingested = client.post(
         "/v1/ingest/document",
@@ -697,6 +751,41 @@ def test_relevance_feedback_contract() -> None:
     assert invalid.status_code == 422
 
 
+
+def test_real_process_document_endpoint_uses_platform_extraction_and_chunking() -> None:
+    app = create_app(
+        Settings(
+            environment="test",
+            log_level="WARNING",
+            database_url="",
+            max_upload_bytes=100_000,
+        )
+    )
+    client = TestClient(app)
+    text = ("Оплата производится после приемки товара. " * 12).encode("utf-8")
+
+    response = client.post(
+        "/v1/process/document",
+        data={
+            "collection_id": "tests:processing",
+            "canonical_uri": "tender-document://doc-real-1",
+            "chunk_size_chars": "180",
+            "overlap_chars": "20",
+            "min_chunk_chars": "40",
+        },
+        files={"file": ("contract.txt", text, "text/plain")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["collection_id"] == "tests:processing"
+    assert payload["canonical_uri"] == "tender-document://doc-real-1"
+    assert payload["extraction_status"] == "extracted"
+    assert "Оплата производится после приемки товара." in payload["text"]
+    assert len(payload["chunks"]) >= 2
+    assert payload["chunks"][0]["ordinal"] == 0
+    assert payload["chunks"][0]["content_hash"]
+
 def test_openapi_exposes_core_v1_contract() -> None:
     client = _client()
     schema = client.get("/openapi.json").json()
@@ -706,6 +795,7 @@ def test_openapi_exposes_core_v1_contract() -> None:
     assert "/v1/collections/{collection_id}/stats" in paths
     assert "/v1/ingest/url" in paths
     assert "/v1/ingest/document" in paths
+    assert "/v1/process/document" in paths
     assert "/v1/search" in paths
     assert "/v1/entities" in paths
     assert "/v1/entities/resolve" in paths
@@ -774,6 +864,7 @@ def test_openapi_exposes_stable_v1_paths() -> None:
     assert "/v1/collections" in paths
     assert "/v1/ingest/url" in paths
     assert "/v1/ingest/document" in paths
+    assert "/v1/process/document" in paths
     assert "/v1/extract" in paths
     assert "/v1/search" in paths
 
