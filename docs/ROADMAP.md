@@ -228,14 +228,18 @@ Arvectum Site PR #4 (merge 4d64899) added a separate product-metadata index deri
 
 ## DP-OPS-001 — operational hardening
 
-- [ ] idempotent ingest/index jobs;
-- [ ] atomic index revision switch;
+- [x] idempotent ingest/index jobs;
+- [x] atomic index revision switch;
 - [ ] retry/dead-letter policy;
-- [ ] source/index freshness;
+- [x] source/index freshness;
 - [ ] ingest/search metrics;
 - [ ] secret-free diagnostics;
 - [ ] backup/restore;
 - [ ] capacity guardrails.
+
+Repeated ingest now preserves deterministic resource/document/chunk identities and skips already-existing embeddings for the same provider/model. Reindex revisions are deterministic over the collection chunk set plus embedding/search contract; a repeated unchanged rebuild returns the same durable completed job without recomputing embeddings. A rebuild failure or a collection change during rebuild fails closed and does not move active_index_revision.
+
+Collection stats expose first/last source observation, latest embedding time, latest completed reindex time and the active revision. Global status exposes bounded object counts. Search/ingest operation-rate and latency metrics remain open separately; object counts alone do not close the metrics item.
 
 ## Post-v1 backlog
 
