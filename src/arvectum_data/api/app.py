@@ -25,6 +25,7 @@ from .config import Settings
 from .schemas import (
     CollectionCreateRequest,
     CollectionResponse,
+    CollectionStatsResponse,
     ConnectorHealthResponse,
     DiscoveryRequest,
     DiscoveryResponse,
@@ -172,6 +173,20 @@ def create_app(
     ):
         try:
             return runtime_service.get_collection(collection_id)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.get(
+        "/collections/{collection_id}/stats",
+        response_model=CollectionStatsResponse,
+        tags=["collections"],
+    )
+    def get_collection_stats(
+        collection_id: str,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.collection_stats(collection_id)
         except Exception as exc:
             raise map_service_error(exc) from exc
 

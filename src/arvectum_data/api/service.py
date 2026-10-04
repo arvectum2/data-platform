@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..acquisition import AcquisitionEngine
@@ -29,6 +29,7 @@ from ..indexing import (
 )
 from ..search import HybridSearchEngine, PostgresSearchBackend, SearchHit, SearchQuery
 from ..storage.postgres import (
+    ChunkEmbeddingRow,
     ChunkRow,
     CollectionRow,
     DataRepository,
@@ -205,6 +206,49 @@ class DataPlatformService:
                 select(CollectionRow).order_by(CollectionRow.collection_id.asc())
             ).all()
             return [_collection_payload(row) for row in rows]
+
+    def collection_stats(self, collection_id: str) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            if session.get(CollectionRow, collection_id) is None:
+                raise CollectionNotFound(collection_id)
+
+            resource_ids = select(ResourceRow.resource_id).where(
+                ResourceRow.collection_id == collection_id
+            )
+            document_ids = select(DocumentRow.document_id).where(
+                DocumentRow.resource_id.in_(resource_ids)
+            )
+            chunk_ids = select(ChunkRow.chunk_id).where(
+                ChunkRow.document_id.in_(document_ids)
+            )
+
+            resources = session.scalar(
+                select(func.count()).select_from(ResourceRow).where(
+                    ResourceRow.collection_id == collection_id
+                )
+            ) or 0
+            documents = session.scalar(
+                select(func.count()).select_from(DocumentRow).where(
+                    DocumentRow.resource_id.in_(resource_ids)
+                )
+            ) or 0
+            chunks = session.scalar(
+                select(func.count()).select_from(ChunkRow).where(
+                    ChunkRow.document_id.in_(document_ids)
+                )
+            ) or 0
+            embeddings = session.scalar(
+                select(func.count()).select_from(ChunkEmbeddingRow).where(
+                    ChunkEmbeddingRow.chunk_id.in_(chunk_ids)
+                )
+            ) or 0
+            return {
+                "collection_id": collection_id,
+                "resources": int(resources),
+                "documents": int(documents),
+                "chunks": int(chunks),
+                "embeddings": int(embeddings),
+            }
 
     def ingest_document_bytes(
         self,

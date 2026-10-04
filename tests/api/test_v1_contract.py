@@ -43,6 +43,15 @@ class FakePlatformService:
             default_language="simple",
         )
 
+    def collection_stats(self, collection_id):
+        return {
+            "collection_id": collection_id,
+            "resources": 1,
+            "documents": 1,
+            "chunks": 1,
+            "embeddings": 1,
+        }
+
     def ingest_document_bytes(
         self,
         *,
@@ -204,6 +213,14 @@ def test_collection_ingest_search_and_extract_contracts() -> None:
     assert created.status_code == 200
     assert created.json()["collection_id"] == "tests:knowledge"
 
+    stats = client.get(
+        "/v1/collections/tests:knowledge/stats",
+        headers=headers,
+    )
+    assert stats.status_code == 200
+    assert stats.json()["resources"] == 1
+    assert stats.json()["embeddings"] == 1
+
     ingested = client.post(
         "/v1/ingest/document",
         headers=headers,
@@ -258,6 +275,7 @@ def test_openapi_exposes_core_v1_contract() -> None:
     paths = schema["paths"]
 
     assert "/v1/collections" in paths
+    assert "/v1/collections/{collection_id}/stats" in paths
     assert "/v1/ingest/url" in paths
     assert "/v1/ingest/document" in paths
     assert "/v1/search" in paths

@@ -28,6 +28,14 @@ class CollectionResponse(BaseModel):
     active_index_revision: str | None = None
 
 
+class CollectionStatsResponse(BaseModel):
+    collection_id: str
+    resources: int
+    documents: int
+    chunks: int
+    embeddings: int
+
+
 class UrlIngestRequest(BaseModel):
     collection_id: str = Field(min_length=1, max_length=128)
     url: str = Field(min_length=1, max_length=4096)

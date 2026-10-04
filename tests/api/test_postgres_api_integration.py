@@ -70,6 +70,16 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert ingested.json()["chunks"] > 0
     assert ingested.json()["embeddings"] == ingested.json()["chunks"]
 
+    stats = client.get(
+        "/v1/collections/api:docs/stats",
+        headers=headers,
+    )
+    assert stats.status_code == 200
+    assert stats.json()["resources"] == 1
+    assert stats.json()["documents"] == 1
+    assert stats.json()["chunks"] == ingested.json()["chunks"]
+    assert stats.json()["embeddings"] == ingested.json()["embeddings"]
+
     searched = client.post(
         "/v1/search",
         headers=headers,
