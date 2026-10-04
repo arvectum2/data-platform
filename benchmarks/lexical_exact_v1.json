@@ -1,0 +1,50 @@
+{
+  "name": "lexical-exact-v1",
+  "description": "Exact-name and exact-token retrieval snapshot used to validate the lexical contribution before considering BM25.",
+  "metadata": {
+    "created_at": "2026-10-04",
+    "purpose": "lexical-signal-validation"
+  },
+  "cases": [
+    {
+      "id": "site-35x45",
+      "query": "35×45",
+      "collections": ["growth:arvectum-site:8f0e23f96d45b1b9"],
+      "expected_ids": ["https://arvectum.com/tools/photo-size/35x45.html"],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "site-pushkin",
+      "query": "PUSHKIN",
+      "collections": ["growth:arvectum-site:8f0e23f96d45b1b9"],
+      "expected_ids": ["https://arvectum.com/pushkin-privacy.html"],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "site-photo-500kb",
+      "query": "500 КБ",
+      "collections": ["growth:arvectum-site:8f0e23f96d45b1b9"],
+      "expected_ids": ["https://arvectum.com/tools/photo-size/compress-to-kb.html"],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "product-photo-size-name",
+      "query": "Фото под размер",
+      "collections": ["growth:products:e93c4eb90b2b2e3a"],
+      "expected_ids": ["https://arvectum.com/tools/photo-size/index.html"],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "research-image-size-name",
+      "query": "Image Size",
+      "collections": ["growth:research:df5477406a:9c4e55c17bb5200d"],
+      "expected_ids": ["https://apps.apple.com/us/app/image-size/id670766542"],
+      "id_field": "canonical_uri",
+      "limit": 5
+    }
+  ]
+}

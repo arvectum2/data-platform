@@ -63,3 +63,19 @@ Benchmarks are snapshots, not timeless truth. Versioned collection IDs deliberat
 The first production snapshot is `benchmarks/production_acceptance_v1.json`. It combines accepted Tender Agent and Growth/SEO cases. The first run on 2026-10-04 produced 9/9 top-1 accuracy, MRR 1.0, hit-rate@5 1.0 and mean recall@5 1.0; p50 latency was about 103 ms and p95 about 214 ms.
 
 This harness evaluates retrieval quality. It does not yet collect user relevance feedback; that feedback capture loop remains a separate backlog item.
+
+## Exact-match lexical benchmark
+
+`benchmarks/lexical_exact_v1.json` freezes five exact-name/token intents across the Growth site, product metadata and external research collections.
+
+Production comparison on 2026-10-04:
+
+| Mode | Top-1 | MRR | Hit@5 | p50 |
+| --- | ---: | ---: | ---: | ---: |
+| Hybrid | 1.00 | 1.00 | 1.00 | ~103 ms |
+| Vector only | 0.60 | 0.80 | 1.00 | ~95 ms |
+| Lexical only | 0.80 | 0.90 | 1.00 | ~12 ms |
+
+Vector-only ranked the exact `500 КБ` landing page and exact `Image Size` App Store page second. Lexical retrieval supplied enough exact-token signal for hybrid search to promote both expected results to rank 1.
+
+This benchmark does **not** justify a BM25 migration today. PostgreSQL FTS already provides a useful complementary exact-match signal and the current hybrid strategy outperforms both single retrievers on the accepted exact-match suite. Reconsider BM25 only when a broader benchmark demonstrates a repeatable lexical relevance gap that cannot be solved by query formulation or fusion.
