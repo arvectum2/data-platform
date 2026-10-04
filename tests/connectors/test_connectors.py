@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pytest
 
@@ -21,8 +21,10 @@ from arvectum_data.engine import RawAsset
 @dataclass
 class FakeAcquisition:
     payloads: dict[str, tuple[str | None, str | None]]
+    requests: list = field(default_factory=list)
 
     def acquire(self, request):
+        self.requests.append(request)
         html, text = self.payloads[request.url]
         return AcquisitionResult(
             asset=RawAsset(
@@ -203,6 +205,8 @@ def test_web_connector_builds_generic_search_request() -> None:
     page = connector.discover("power cable", limit=5)
 
     assert [item.canonical_uri for item in page.resources] == ["https://example.com/a"]
+    request = acquisition.requests[0]
+    assert request.headers["User-Agent"].startswith("Mozilla/5.0")
 
 
 def test_web_connector_marks_challenge_as_degraded() -> None:

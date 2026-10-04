@@ -99,6 +99,10 @@ def parse_duckduckgo_html(html: str, *, limit: int = 10) -> tuple[DiscoveredReso
 class DuckDuckGoHTMLConnector:
     name = "duckduckgo_html"
     endpoint = "https://html.duckduckgo.com/html/"
+    user_agent = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 Safari/537.36"
+    )
 
     def __init__(
         self,
@@ -132,6 +136,7 @@ class DuckDuckGoHTMLConnector:
                     url=search_url,
                     render_mode=RenderMode.NEVER,
                     max_bytes=2_000_000,
+                    headers={"User-Agent": self.user_agent},
                 )
             )
         )
