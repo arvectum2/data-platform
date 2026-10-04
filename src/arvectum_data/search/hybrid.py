@@ -70,8 +70,18 @@ class HybridSearchEngine:
             )
 
         accumulated: dict[str, _AccumulatedHit] = {}
-        self._accumulate(accumulated, lexical_hits, kind="lexical")
-        self._accumulate(accumulated, vector_hits, kind="vector")
+        self._accumulate(
+            accumulated,
+            lexical_hits,
+            kind="lexical",
+            weight=request.lexical_weight,
+        )
+        self._accumulate(
+            accumulated,
+            vector_hits,
+            kind="vector",
+            weight=request.vector_weight,
+        )
 
         ranked = sorted(
             accumulated.values(),
@@ -88,10 +98,11 @@ class HybridSearchEngine:
         hits: Iterable[BackendHit],
         *,
         kind: str,
+        weight: float,
     ) -> None:
         for rank, hit in enumerate(hits, start=1):
             item = accumulated.setdefault(hit.chunk_id, _AccumulatedHit(hit=hit))
-            item.fusion_score += 1.0 / (self.rrf_k + rank)
+            item.fusion_score += weight / (self.rrf_k + rank)
             if kind == "lexical":
                 item.lexical_score = hit.score
             else:

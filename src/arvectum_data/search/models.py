@@ -59,6 +59,8 @@ class SearchQuery:
     filters: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
     limit: int = 10
     mode: SearchMode = SearchMode.HYBRID
+    lexical_weight: float = 1.0
+    vector_weight: float = 1.0
 
     def __post_init__(self) -> None:
         if not self.query.strip():
@@ -69,3 +71,7 @@ class SearchQuery:
             raise ValueError("limit must be between 1 and 100")
         if not isinstance(self.mode, SearchMode):
             object.__setattr__(self, "mode", SearchMode(self.mode))
+        if self.lexical_weight < 0 or self.vector_weight < 0:
+            raise ValueError("search fusion weights must be non-negative")
+        if self.mode is SearchMode.HYBRID and self.lexical_weight == 0 and self.vector_weight == 0:
+            raise ValueError("hybrid search requires at least one positive fusion weight")

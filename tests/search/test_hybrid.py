@@ -80,3 +80,60 @@ def test_product_ranker_hook_runs_after_generic_fusion() -> None:
 
     assert set(seen) == {"both", "lex-only", "vec-only"}
     assert [hit.chunk_id for hit in hits] == ["vec-only", "lex-only", "both"]
+
+
+class SingletonLexical:
+    def search_lexical(self, query, *, collections, filters, limit):
+        return [_hit("weak-both", 0.001)]
+
+
+class DeepVector:
+    def search_vector(self, query_vector, *, collections, filters, provider, model, limit):
+        hits = [_hit("semantic-best", 0.95)]
+        hits.extend(_hit(f"filler-{index}", 0.90 - index / 1000) for index in range(1, 24))
+        hits.append(_hit("weak-both", 0.30))
+        return hits
+
+
+def test_weighted_rrf_can_prefer_semantic_top_hit_without_changing_defaults() -> None:
+    engine = HybridSearchEngine(
+        lexical_backend=SingletonLexical(),
+        vector_backend=DeepVector(),
+        embedding_provider=HashingEmbeddingProvider(dimension=16),
+    )
+
+    equal = engine.search(
+        SearchQuery(
+            query="responsibility",
+            collections=("one",),
+            mode=SearchMode.HYBRID,
+            limit=10,
+        )
+    )
+    semantic_first = engine.search(
+        SearchQuery(
+            query="responsibility",
+            collections=("one",),
+            mode=SearchMode.HYBRID,
+            limit=10,
+            lexical_weight=1.0,
+            vector_weight=4.0,
+        )
+    )
+
+    assert equal[0].chunk_id == "weak-both"
+    assert semantic_first[0].chunk_id == "semantic-best"
+    assert semantic_first[0].scores.fusion > semantic_first[1].scores.fusion
+
+
+def test_hybrid_rejects_zero_zero_fusion_weights() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="at least one positive"):
+        SearchQuery(
+            query="cable",
+            collections=("one",),
+            mode=SearchMode.HYBRID,
+            lexical_weight=0.0,
+            vector_weight=0.0,
+        )

@@ -257,6 +257,8 @@ def create_app(
                     },
                     limit=payload.limit,
                     mode=payload.mode,
+                    lexical_weight=payload.lexical_weight,
+                    vector_weight=payload.vector_weight,
                 )
             )
         except Exception as exc:

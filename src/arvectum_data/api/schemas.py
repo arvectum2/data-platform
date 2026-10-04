@@ -102,6 +102,8 @@ class SearchRequest(BaseModel):
     filters: dict[str, list[str]] = Field(default_factory=dict)
     limit: int = Field(default=10, ge=1, le=100)
     mode: SearchMode = SearchMode.HYBRID
+    lexical_weight: float = Field(default=1.0, ge=0.0, le=20.0)
+    vector_weight: float = Field(default=1.0, ge=0.0, le=20.0)
 
 
 class SearchScoreResponse(BaseModel):
