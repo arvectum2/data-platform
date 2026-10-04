@@ -7,11 +7,25 @@ from pydantic import BaseModel, Field, model_validator
 from ..search import SearchMode
 
 
+
+
+class CollectionAccessPolicy(BaseModel):
+    allowed_consumers: list[str] = Field(default_factory=list, max_length=50)
+
+    @model_validator(mode="after")
+    def validate_consumers(self):
+        normalized = [item.strip() for item in self.allowed_consumers if item.strip()]
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("allowed_consumers must be unique")
+        self.allowed_consumers = normalized
+        return self
+
 class CollectionCreateRequest(BaseModel):
     collection_id: str = Field(min_length=1, max_length=128)
     owner: str = Field(min_length=1, max_length=128)
     name: str = Field(min_length=1, max_length=256)
     default_language: str = Field(default="simple", max_length=32)
+    access_policy: CollectionAccessPolicy | None = None
 
 
 CollectionCreate = CollectionCreateRequest
@@ -26,6 +40,7 @@ class CollectionResponse(BaseModel):
     embedding_model: str | None = None
     embedding_dimension: int | None = None
     active_index_revision: str | None = None
+    access_policy: dict[str, Any] = Field(default_factory=dict)
 
 
 class CollectionStatsResponse(BaseModel):

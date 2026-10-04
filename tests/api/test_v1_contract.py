@@ -23,7 +23,15 @@ class FakePlatformService:
             "embedding_dimension": 16,
         }
 
-    def create_collection(self, *, collection_id, owner, name, default_language):
+    def create_collection(
+        self,
+        *,
+        collection_id,
+        owner,
+        name,
+        default_language,
+        access_policy=None,
+    ):
         return {
             "collection_id": collection_id,
             "owner": owner,
@@ -33,6 +41,7 @@ class FakePlatformService:
             "embedding_model": "local-hash-v1",
             "embedding_dimension": 16,
             "active_index_revision": None,
+            "access_policy": dict(access_policy or {}),
         }
 
     def get_collection(self, collection_id):
@@ -167,7 +176,7 @@ class FakePlatformService:
             "not_relevant": 0,
         }
 
-    def search(self, request):
+    def search(self, request, *, consumer=None):
         return [
             SearchHit(
                 chunk_id="chunk-1",
@@ -212,13 +221,18 @@ class FakePlatformService:
         )
 
 
-def _client(*, key: str = "secret") -> TestClient:
+def _client(
+    *,
+    key: str = "secret",
+    consumer_api_keys: dict[str, str] | None = None,
+) -> TestClient:
     return TestClient(
         create_app(
             Settings(
                 environment="test",
                 log_level="WARNING",
                 internal_api_key=key,
+                consumer_api_keys=consumer_api_keys or {},
             ),
             platform_service=FakePlatformService(),
         )
@@ -248,6 +262,7 @@ def test_collection_ingest_search_and_extract_contracts() -> None:
             "owner": "tests",
             "name": "Knowledge",
             "default_language": "russian",
+            "access_policy": {"allowed_consumers": ["growth-agent"]},
         },
     )
     assert created.status_code == 200
@@ -450,6 +465,42 @@ def test_capacity_guardrails_fail_closed_before_heavy_work() -> None:
         },
     )
     assert too_many_collections.status_code == 413
+
+
+def test_federated_search_requires_consumer_scoped_credentials() -> None:
+    client = _client(consumer_api_keys={"growth-agent": "growth-secret"})
+    headers = {"X-Arvectum-Key": "secret"}
+    payload = {
+        "query": "needle",
+        "collections": ["tests:knowledge", "tests:secondary"],
+        "mode": "hybrid",
+    }
+
+    missing = client.post("/v1/search", headers=headers, json=payload)
+    assert missing.status_code == 403
+
+    invalid = client.post(
+        "/v1/search",
+        headers={
+            **headers,
+            "X-Arvectum-Consumer": "growth-agent",
+            "X-Arvectum-Consumer-Key": "wrong",
+        },
+        json=payload,
+    )
+    assert invalid.status_code == 403
+
+    valid = client.post(
+        "/v1/search",
+        headers={
+            **headers,
+            "X-Arvectum-Consumer": "growth-agent",
+            "X-Arvectum-Consumer-Key": "growth-secret",
+        },
+        json=payload,
+    )
+    assert valid.status_code == 200
+    assert valid.json()["hits"]
 
 
 def test_relevance_feedback_contract() -> None:

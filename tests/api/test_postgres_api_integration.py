@@ -33,6 +33,7 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
             log_level="WARNING",
             database_url=database_url,
             internal_api_key="test-secret",
+            consumer_api_keys={"growth-agent": "growth-secret"},
             embedding_provider="hashing",
             embedding_model="api-test-hash",
             embedding_dimension=64,
@@ -135,6 +136,83 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert hits[0]["scores"]["lexical"] is not None
     assert hits[0]["scores"]["vector"] is not None
     assert hits[0]["evidence"][0]["canonical_uri"] == "external-document://cable-1"
+
+    protected = client.post(
+        "/v1/collections",
+        headers=headers,
+        json={
+            "collection_id": "api:protected",
+            "owner": "tests",
+            "name": "Protected API documents",
+            "default_language": "russian",
+            "access_policy": {"allowed_consumers": ["growth-agent"]},
+        },
+    )
+    assert protected.status_code == 200
+    assert protected.json()["access_policy"] == {
+        "allowed_consumers": ["growth-agent"]
+    }
+
+    protected_ingest = client.post(
+        "/v1/ingest/document",
+        headers=headers,
+        data={
+            "collection_id": "api:protected",
+            "canonical_uri": "external-document://protected-cable",
+            "pre_chunked": "true",
+        },
+        files={
+            "file": (
+                "protected.txt",
+                ("Защищенный документ про силовой кабель. " * 30).encode("utf-8"),
+                "text/plain",
+            )
+        },
+    )
+    assert protected_ingest.status_code == 200
+
+    protected_denied = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "силовой кабель",
+            "collections": ["api:protected"],
+            "mode": "hybrid",
+        },
+    )
+    assert protected_denied.status_code == 403
+
+    federation_denied = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "силовой кабель",
+            "collections": ["api:docs", "api:protected"],
+            "mode": "hybrid",
+        },
+    )
+    assert federation_denied.status_code == 403
+
+    federation_headers = {
+        **headers,
+        "X-Arvectum-Consumer": "growth-agent",
+        "X-Arvectum-Consumer-Key": "growth-secret",
+    }
+    federation = client.post(
+        "/v1/search",
+        headers=federation_headers,
+        json={
+            "query": "силовой кабель",
+            "collections": ["api:docs", "api:protected"],
+            "mode": "hybrid",
+            "limit": 10,
+        },
+    )
+    assert federation.status_code == 200
+    federation_collections = {
+        hit["metadata"]["collection_id"] for hit in federation.json()["hits"]
+    }
+    assert {"api:docs", "api:protected"} <= federation_collections
 
     top_hit = hits[0]
     feedback_query = "силовой кабель для промышленного объекта"

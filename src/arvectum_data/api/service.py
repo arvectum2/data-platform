@@ -64,6 +64,10 @@ class CollectionNotFound(LookupError):
     pass
 
 
+class CollectionAccessDenied(PermissionError):
+    pass
+
+
 class EmbeddingContractMismatch(RuntimeError):
     pass
 
@@ -83,6 +87,7 @@ def _collection_payload(row: CollectionRow) -> dict[str, Any]:
         "embedding_model": row.embedding_model,
         "embedding_dimension": row.embedding_dimension,
         "active_index_revision": row.active_index_revision,
+        "access_policy": dict(row.access_policy or {}),
     }
 
 
@@ -205,6 +210,7 @@ class DataPlatformService:
         owner: str,
         name: str,
         default_language: str,
+        access_policy: Mapping[str, object] | None = None,
     ) -> dict[str, Any]:
         with self._require_factory()() as session:
             repo = DataRepository(session)
@@ -216,6 +222,7 @@ class DataPlatformService:
                 embedding_provider=self.embedding_provider.provider_name,
                 embedding_model=self.embedding_provider.model_name,
                 embedding_dimension=self.embedding_provider.dimension,
+                access_policy=None if access_policy is None else dict(access_policy),
             )
             session.commit()
             return _collection_payload(row)
@@ -455,12 +462,26 @@ class DataPlatformService:
                 "extraction_status": result.document.extraction_status,
             }
 
-    def search(self, request: SearchQuery) -> list[SearchHit]:
+    def search(
+        self,
+        request: SearchQuery,
+        *,
+        consumer: str | None = None,
+    ) -> list[SearchHit]:
         with self._require_factory()() as session:
             for collection_id in request.collections:
                 collection = session.get(CollectionRow, collection_id)
                 if collection is None:
                     raise CollectionNotFound(collection_id)
+                allowed_consumers = tuple(
+                    str(item)
+                    for item in (collection.access_policy or {}).get(
+                        "allowed_consumers", []
+                    )
+                    if str(item)
+                )
+                if allowed_consumers and consumer not in allowed_consumers:
+                    raise CollectionAccessDenied(collection_id)
                 self._validate_embedding_contract(collection)
 
             backend = PostgresSearchBackend(DataRepository(session))

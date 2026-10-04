@@ -159,6 +159,29 @@ Conceptual SearchHit:
 
 Scores remain separate; vector cosine, FTS rank and fused rank are not treated as the same scale.
 
+### Federated search authorization
+
+Single-collection search remains backward-compatible for unrestricted collections. Multi-collection search is a federated operation and requires a consumer-scoped identity:
+
+~~~text
+X-Arvectum-Consumer: growth-agent
+X-Arvectum-Consumer-Key: <consumer-scoped secret>
+~~~
+
+Consumer keys are configured through `ARVECTUM_DATA_CONSUMER_API_KEYS` as a JSON object mapping consumer IDs to secrets. They are independent from the general internal API key.
+
+Collections may additionally declare an access policy at create/update time:
+
+~~~json
+{
+  "access_policy": {
+    "allowed_consumers": ["growth-agent"]
+  }
+}
+~~~
+
+If `allowed_consumers` is non-empty, even single-collection search requires a valid consumer-scoped identity and the consumer must be listed. A federated request is authorized only when the consumer key is valid and every requested collection permits that consumer. Search never silently drops unauthorized collections or broadens scope.
+
 ## 7. Hybrid ranking v1
 
 Deterministic path:

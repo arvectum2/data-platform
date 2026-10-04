@@ -46,6 +46,7 @@ from .schemas import (
     UrlIngestRequest,
 )
 from .service import (
+    CollectionAccessDenied,
     CollectionNotFound,
     DataPlatformService,
     EmbeddingContractMismatch,
@@ -131,6 +132,20 @@ def create_app(
         if x_arvectum_key is None or not hmac.compare_digest(x_arvectum_key, expected):
             raise HTTPException(status_code=401, detail="invalid internal API key")
 
+    def require_consumer_identity(
+        consumer: str | None,
+        consumer_key: str | None,
+    ) -> str:
+        if not consumer or not consumer_key:
+            raise HTTPException(
+                status_code=403,
+                detail="consumer identity is required for federated or restricted search",
+            )
+        expected = resolved.consumer_api_keys.get(consumer)
+        if expected is None or not hmac.compare_digest(consumer_key, expected):
+            raise HTTPException(status_code=403, detail="invalid consumer credentials")
+        return consumer
+
     def runtime():
         return service.state.platform_service
 
@@ -139,6 +154,8 @@ def create_app(
             return HTTPException(status_code=503, detail=str(exc))
         if isinstance(exc, CollectionNotFound):
             return HTTPException(status_code=404, detail="collection not found")
+        if isinstance(exc, CollectionAccessDenied):
+            return HTTPException(status_code=403, detail="collection access denied")
         if isinstance(exc, IndexJobNotFound):
             return HTTPException(status_code=404, detail="index job not found")
         if isinstance(exc, (EmbeddingContractMismatch, UnsafeURL, ValueError)):
@@ -195,6 +212,11 @@ def create_app(
                 owner=payload.owner,
                 name=payload.name,
                 default_language=payload.default_language,
+                access_policy=(
+                    None
+                    if payload.access_policy is None
+                    else payload.access_policy.model_dump()
+                ),
             )
         except Exception as exc:
             raise map_service_error(exc) from exc
@@ -281,12 +303,24 @@ def create_app(
     )
     def search_endpoint(
         payload: SearchRequest,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
         runtime_service=Depends(runtime),
     ):
         if len(payload.collections) > resolved.max_search_collections:
             raise HTTPException(
                 status_code=413,
                 detail="too many collections in one search request",
+            )
+        consumer = None
+        if (
+            len(payload.collections) > 1
+            or x_arvectum_consumer is not None
+            or x_arvectum_consumer_key is not None
+        ):
+            consumer = require_consumer_identity(
+                x_arvectum_consumer,
+                x_arvectum_consumer_key,
             )
         try:
             hits = runtime_service.search(
@@ -301,7 +335,8 @@ def create_app(
                     mode=payload.mode,
                     lexical_weight=payload.lexical_weight,
                     vector_weight=payload.vector_weight,
-                )
+                ),
+                consumer=consumer,
             )
         except Exception as exc:
             raise map_service_error(exc) from exc

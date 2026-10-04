@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     database_url: str = ""
     internal_api_key: str = ""
+    consumer_api_keys: dict[str, str] = Field(default_factory=dict)
     max_upload_bytes: int = Field(default=10_000_000, ge=1)
     max_chunks_per_ingest: int = Field(default=1000, ge=1)
     max_search_collections: int = Field(default=32, ge=1)
