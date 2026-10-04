@@ -117,6 +117,18 @@ Do not silently fall back from Data Platform to legacy retrieval.
 
 Before using legacy as a production rollback, validate its vector-store path and data freshness. At the first Data Platform rollout, the configured legacy vector-store path referenced an unavailable historical volume; located archive copies were pre-2026-08-01 and are not a valid current parity baseline.
 
+## Backup and restore
+
+Canonical helpers live in scripts/ops/backup-postgres.sh and scripts/ops/restore-postgres.sh. Backups use PostgreSQL custom format, write a SHA-256 sidecar and JSON manifest, and default to file mode 0600.
+
+Example backup:
+
+    scripts/ops/backup-postgres.sh --output-dir /Volumes/ArvectumSSD/Arvectum/runtime/data-platform-backups
+
+Restore requires an explicit target database. The helper refuses to restore into arvectum_data unless --allow-production-target is passed deliberately. Normal acceptance and recovery drills should restore into a separate temporary database first.
+
+The 2026-10-04 production acceptance backed up the live arvectum_data database and restored it into arvectum_data_restore_test. Source and restored counts matched exactly: 7 collections, 155 resources, 155 documents, 432 chunks, 432 embeddings and 0 pipeline runs. The backup checksum matched before restore and the temporary restore database was removed after verification.
+
 ## Operational notes
 
 During rollout, the Tender runtime also revealed a stale PostgreSQL password in its local `.env.local`. The runtime database URL was synchronized to the active PostgreSQL container and verified with a fresh SQL `SELECT 1` before production acceptance.

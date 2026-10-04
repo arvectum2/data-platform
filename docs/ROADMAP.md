@@ -234,12 +234,12 @@ Arvectum Site PR #4 (merge 4d64899) added a separate product-metadata index deri
 - [x] source/index freshness;
 - [x] ingest/search metrics;
 - [x] secret-free diagnostics;
-- [ ] backup/restore;
+- [x] backup/restore;
 - [ ] capacity guardrails.
 
 Repeated ingest now preserves deterministic resource/document/chunk identities and skips already-existing embeddings for the same provider/model. Reindex revisions are deterministic over the collection chunk set plus embedding/search contract; a repeated unchanged rebuild returns the same durable completed job without recomputing embeddings. A rebuild failure or a collection change during rebuild fails closed and does not move active_index_revision.
 
-Collection stats expose first/last source observation, latest embedding time, latest completed reindex time and the active revision. Global status exposes bounded object counts. Runtime operation counters now expose requests, errors, total latency and max latency for ingest, search, discovery and reindex. The status payload is deliberately secret-free: it contains no database URL, API key, query text, fetched URL or exception message. Production smoke on the Mac mini confirmed live search/discovery counters after restart.
+Collection stats expose first/last source observation, latest embedding time, latest completed reindex time and the active revision. Global status exposes bounded object counts. Runtime operation counters now expose requests, errors, total latency and max latency for ingest, search, discovery and reindex. The status payload is deliberately secret-free: it contains no database URL, API key, query text, fetched URL or exception message. Production smoke on the Mac mini confirmed live search/discovery counters after restart. PostgreSQL backup/restore helpers now produce a custom-format dump, SHA-256 sidecar and manifest, refuse accidental production overwrite by default, and passed a live restore drill into a temporary database with exact row-count parity.
 
 ## Post-v1 backlog
 
