@@ -1,0 +1,258 @@
+# Arvectum Data Platform — Architecture v1
+
+Status: accepted initial architecture  
+Date: 2026-10-04
+
+## 1. Product boundary
+
+Data Platform is a reusable data acquisition + indexing + retrieval service/library.
+
+It owns acquisition, crawling, generic structured extraction, document text extraction, normalization primitives, chunking, embedding generation, lexical/vector indexing, hybrid retrieval, metadata filters, provenance/evidence, connector contracts, and index lifecycle/operational status.
+
+It does not own procurement bid decisions, procurement law semantics, supplier ranking, SEO strategy, App Store optimization rules, discount publishing, Arvectum OS agent policy, or report-writing business workflows.
+
+## 2. Deployment model
+
+v1 supports two consumption modes over one implementation:
+
+1. Python SDK/package (arvectum_data) for focused reuse, offline workflows and tests.
+2. HTTP service for long-lived shared indexes and cross-product access.
+
+~~~text
+Tender Agent ───────┐
+Arvectum OS ────────┼── HTTP / Python SDK ── Data Platform
+Growth / SEO Agent ─┘
+~~~
+
+## 3. Logical architecture
+
+~~~text
+Connectors (web / API / file / registry)
+                  |
+              Discovery
+                  |
+             Acquisition
+       HTTP / browser / files
+                  |
+              Processing
+ structured extraction / readable text
+ normalization / chunking
+                  |
+               Storage
+ collections / resources / documents
+ records / chunks / provenance / runs
+             /           \
+       Lexical           Vector
+   PostgreSQL FTS       pgvector
+             \           /
+              Hybrid Search
+         filters / RRF / ranking
+                  |
+           evidence-bearing hits
+                  |
+              API / SDK
+~~~
+
+## 4. Package layout
+
+~~~text
+src/arvectum_data/
+├── core/
+├── acquisition/
+├── crawl/
+├── extraction/
+│   ├── fields/
+│   ├── records/
+│   └── documents/
+├── processing/
+├── connectors/
+├── storage/
+├── indexing/
+├── search/
+├── evidence/
+├── execution/
+├── review/
+├── api/
+└── observability/
+~~~
+
+During migration existing import paths are preserved. Reorganization happens only after compatibility tests exist.
+
+## 5. Canonical data model
+
+The platform should not force every domain into one giant entity table.
+
+### Collection
+
+Isolation and indexing boundary. Examples:
+
+- tender-agent:procurement-documents
+- arvectum-os:knowledge
+- growth:arvectum-site
+- growth:appstore-competitors
+
+Properties include collection ID, owner/product namespace, access policy, default language, retention policy and active index revision.
+
+### Resource
+
+A discovered/acquired source object: URL, API object, uploaded file or registry item.
+
+Key fields: stable resource ID, collection ID, source/provider, canonical URI, external ID, content hash, first/last seen, metadata and acquisition status.
+
+### Document
+
+Text-bearing projection of a resource: document ID, resource ID, title, normalized text, language, MIME/type, extraction metadata and content hash.
+
+### Record
+
+Structured extraction from a resource/document: record ID, parent, typed fields, field decisions, evidence, revision/review status. The durable multi-record model from arvectum_data is the starting implementation.
+
+### Chunk
+
+Searchable document segment: chunk ID, document ID, ordinal, text, offsets, token estimate, content hash and metadata.
+
+### Evidence / provenance
+
+Every search result must be traceable to source URI/provider/external ID, resource/document/chunk or record ID, text offsets or structured source ref, acquisition/index revision, timestamp and content hash where applicable.
+
+## 6. Search contract
+
+Normal product search requires explicit collections.
+
+Conceptual request:
+
+~~~json
+{
+  "query": "силовой кабель ВВГнг 4x25",
+  "collections": ["tender-agent:procurement-documents"],
+  "filters": {"source_type": ["document"]},
+  "limit": 20,
+  "mode": "hybrid"
+}
+~~~
+
+Conceptual SearchHit:
+
+~~~json
+{
+  "hit_id": "...",
+  "resource_id": "...",
+  "document_id": "...",
+  "chunk_id": "...",
+  "record_id": null,
+  "title": "...",
+  "preview": "...",
+  "canonical_uri": "...",
+  "scores": {
+    "lexical": 0.0,
+    "vector": 0.0,
+    "fusion": 0.0,
+    "rerank": null
+  },
+  "metadata": {},
+  "evidence": [],
+  "index_revision": "..."
+}
+~~~
+
+Scores remain separate; vector cosine, FTS rank and fused rank are not treated as the same scale.
+
+## 7. Hybrid ranking v1
+
+Deterministic path:
+
+1. lexical candidate retrieval;
+2. vector candidate retrieval;
+3. metadata/security filtering;
+4. reciprocal-rank fusion (RRF);
+5. deterministic domain-neutral boosts where evidence exists;
+6. optional product-specific ranker hook;
+7. optional LLM reranker disabled by default.
+
+RRF is the first fusion strategy because it avoids fragile normalization across incompatible scoring scales and is easy to test.
+
+### Lexical backend
+
+Production default: PostgreSQL full-text search with language-aware configuration and exact/token metadata signals.
+
+This is not claimed as BM25. If benchmark evidence later justifies true BM25, a dedicated backend can be added behind the LexicalIndex protocol.
+
+### Vector backend
+
+Production default: PostgreSQL + pgvector with an actual vector column and indexed similarity query.
+
+The current Tender Agent JSON vector store remains a local/test backend, not the production engine.
+
+## 8. Security and isolation
+
+The current Tender Agent safety invariant is generalized: normal search never silently falls back from a scoped collection to global data.
+
+Rules:
+
+- collection filtering occurs inside retrieval, not only after ranking;
+- connector credentials never enter indexed metadata;
+- raw artifacts are retained only under explicit collection policy;
+- status/diagnostics are secret-free;
+- URLs are validated to prevent SSRF;
+- safe file/archive extraction constraints are preserved;
+- index rebuilds are revisioned and switch atomically.
+
+## 9. Connector model
+
+Core contract:
+
+~~~text
+discover(query, cursor) -> DiscoveredResource[]
+fetch(resource)         -> AcquisitionResult
+~~~
+
+Core/general connectors: manual URL, generic web search, sitemap/site crawl, file/folder ingest and generic HTTP/API primitives.
+
+Product-specific connectors such as 44-FZ/223-FZ/EIS remain in Tender Agent initially. They consume platform contracts without defining the platform core.
+
+## 10. Storage strategy
+
+Production: PostgreSQL owns canonical searchable metadata, chunks, index revisions and vector data. This reuses an already-operational dependency, provides pgvector + FTS, and avoids adding Elasticsearch/OpenSearch for v1.
+
+Local/test: protocol-compatible in-memory/JSON/SQLite stores remain for deterministic tests and embedded/offline compatibility.
+
+## 11. API v1 surface
+
+~~~text
+GET  /health
+GET  /v1/status
+
+POST /v1/collections
+GET  /v1/collections/{id}
+
+POST /v1/ingest/url
+POST /v1/ingest/document
+POST /v1/ingest/records
+
+POST /v1/search
+
+POST /v1/index/rebuild
+GET  /v1/index/jobs/{id}
+
+POST /v1/extract
+~~~
+
+Connector-specific product endpoints do not leak into the core API.
+
+## 12. Compatibility strategy
+
+### Discount Parser
+
+Promote arvectum_data preserving behavior, publish/install it, switch Discount Parser imports to the external package, run engine/product regressions, then remove the duplicate only after acceptance.
+
+### Tender Agent
+
+Add Data Platform interfaces alongside current code, adapt document extraction/chunking/embeddings, introduce Data Platform Search behind the existing RAG facade, run existing RAG/eval suites, and remove duplicates only after acceptance.
+
+### Arvectum OS / Growth
+
+Integrate only after one existing product successfully consumes the platform. This keeps API design grounded in real consumers.
+
+## 13. Non-goals for v1
+
+Do not block v1 on a universal entity graph, autonomous LLM crawling, LLM-first ranking, Elasticsearch/OpenSearch, distributed crawler fleet, internet-scale indexing, moving all domain connectors, or replacing product databases.
