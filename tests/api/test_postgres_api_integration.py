@@ -70,6 +70,29 @@ def test_http_collection_ingest_and_hybrid_search() -> None:
     assert ingested.json()["canonical_uri"] == "external-document://cable-1"
     assert ingested.json()["chunks"] > 0
     assert ingested.json()["embeddings"] == ingested.json()["chunks"]
+    assert ingested.json()["embeddings_written"] == ingested.json()["chunks"]
+    assert ingested.json()["embeddings_skipped_existing"] == 0
+
+    repeated = client.post(
+        "/v1/ingest/document",
+        headers=headers,
+        data={
+            "collection_id": "api:docs",
+            "canonical_uri": "external-document://cable-1",
+            "pre_chunked": "true",
+        },
+        files={"file": ("cable.txt", content, "text/plain")},
+    )
+    assert repeated.status_code == 200
+    assert repeated.json()["resource_id"] == ingested.json()["resource_id"]
+    assert repeated.json()["document_id"] == ingested.json()["document_id"]
+    assert repeated.json()["chunks"] == ingested.json()["chunks"]
+    assert repeated.json()["embeddings"] == ingested.json()["embeddings"]
+    assert repeated.json()["embeddings_written"] == 0
+    assert (
+        repeated.json()["embeddings_skipped_existing"]
+        == ingested.json()["embeddings"]
+    )
 
     stats = client.get(
         "/v1/collections/api:docs/stats",

@@ -323,13 +323,23 @@ class DataPlatformService:
             self._validate_embedding_contract(collection)
 
             repo = DataRepository(session)
-            repo.persist_ingest(result)
-            vectors = self.embedding_provider.embed_texts(
-                [chunk.text for chunk in result.chunks]
+            existing_embedding_ids = repo.existing_embedding_chunk_ids(
+                [chunk.chunk_id for chunk in result.chunks],
+                provider=self.embedding_provider.provider_name,
+                model=self.embedding_provider.model_name,
             )
-            if len(vectors) != len(result.chunks):
+            repo.persist_ingest(result)
+            pending_chunks = [
+                chunk
+                for chunk in result.chunks
+                if chunk.chunk_id not in existing_embedding_ids
+            ]
+            vectors = self.embedding_provider.embed_texts(
+                [chunk.text for chunk in pending_chunks]
+            )
+            if len(vectors) != len(pending_chunks):
                 raise RuntimeError("embedding provider returned unexpected vector count")
-            for chunk, vector in zip(result.chunks, vectors):
+            for chunk, vector in zip(pending_chunks, vectors):
                 repo.upsert_embedding(
                     chunk_id=chunk.chunk_id,
                     provider=self.embedding_provider.provider_name,
@@ -353,7 +363,9 @@ class DataPlatformService:
                 "document_id": result.document.document_id,
                 "chunks": len(result.chunks),
                 "chunks_indexed": len(result.chunks),
-                "embeddings": len(vectors),
+                "embeddings": len(result.chunks),
+                "embeddings_written": len(vectors),
+                "embeddings_skipped_existing": len(existing_embedding_ids),
                 "canonical_uri": result.resource.canonical_uri,
                 "extraction_status": result.document.extraction_status,
             }

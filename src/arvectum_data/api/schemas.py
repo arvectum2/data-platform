@@ -52,6 +52,8 @@ class IngestResponse(BaseModel):
     chunks: int = 0
     chunks_indexed: int | None = None
     embeddings: int = 0
+    embeddings_written: int | None = None
+    embeddings_skipped_existing: int = 0
     canonical_uri: str | None = None
     extraction_status: str = "unknown"
 

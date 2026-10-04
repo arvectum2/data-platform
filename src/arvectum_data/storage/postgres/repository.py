@@ -156,6 +156,26 @@ class DataRepository:
             self.session.add_all(provenance_rows)
         self.session.flush()
 
+    def existing_embedding_chunk_ids(
+        self,
+        chunk_ids: Sequence[str],
+        *,
+        provider: str,
+        model: str,
+    ) -> set[str]:
+        ids = [str(chunk_id) for chunk_id in chunk_ids if str(chunk_id)]
+        if not ids:
+            return set()
+        return set(
+            self.session.scalars(
+                select(ChunkEmbeddingRow.chunk_id).where(
+                    ChunkEmbeddingRow.chunk_id.in_(ids),
+                    ChunkEmbeddingRow.provider == provider,
+                    ChunkEmbeddingRow.model == model,
+                )
+            )
+        )
+
     def upsert_embedding(
         self,
         *,
