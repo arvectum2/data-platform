@@ -57,3 +57,16 @@ Those tests depend on Discount Parser source adapters, configuration, parity tel
 - acceptance path: Alembic upgrade -> file ingest -> chunk persistence -> hashing embeddings -> pgvector cosine search
 - collection isolation verified by a negative cross-collection search
 - temporary acceptance database removed after the test
+
+
+## DP-LEX-001 / DP-SEARCH-001 — universal search engine v1
+
+- PostgreSQL FTS uses generated stored tsvector columns for simple, Russian and English configurations.
+- Each FTS column has a GIN index.
+- lexical ranking uses ts_rank_cd plus a deterministic exact-phrase boost.
+- vector retrieval remains collection-scoped and supports the same filter whitelist.
+- hybrid retrieval executes lexical and vector candidate generation independently and fuses them with reciprocal-rank fusion (RRF).
+- SearchHit always exposes lexical, vector and fusion component scores plus source evidence.
+- an optional product ranker hook runs only after generic fusion.
+- normal SearchQuery requires at least one explicit collection.
+- live acceptance used an isolated temporary PostgreSQL database and verified Russian lexical retrieval, pgvector retrieval, hybrid fusion, source filtering and negative cross-collection isolation.

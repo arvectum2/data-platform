@@ -89,13 +89,15 @@ Gate: empty PostgreSQL + pgvector -> migrate -> ingest/retrieve fixture.
 
 ## DP-LEX-001 — lexical backend
 
-- [ ] LexicalIndex protocol;
-- [ ] PostgreSQL FTS backend;
-- [ ] Russian/English strategy;
-- [ ] phrase/token/exact signals;
-- [ ] metadata filters;
-- [ ] in-memory test backend;
-- [ ] lexical quality fixtures.
+Status: COMPLETE.
+
+- [x] LexicalBackend protocol;
+- [x] PostgreSQL FTS backend;
+- [x] Russian/English/simple strategy with generated tsvector columns;
+- [x] phrase/token FTS plus deterministic exact-phrase boost;
+- [x] metadata filters with fail-closed whitelist;
+- [x] in-memory test backend;
+- [x] lexical acceptance fixtures including live PostgreSQL Russian search.
 
 True BM25 is deferred until benchmarks show PostgreSQL FTS is insufficient.
 
@@ -113,15 +115,17 @@ Gate: no production search path depends on JsonVectorStore.
 
 ## DP-SEARCH-001 — hybrid retrieval
 
-- [ ] SearchQuery / SearchHit;
-- [ ] lexical candidates;
-- [ ] vector candidates;
-- [ ] RRF fusion;
-- [ ] metadata/security filters;
-- [ ] stable tie breaking;
-- [ ] evidence/provenance projection;
-- [ ] optional product ranker hook;
-- [ ] explain mode with component scores.
+Status: COMPLETE (v1 deterministic hybrid).
+
+- [x] SearchQuery / SearchHit;
+- [x] lexical candidates;
+- [x] vector candidates;
+- [x] RRF fusion;
+- [x] metadata/security filters;
+- [x] stable tie breaking;
+- [x] evidence/provenance projection;
+- [x] optional product ranker hook;
+- [x] component lexical/vector/fusion scores are always exposed for explainability.
 
 Gate: lexical and vector retrieval run simultaneously, collection isolation is enforced, every hit has evidence, and hybrid quality is benchmarked against both single retrievers.
 

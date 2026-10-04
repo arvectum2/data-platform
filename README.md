@@ -17,7 +17,7 @@ This repository becomes the canonical source of truth for reusable capabilities.
 
 Foundation implementation is active. The repository is now an installable Python package/service and contains the promoted product-neutral acquisition/extraction engine from Discount Parser.
 
-Verified locally on Python 3.11: 254 tests pass, lint passes, the promoted Discount Parser engine remains unchanged, file/URL document ingestion and embedding primitives are now platform-owned, and the real HTTP /health endpoint returns 200.
+Verified locally on Python 3.11: the platform suite is green, the promoted Discount Parser engine remains compatible, document ingestion and embedding primitives are platform-owned, and PostgreSQL FTS + pgvector hybrid retrieval has passed live isolated-database acceptance.
 
 Audit baseline:
 
@@ -74,4 +74,4 @@ sources / URLs / APIs / files
 
 ## Immediate next milestone
 
-DP-LEX-001 + DP-SEARCH-001: add PostgreSQL full-text retrieval and deterministic hybrid fusion over the now-working PostgreSQL/pgvector storage layer.
+DP-API-001: expose collections, ingest and the working hybrid search engine through stable /v1 HTTP contracts, then begin Tender Agent integration behind its current retrieval facade.

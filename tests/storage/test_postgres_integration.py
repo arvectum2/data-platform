@@ -58,6 +58,7 @@ def test_migrate_ingest_embed_and_scoped_vector_search(tmp_path: Path) -> None:
             "test:knowledge",
             owner="tests",
             name="Knowledge",
+            default_language="russian",
             embedding_provider=provider.provider_name,
             embedding_model=provider.model_name,
             embedding_dimension=provider.dimension,
@@ -94,7 +95,50 @@ def test_migrate_ingest_embed_and_scoped_vector_search(tmp_path: Path) -> None:
             model=provider.model_name,
             limit=5,
         )
+        lexical_hits = repo.search_lexical(
+            "силовой кабель",
+            collection_id="test:knowledge",
+            limit=5,
+        )
+        lexical_other = repo.search_lexical(
+            "силовой кабель",
+            collection_id="test:other",
+            limit=5,
+        )
+        lexical_filtered_out = repo.search_lexical(
+            "силовой кабель",
+            collection_id="test:knowledge",
+            filters={"source_type": ("url",)},
+            limit=5,
+        )
+
+        from arvectum_data.search import (
+            HybridSearchEngine,
+            PostgresSearchBackend,
+            SearchQuery,
+        )
+
+        backend = PostgresSearchBackend(repo)
+        hybrid_hits = HybridSearchEngine(
+            lexical_backend=backend,
+            vector_backend=backend,
+            embedding_provider=provider,
+        ).search(
+            SearchQuery(
+                query="силовой кабель",
+                collections=("test:knowledge",),
+                limit=5,
+            )
+        )
 
     assert hits
     assert all(hit.canonical_uri == ingest.resource.canonical_uri for hit in hits)
     assert other_hits == []
+    assert lexical_hits
+    assert all(hit.canonical_uri == ingest.resource.canonical_uri for hit in lexical_hits)
+    assert lexical_other == []
+    assert lexical_filtered_out == []
+    assert hybrid_hits
+    assert hybrid_hits[0].scores.lexical is not None
+    assert hybrid_hits[0].scores.vector is not None
+    assert hybrid_hits[0].evidence

@@ -6,6 +6,7 @@ from typing import Any
 
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import (
+    Computed,
     DateTime,
     ForeignKey,
     Index,
@@ -15,7 +16,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -159,6 +160,30 @@ class ChunkRow(TimestampMixin, Base):
     )
     ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
+    search_vector_simple: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple'::regconfig, coalesce(text, ''))",
+            persisted=True,
+        ),
+        nullable=True,
+    )
+    search_vector_russian: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('russian'::regconfig, coalesce(text, ''))",
+            persisted=True,
+        ),
+        nullable=True,
+    )
+    search_vector_english: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('english'::regconfig, coalesce(text, ''))",
+            persisted=True,
+        ),
+        nullable=True,
+    )
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     char_start: Mapped[int] = mapped_column(Integer, nullable=False)
     char_end: Mapped[int] = mapped_column(Integer, nullable=False)
