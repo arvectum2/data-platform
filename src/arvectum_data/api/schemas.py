@@ -160,6 +160,8 @@ class SearchRequest(BaseModel):
     query_variants: list[str] = Field(default_factory=list, max_length=8)
     query_variant_weight: float = Field(default=0.5, ge=0.0, le=1.0)
     collapse_by_canonical_uri: bool = False
+    rerank: bool = False
+    rerank_candidates: int = Field(default=20, ge=1, le=100)
 
     @model_validator(mode="after")
     def normalize_query_variants(self):
@@ -172,6 +174,8 @@ class SearchRequest(BaseModel):
             seen.add(cleaned)
             normalized.append(cleaned)
         self.query_variants = normalized
+        if self.rerank and self.rerank_candidates < self.limit:
+            raise ValueError("rerank_candidates must be greater than or equal to limit")
         return self
 
 
@@ -179,6 +183,7 @@ class SearchScoreResponse(BaseModel):
     lexical: float | None
     vector: float | None
     fusion: float
+    rerank: float | None = None
 
 
 ScoreResponse = SearchScoreResponse

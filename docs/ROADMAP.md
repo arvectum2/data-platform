@@ -396,13 +396,15 @@ A VLM is therefore not required for ordinary OCR. It is an escalation path for d
 
 ### DP-RERANK-001 — optional intelligent reranking
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05); default activation remains benchmark-gated.
 
-- [ ] rerank a bounded top-N candidate set after lexical/vector retrieval;
-- [ ] support lightweight cross-encoder and optional reasoning/LLM rerank providers;
-- [ ] preserve original lexical/vector/fusion scores for explainability;
-- [ ] enable only when frozen relevance benchmarks show a repeatable gain;
-- [ ] keep deterministic hybrid retrieval as fallback.
+- [x] rerank a bounded top-N candidate set after lexical/vector retrieval;
+- [x] add a provider-neutral reranker protocol and reasoning/LLM implementation;
+- [x] preserve original lexical/vector/fusion scores plus a separate rerank score for explainability;
+- [x] add a frozen-benchmark quality/latency gate; reranking remains opt-in until a repeatable gain is demonstrated;
+- [x] keep deterministic hybrid retrieval as fail-open fallback when disabled, unavailable or invalid.
+
+Implementation notes: `docs/RERANKING.md`. The existing production acceptance v3 suite is already 20/20 top-1 with MRR 1.0, so it cannot prove positive rerank gain; default activation correctly remains off pending a harder frozen relevance suite.
 
 ### DP-QE-001 — query expansion
 

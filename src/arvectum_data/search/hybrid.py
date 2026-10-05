@@ -13,6 +13,7 @@ from .models import (
     SearchScores,
 )
 from .protocols import LexicalBackend, VectorBackend
+from .rerank import Reranker
 
 
 @dataclass
@@ -33,6 +34,7 @@ class HybridSearchEngine:
         rrf_k: int = 60,
         candidate_multiplier: int = 3,
         product_ranker: Callable[[SearchQuery, list[SearchHit]], list[SearchHit]] | None = None,
+        reranker: Reranker | None = None,
     ) -> None:
         if rrf_k < 1:
             raise ValueError("rrf_k must be positive")
@@ -44,9 +46,11 @@ class HybridSearchEngine:
         self.rrf_k = rrf_k
         self.candidate_multiplier = candidate_multiplier
         self.product_ranker = product_ranker
+        self.reranker = reranker
 
     def search(self, request: SearchQuery) -> list[SearchHit]:
-        candidate_limit = min(300, max(20, request.limit * self.candidate_multiplier))
+        target_limit = request.rerank_candidates if request.rerank else request.limit
+        candidate_limit = min(300, max(20, target_limit * self.candidate_multiplier))
         accumulated: dict[str, _AccumulatedHit] = {}
 
         queries = [(request.query, 1.0)]
@@ -94,7 +98,48 @@ class HybridSearchEngine:
         results = [self._to_search_hit(item) for item in ranked]
         if self.product_ranker is not None:
             results = self.product_ranker(request, results)
+        if request.rerank and self.reranker is not None:
+            results = self._rerank(request, results[: request.rerank_candidates])
         return results[: request.limit]
+
+    def _rerank(self, request: SearchQuery, hits: list[SearchHit]) -> list[SearchHit]:
+        try:
+            reranked = self.reranker.rerank(request, hits) if self.reranker is not None else ()
+        except Exception:
+            return hits
+        if not reranked:
+            return hits
+
+        score_by_id = {item.chunk_id: item.score for item in reranked}
+        rank_by_id = {item.chunk_id: item.rank for item in reranked}
+        original_rank = {hit.chunk_id: index for index, hit in enumerate(hits)}
+        enriched = [
+            SearchHit(
+                chunk_id=hit.chunk_id,
+                document_id=hit.document_id,
+                resource_id=hit.resource_id,
+                canonical_uri=hit.canonical_uri,
+                title=hit.title,
+                preview=hit.preview,
+                text=hit.text,
+                scores=SearchScores(
+                    lexical=hit.scores.lexical,
+                    vector=hit.scores.vector,
+                    fusion=hit.scores.fusion,
+                    rerank=score_by_id.get(hit.chunk_id),
+                ),
+                evidence=hit.evidence,
+                metadata=hit.metadata,
+            )
+            for hit in hits
+        ]
+        return sorted(
+            enriched,
+            key=lambda hit: (
+                rank_by_id.get(hit.chunk_id, len(hits) + original_rank[hit.chunk_id]),
+                original_rank[hit.chunk_id],
+            ),
+        )
 
     def _accumulate(
         self,
