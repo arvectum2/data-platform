@@ -285,7 +285,7 @@ Collection stats expose first/last source observation, latest embedding time, la
 - [x] DP-VEC-001: benchmark HNSW versus IVFFlat and keep exact pgvector search until ANN passes the relevance gate.
 - [x] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
 - [ ] DP-INT-002: close real-data production acceptance on the first non-empty KnowledgeAssetRecord set.
-- [ ] Expand frozen relevance benchmarks with more accepted real consumer cases before promoting BM25, learned reranking, bounded LLM reranking or query expansion from backlog.
+- [ ] DP-BENCH-002: build the competitive frozen-corpus benchmark suite and expand accepted real consumer cases before promoting BM25, learned reranking, bounded LLM reranking, VLM escalation or query expansion.
 
 ## AI/model architecture and capability roadmap
 
@@ -325,6 +325,23 @@ Data Platform
 ~~~
 
 These roles may point to separate local endpoints/models and may be upgraded independently. A "thinking model" is therefore an optional ReasoningProvider, not a platform prerequisite.
+
+### DP-MODES-001 — capability / effort modes
+
+Status: PLANNED.
+
+Expose a product-neutral execution-depth abstraction so consumers can request an outcome level without hard-coding model/provider details.
+
+- [ ] FAST: deterministic lexical + vector hybrid retrieval, no generative LLM required;
+- [ ] STANDARD: hybrid retrieval plus bounded reranking when enabled;
+- [ ] DEEP: bounded query expansion + multi-pass retrieval + reranking + optional reasoning;
+- [ ] RESEARCH: discovery + acquisition + iterative retrieval + contradiction checks + evidence-grounded synthesis;
+- [ ] define latency/cost/resource budgets for every mode;
+- [ ] make every mode degrade safely when optional model roles are unavailable;
+- [ ] expose executed stages, providers and timings in diagnostics without leaking sensitive content;
+- [ ] allow consumers to override individual stages only within platform safety/resource bounds.
+
+The mode name describes pipeline depth, not a specific model. Consumers therefore remain portable across local and remote provider choices.
 
 ### DP-MODEL-001 — optional local/remote model provider layer
 
@@ -503,6 +520,66 @@ Before externalization:
 - [ ] explicit per-capability policy for whether remote LLM/VLM providers are permitted;
 - [ ] operational SLOs and supportability.
 
+## DP-BENCH-002 — competitive benchmark suite
+
+Status: PLANNED.
+
+Purpose: evaluate Data Platform against mature reference products by layer, using the same frozen corpora and acceptance questions wherever practical. Product adoption decisions remain benchmark-driven rather than feature-checklist-driven.
+
+Reference set:
+
+- RAGFlow — end-to-end RAG/document-understanding reference;
+- Unstructured — ingestion/OCR/layout/table extraction reference;
+- Qdrant — vector/hybrid retrieval reference;
+- Vectara — retrieval/reranking/grounded-answer reference;
+- Onyx — connector sync/permissions reference;
+- Weaviate — hybrid-search/API ergonomics reference;
+- Haystack and LlamaIndex — component/pipeline architecture references;
+- Dify and AnythingLLM — end-user knowledge/agent UX references;
+- Langfuse — tracing/evaluation/experiment-management reference.
+
+Benchmark corpus strategy:
+
+- [ ] build a frozen corpus from real procurement, business, website and product-research materials;
+- [ ] include native PDFs, scanned PDFs, DOCX, XLSX, HTML, malformed/legacy files and mixed Russian/English content;
+- [ ] maintain gold answers, relevant-document/chunk judgments and source/evidence identities;
+- [ ] version benchmark data and acceptance thresholds;
+- [ ] separate public/shareable fixtures from private production-derived fixtures;
+- [ ] add adversarial cases for collection isolation, stale sources, duplicate content and conflicting evidence.
+
+Required benchmark dimensions:
+
+- [ ] ingestion success rate by format;
+- [ ] OCR word/character accuracy on scanned material;
+- [ ] table/form structure preservation;
+- [ ] fact-preserving chunking quality;
+- [ ] exact identifier/number/date/amount retrieval;
+- [ ] semantic retrieval quality using Recall@k, MRR and nDCG;
+- [ ] Russian-language retrieval quality;
+- [ ] reranking uplift over base hybrid retrieval;
+- [ ] citation correctness and citation completeness;
+- [ ] evidence entailment / groundedness of generated claims;
+- [ ] abstention quality when evidence is insufficient;
+- [ ] contradiction surfacing across sources;
+- [ ] multi-hop evidence retrieval;
+- [ ] zero cross-collection / cross-tenant leakage;
+- [ ] incremental-sync efficiency: changed resources versus total reprocessed resources;
+- [ ] latency p50/p95/max by pipeline stage;
+- [ ] CPU/RAM/GPU footprint and throughput;
+- [ ] fully local/private execution coverage.
+
+Competitive acceptance rule: no external system needs to be beaten on every dimension. Data Platform must meet its own product gates and document where a reference product is materially better, so the gap can be either intentionally accepted or added to the roadmap.
+
+### Benchmark-driven adoption gates
+
+- [ ] BM25 backend only if frozen corpora show a repeatable lexical-quality gap over PostgreSQL FTS;
+- [ ] ANN indexes only if latency/throughput gain justifies measured recall loss at production scale;
+- [ ] learned/cross-encoder reranker only if it improves nDCG/MRR enough to justify added latency/resources;
+- [ ] LLM reranking only if it beats lighter reranking on accepted relevance/cost gates;
+- [ ] VLM escalation only where OCR/layout benchmarks justify it;
+- [ ] query expansion only if recall improves without unacceptable precision/latency regression;
+- [ ] answer synthesis only if groundedness/citation benchmarks meet the required threshold.
+
 ## Post-v1 backlog
 
 Only after three real consumers are integrated:
@@ -563,6 +640,16 @@ DP-INT-002 Arvectum OS
 DP-INT-003 Growth/SEO
     ↓
 DP-OPS-001
+    ↓
+DP-BENCH-002
+    ↓
+DP-MODES-001 + DP-MODEL-001
+    ↓
+DP-OCR-001 + DP-RERANK-001 + DP-QE-001
+    ↓
+DP-STRUCT-001 + DP-ANSWER-001
+    ↓
+DP-RESEARCH-001 + DP-SYNC-001 + DP-MEM-001
 ~~~
 
 The first code task is deliberately not “write a new search engine”. It is to promote the mature extraction foundation into its canonical repository, then build the missing search layers around real consumer requirements.
