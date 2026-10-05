@@ -433,13 +433,15 @@ Example target: extract INN, dates, prices, manufacturer and contract number fro
 
 ### DP-RESEARCH-001 — reusable research workflow
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05).
 
-- [ ] discovery -> fetch -> ingest -> search -> evidence synthesis workflow;
-- [ ] bounded source expansion and deduplication;
-- [ ] source-quality and contradiction handling;
-- [ ] optional reasoning model for synthesis while keeping citations grounded in platform evidence;
-- [ ] reusable by Growth, Tender research and future research agents.
+- [x] discovery -> governed fetch/ingest -> indexing -> search -> evidence synthesis workflow;
+- [x] bounded source expansion and canonical-URI deduplication;
+- [x] per-source acquisition status/warnings plus contradiction handling through DP-ANSWER;
+- [x] optional reasoning model for synthesis while keeping citations grounded in platform evidence;
+- [x] reusable consumer-neutral API for Growth, Tender research and future research agents.
+
+Implementation: `docs/RESEARCH_WORKFLOW.md`. Discovery, acquisition, parsing, retrieval and synthesis remain separate reusable platform boundaries; the research layer only orchestrates them.
 
 ### DP-ANSWER-001 — evidence-grounded answer synthesis
 

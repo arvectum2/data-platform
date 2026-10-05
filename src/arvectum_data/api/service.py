@@ -18,6 +18,7 @@ from ..answers import GroundedAnswer, ReasoningAnswerSynthesizer
 from ..acquisition.security import UnsafeURL, validate_public_url
 from ..documents import TesseractOCRProvider, ingest_file, ingest_url
 from ..processing import ChunkingConfig
+from ..research import ResearchResult, ResearchWorkflow
 from ..connectors import (
     ConnectorRegistry,
     DuckDuckGoHTMLConnector,
@@ -850,6 +851,30 @@ class DataPlatformService:
                 abstained=True,
             )
         return answer, hits
+
+
+    def research(
+        self,
+        *,
+        query: str,
+        collection_id: str,
+        connector: str = "duckduckgo_html",
+        source_limit: int = 8,
+        evidence_limit: int = 8,
+        consumer: str | None = None,
+        rerank: bool = False,
+        expand_query: bool = False,
+    ) -> ResearchResult:
+        return ResearchWorkflow(self).run(
+            query=query,
+            collection_id=collection_id,
+            connector=connector,
+            source_limit=source_limit,
+            evidence_limit=evidence_limit,
+            consumer=consumer,
+            rerank=rerank,
+            expand_query=expand_query,
+        )
 
 
 

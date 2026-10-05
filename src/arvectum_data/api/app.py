@@ -52,6 +52,8 @@ from .schemas import (
     IngestResponse,
     ProcessDocumentResponse,
     RelevanceFeedbackRequest,
+    ResearchRequest,
+    ResearchResponse,
     RelevanceFeedbackResponse,
     RelevanceFeedbackSummaryResponse,
     SearchHitResponse,
@@ -96,7 +98,7 @@ def create_app(
     service.state.request_count = 0
     service.state.operation_metrics = {
         name: {"requests": 0, "errors": 0, "total_ms": 0, "max_ms": 0}
-        for name in ("process", "ingest", "search", "answer", "discover", "extract", "reindex")
+        for name in ("process", "ingest", "search", "answer", "research", "discover", "extract", "reindex")
     }
 
     def operation_name(method: str, path: str) -> str | None:
@@ -108,6 +110,8 @@ def create_app(
             return "search"
         if method == "POST" and path == "/v1/answer":
             return "answer"
+        if method == "POST" and path == "/v1/research":
+            return "research"
         if method == "POST" and path == "/v1/discover":
             return "discover"
         if method == "POST" and path == "/v1/extract":
@@ -734,6 +738,88 @@ def create_app(
             return runtime_service.relevance_feedback_summary(collection_id)
         except Exception as exc:
             raise map_service_error(exc) from exc
+
+    @router.post(
+        "/research",
+        response_model=ResearchResponse,
+        tags=["research"],
+    )
+    def research_endpoint(
+        payload: ResearchRequest,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
+        runtime_service=Depends(runtime),
+    ):
+        consumer = None
+        if x_arvectum_consumer is not None or x_arvectum_consumer_key is not None:
+            consumer = require_consumer_identity(
+                x_arvectum_consumer,
+                x_arvectum_consumer_key,
+            )
+        try:
+            result = runtime_service.research(
+                query=payload.query,
+                collection_id=payload.collection_id,
+                connector=payload.connector,
+                source_limit=payload.source_limit,
+                evidence_limit=payload.evidence_limit,
+                consumer=consumer,
+                rerank=payload.rerank,
+                expand_query=payload.expand_query,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+        return ResearchResponse(
+            query=result.query,
+            answer=result.answer.answer,
+            claims=[
+                {"text": claim.text, "chunk_ids": list(claim.chunk_ids)}
+                for claim in result.answer.claims
+            ],
+            contradictions=list(result.answer.contradictions),
+            uncertainty=result.answer.uncertainty,
+            abstained=result.answer.abstained,
+            sources=[
+                {
+                    "canonical_uri": source.canonical_uri,
+                    "title": source.title,
+                    "provider": source.provider,
+                    "rank": source.rank,
+                    "ingested": source.ingested,
+                    "error": source.error,
+                }
+                for source in result.sources
+            ],
+            evidence=[
+                SearchHitResponse(
+                    chunk_id=hit.chunk_id,
+                    document_id=hit.document_id,
+                    resource_id=hit.resource_id,
+                    canonical_uri=hit.canonical_uri,
+                    title=hit.title,
+                    preview=hit.preview,
+                    text=hit.text,
+                    scores={
+                        "lexical": hit.scores.lexical,
+                        "vector": hit.scores.vector,
+                        "fusion": hit.scores.fusion,
+                        "rerank": hit.scores.rerank,
+                    },
+                    evidence=[
+                        {
+                            "resource_id": evidence.resource_id,
+                            "document_id": evidence.document_id,
+                            "chunk_id": evidence.chunk_id,
+                            "canonical_uri": evidence.canonical_uri,
+                        }
+                        for evidence in hit.evidence
+                    ],
+                    metadata=dict(hit.metadata),
+                )
+                for hit in result.evidence
+            ],
+            warnings=list(result.warnings),
+        )
 
     @router.post(
         "/answer",
