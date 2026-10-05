@@ -216,6 +216,15 @@ def create_app(
         }
         return payload
 
+    @router.get("/models/status", tags=["system"])
+    def model_status(
+        probe: bool = False,
+        runtime_service=Depends(runtime),
+    ) -> dict[str, dict[str, Any]]:
+        if not hasattr(runtime_service, "model_status"):
+            return {}
+        return runtime_service.model_status(probe=probe)
+
     @router.get(
         "/collections",
         response_model=list[CollectionResponse],
