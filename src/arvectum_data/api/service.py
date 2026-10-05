@@ -34,7 +34,7 @@ from ..indexing import (
 )
 from ..models import ModelLocality, ModelPolicy, ModelRole, ModelRouter, RoleConfig
 
-from ..search import HybridSearchEngine, PostgresSearchBackend, ReasoningReranker, SearchHit, SearchQuery
+from ..search import HybridSearchEngine, PostgresSearchBackend, QueryExpansion, ReasoningQueryExpander, ReasoningReranker, SearchHit, SearchQuery
 from ..storage.postgres import (
     ChunkEmbeddingRow,
     ChunkRow,
@@ -728,6 +728,15 @@ class DataPlatformService:
         *,
         consumer: str | None = None,
     ) -> list[SearchHit]:
+        hits, _ = self.search_with_diagnostics(request, consumer=consumer)
+        return hits
+
+    def search_with_diagnostics(
+        self,
+        request: SearchQuery,
+        *,
+        consumer: str | None = None,
+    ) -> tuple[list[SearchHit], tuple[QueryExpansion, ...]]:
         with self._require_factory()() as session:
             for collection_id in request.collections:
                 collection = session.get(CollectionRow, collection_id)
@@ -754,14 +763,21 @@ class DataPlatformService:
                 if request.rerank and reasoning_provider is not None
                 else None
             )
+            query_expander = (
+                ReasoningQueryExpander(reasoning_provider)
+                if request.expand_query and reasoning_provider is not None
+                else None
+            )
             engine = HybridSearchEngine(
                 lexical_backend=backend,
                 vector_backend=backend,
                 embedding_provider=self.embedding_provider,
                 reranker=reranker,
+                query_expander=query_expander,
             )
             if len(request.collections) == 1 and not request.collapse_by_canonical_uri:
-                return engine.search(request)
+                hits = engine.search(request)
+                return hits, engine.last_expansions
 
             overfetch_factor = (
                 4
@@ -778,6 +794,8 @@ class DataPlatformService:
                 vector_weight=request.vector_weight,
                 query_variants=request.query_variants,
                 query_variant_weight=request.query_variant_weight,
+                expand_query=request.expand_query,
+                query_expansion_limit=request.query_expansion_limit,
                 collapse_by_canonical_uri=request.collapse_by_canonical_uri,
                 rerank=request.rerank,
                 rerank_candidates=max(
@@ -787,11 +805,15 @@ class DataPlatformService:
             )
             hits = engine.search(expanded_request)
             if request.collapse_by_canonical_uri:
-                return self._collapse_canonical_hits(
+                collapsed = self._collapse_canonical_hits(
                     hits,
                     limit=request.limit,
                 )
-            return self._dedupe_federated_hits(hits, limit=request.limit)
+                return collapsed, engine.last_expansions
+            return (
+                self._dedupe_federated_hits(hits, limit=request.limit),
+                engine.last_expansions,
+            )
 
 
 

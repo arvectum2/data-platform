@@ -6,6 +6,7 @@ from .models import (
     EvaluationSuite,
     EvaluationSummary,
 )
+from .query_expansion_gate import QueryExpansionGate
 from .rerank_gate import RerankGate
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     "EvaluationSuite",
     "EvaluationSummary",
     "HttpSearchRunner",
+    "QueryExpansionGate",
     "RerankGate",
     "evaluate_case",
     "evaluate_suite",

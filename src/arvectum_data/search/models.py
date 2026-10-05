@@ -64,6 +64,8 @@ class SearchQuery:
     vector_weight: float = 1.0
     query_variants: tuple[str, ...] = ()
     query_variant_weight: float = 0.5
+    expand_query: bool = False
+    query_expansion_limit: int = 4
     collapse_by_canonical_uri: bool = False
     rerank: bool = False
     rerank_candidates: int = 20
@@ -83,6 +85,8 @@ class SearchQuery:
             raise ValueError("hybrid search requires at least one positive fusion weight")
         if self.query_variant_weight < 0 or self.query_variant_weight > 1:
             raise ValueError("query_variant_weight must be between 0 and 1")
+        if self.query_expansion_limit < 1 or self.query_expansion_limit > 8:
+            raise ValueError("query_expansion_limit must be between 1 and 8")
         if self.rerank_candidates < 1 or self.rerank_candidates > 100:
             raise ValueError("rerank_candidates must be between 1 and 100")
         if self.rerank and self.rerank_candidates < self.limit:

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from collections.abc import Callable, Iterable
 
 from ..indexing import BaseEmbeddingProvider
+from .expansion import QueryExpander
 from .models import (
     BackendHit,
     SearchEvidence,
@@ -35,6 +36,7 @@ class HybridSearchEngine:
         candidate_multiplier: int = 3,
         product_ranker: Callable[[SearchQuery, list[SearchHit]], list[SearchHit]] | None = None,
         reranker: Reranker | None = None,
+        query_expander: QueryExpander | None = None,
     ) -> None:
         if rrf_k < 1:
             raise ValueError("rrf_k must be positive")
@@ -47,6 +49,8 @@ class HybridSearchEngine:
         self.candidate_multiplier = candidate_multiplier
         self.product_ranker = product_ranker
         self.reranker = reranker
+        self.query_expander = query_expander
+        self.last_expansions = ()
 
     def search(self, request: SearchQuery) -> list[SearchHit]:
         target_limit = request.rerank_candidates if request.rerank else request.limit
@@ -58,6 +62,21 @@ class HybridSearchEngine:
             (variant, request.query_variant_weight)
             for variant in request.query_variants
         )
+        self.last_expansions = ()
+        if request.expand_query and self.query_expander is not None:
+            try:
+                expansions = self.query_expander.expand(
+                    request.query,
+                    limit=request.query_expansion_limit,
+                )
+            except Exception:
+                expansions = ()
+            explicit = {request.query.casefold(), *(item.casefold() for item in request.query_variants)}
+            expansions = tuple(
+                item for item in expansions if item.text.casefold() not in explicit
+            )
+            self.last_expansions = expansions
+            queries.extend((item.text, item.weight) for item in expansions)
 
         for query_text, query_weight in queries:
             if request.mode in {SearchMode.LEXICAL, SearchMode.HYBRID}:
