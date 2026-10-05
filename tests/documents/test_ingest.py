@@ -71,3 +71,12 @@ def test_pre_chunked_short_text_is_preserved(tmp_path):
     assert len(result.chunks) == 1
     assert result.chunks[0].text == "short text"
     assert result.chunks[0].metadata["pre_chunked"] is True
+
+def test_txt_extraction_falls_back_to_cp1251(tmp_path: Path) -> None:
+    path = tmp_path / "legacy-encoding.txt"
+    path.write_bytes("Тестовая закупочная документация".encode("cp1251"))
+
+    status, text = extract_text(str(path))
+
+    assert status == EXTRACTED_STATUS
+    assert text == "Тестовая закупочная документация"
