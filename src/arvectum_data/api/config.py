@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     model_retry_base_delay_seconds: float = Field(default=0.25, ge=0)
     model_max_concurrency: int = Field(default=2, ge=1, le=128)
 
+    ocr_provider: str = "disabled"
+    ocr_languages: str = "rus+eng"
+    ocr_dpi: int = Field(default=220, ge=72, le=600)
+    ocr_timeout_seconds: float = Field(default=45, gt=0, le=300)
+
     @property
     def embeddings_provider(self) -> str:
         return self.embedding_provider

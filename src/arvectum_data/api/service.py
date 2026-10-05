@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from ..acquisition import AcquisitionEngine
 from ..acquisition.security import UnsafeURL, validate_public_url
-from ..documents import ingest_file, ingest_url
+from ..documents import TesseractOCRProvider, ingest_file, ingest_url
 from ..processing import ChunkingConfig
 from ..connectors import (
     ConnectorRegistry,
@@ -117,6 +117,16 @@ class DataPlatformService:
         self.acquisition = acquisition
         self.connector_registry = connector_registry or self._default_connector_registry()
         self.model_router = model_router or self._build_model_router(settings)
+        if settings.ocr_provider == "disabled":
+            self.ocr_provider = None
+        elif settings.ocr_provider == "tesseract":
+            self.ocr_provider = TesseractOCRProvider(
+                languages=settings.ocr_languages,
+                dpi=settings.ocr_dpi,
+                timeout_seconds=settings.ocr_timeout_seconds,
+            )
+        else:
+            raise ValueError(f"unsupported OCR provider {settings.ocr_provider!r}")
         self.embedding_provider = embedding_provider or build_embedding_provider(
             EmbeddingConfig(
                 provider=settings.embedding_provider,
@@ -270,6 +280,9 @@ class DataPlatformService:
             "embedding_provider": self.embedding_provider.provider_name,
             "embedding_model": self.embedding_provider.model_name,
             "embedding_dimension": self.embedding_provider.dimension,
+            "ocr_provider": (
+                self.ocr_provider.provider_name if self.ocr_provider is not None else None
+            ),
             "model_roles": self.model_status(probe=False),
             "metrics": metrics,
         }
@@ -426,6 +439,8 @@ class DataPlatformService:
                     min_chunk_chars=max(1, int(min_chunk_chars)),
                 ),
                 max_chars=max(1, int(max_chars)),
+                ocr_provider=self.ocr_provider,
+                vision_provider=self.model_router.provider(ModelRole.VISION),
             )
             return {
                 "collection_id": result.resource.collection_id,
@@ -478,6 +493,8 @@ class DataPlatformService:
                 canonical_uri=canonical_uri or f"upload://{filename}",
                 title=title or filename,
                 pre_chunked=pre_chunked,
+                ocr_provider=self.ocr_provider,
+                vision_provider=self.model_router.provider(ModelRole.VISION),
             )
             return self._persist_and_index(result)
         finally:

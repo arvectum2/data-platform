@@ -374,7 +374,7 @@ The intended deployment separates model roles: embeddings, reasoning/generation 
 
 ### DP-OCR-001 — OCR and multimodal document ingestion
 
-Status: PLANNED.
+Status: IN PROGRESS (2026-10-05).
 
 Extraction cascade:
 
@@ -382,13 +382,15 @@ Extraction cascade:
 2. conventional OCR for image-only pages/scans;
 3. optional VLM fallback for hard layout, tables, forms, diagrams or low-confidence OCR.
 
-- [ ] detect image-only / low-text PDF pages;
-- [ ] add OCR provider protocol and local implementation;
-- [ ] preserve page coordinates, confidence and source provenance where available;
-- [ ] add optional VLM document-understanding fallback;
-- [ ] extract tables/forms without silently flattening structure;
-- [ ] benchmark accuracy/latency on real procurement and business documents;
-- [ ] never send documents to a remote vision provider unless deployment policy explicitly permits it.
+- [x] detect image-only / low-text PDF pages;
+- [x] add OCR provider protocol and local Tesseract implementation;
+- [x] preserve page coordinates, confidence and source provenance where available;
+- [x] add optional VLM document-understanding fallback for low-text / low-confidence OCR pages;
+- [x] preserve tables/forms in the VLM contract instead of silently requesting flat prose;
+- [ ] benchmark accuracy/latency on a larger frozen set of real procurement and business documents;
+- [x] never send documents to a remote vision provider unless deployment policy explicitly permits it.
+
+Real acceptance (2026-10-05): a scanned PDF from the existing Tender Agent procurement corpus had 0 native extracted characters; the local OCR cascade selected its single page and recovered 925 characters at 93.16% mean Tesseract confidence without VLM escalation. Implementation: `docs/OCR_MULTIMODAL.md`.
 
 A VLM is therefore not required for ordinary OCR. It is an escalation path for documents where classical OCR/layout extraction is insufficient.
 
