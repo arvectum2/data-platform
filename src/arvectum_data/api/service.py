@@ -23,7 +23,7 @@ from ..connectors import (
     ManualURLConnector,
     SitemapConnector,
 )
-from ..engine import AutoDiscoveryProvider, ExtractionEngine, FieldSpec, RawAsset
+from ..engine import AutoDiscoveryProvider, ExtractionEngine, FieldSpec, RawAsset, ReasoningCandidateProvider
 from ..entities import normalize_entity_value
 from ..orchestration import URLExtractionPipeline
 from ..indexing import (
@@ -1466,10 +1466,18 @@ class DataPlatformService:
         *,
         url: str,
         fields: Sequence[FieldSpec],
+        use_model: bool = False,
     ):
         if not self.settings.allow_private_fetches:
             validate_public_url(url)
-        pipeline = URLExtractionPipeline(acquisition=self.acquisition)
+        providers = [AutoDiscoveryProvider()]
+        reasoning_provider = self.model_router.provider(ModelRole.REASONING)
+        if use_model and reasoning_provider is not None:
+            providers.append(ReasoningCandidateProvider(reasoning_provider))
+        pipeline = URLExtractionPipeline(
+            acquisition=self.acquisition,
+            providers=tuple(providers),
+        )
         return pipeline.extract_url(url, fields)
 
     def extract(
@@ -1481,8 +1489,13 @@ class DataPlatformService:
         html: str | None,
         attributes: Mapping[str, object],
         fields: Sequence[FieldSpec],
+        use_model: bool = False,
     ):
-        engine = ExtractionEngine((AutoDiscoveryProvider(),))
+        providers = [AutoDiscoveryProvider()]
+        reasoning_provider = self.model_router.provider(ModelRole.REASONING)
+        if use_model and reasoning_provider is not None:
+            providers.append(ReasoningCandidateProvider(reasoning_provider))
+        engine = ExtractionEngine(tuple(providers))
         asset = RawAsset(
             asset_id=asset_id,
             source_url=source_url,

@@ -37,6 +37,7 @@ class RawAsset:
 class FieldSpec:
     key: str
     required: bool = False
+    value_type: str = "auto"
     min_confidence: float = 0.80
     min_margin: float = 0.10
     aliases: tuple[str, ...] = ()
@@ -44,6 +45,8 @@ class FieldSpec:
     def __post_init__(self) -> None:
         if not self.key.strip():
             raise ValueError("FieldSpec.key must not be blank")
+        if self.value_type not in {"auto", "string", "integer", "number", "boolean"}:
+            raise ValueError("value_type must be auto, string, integer, number or boolean")
         if not 0.0 <= self.min_confidence <= 1.0:
             raise ValueError("min_confidence must be between 0 and 1")
         if not 0.0 <= self.min_margin <= 1.0:

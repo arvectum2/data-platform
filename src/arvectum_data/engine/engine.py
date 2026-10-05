@@ -14,6 +14,37 @@ from .protocols import CandidateProvider
 from .resolver import resolve_fields
 
 
+def _coerce_value(value, value_type: str):
+    if value_type == "auto":
+        return value
+    if value_type == "string":
+        return value if isinstance(value, str) else str(value)
+    if value_type == "integer":
+        if isinstance(value, bool):
+            raise ValueError
+        if isinstance(value, int):
+            return value
+        cleaned = str(value).strip().replace(" ", "").replace("\u00a0", "")
+        return int(cleaned)
+    if value_type == "number":
+        if isinstance(value, bool):
+            raise ValueError
+        if isinstance(value, (int, float)):
+            return value
+        cleaned = str(value).strip().replace(" ", "").replace("\u00a0", "").replace(",", ".")
+        return float(cleaned)
+    if value_type == "boolean":
+        if isinstance(value, bool):
+            return value
+        normalized = str(value).strip().casefold()
+        if normalized in {"true", "yes", "да", "1"}:
+            return True
+        if normalized in {"false", "no", "нет", "0"}:
+            return False
+        raise ValueError
+    raise ValueError
+
+
 class ExtractionEngine:
     """Orchestrates candidate discovery, resolution and confirmation.
 
@@ -42,11 +73,18 @@ class ExtractionEngine:
         for provider in self._providers:
             try:
                 produced = provider.candidates(asset, fields)
-                candidates.extend(
-                    candidate
-                    for candidate in produced
-                    if candidate.field_key in field_keys
-                )
+                specs = {field.key: field for field in fields}
+                for candidate in produced:
+                    if candidate.field_key not in field_keys:
+                        continue
+                    try:
+                        value = _coerce_value(
+                            candidate.value,
+                            specs[candidate.field_key].value_type,
+                        )
+                    except (TypeError, ValueError):
+                        continue
+                    candidates.append(replace(candidate, value=value, candidate_id=""))
             except Exception as exc:  # provider isolation is deliberate
                 provider_errors[provider.name] = f"{type(exc).__name__}: {exc}"
 
