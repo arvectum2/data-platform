@@ -82,7 +82,7 @@ const result = await client.search({
 
 ## Supported v1 consumer surface
 
-The SDKs cover the shared cross-product surface:
+The SDKs cover the shared cross-product surface with parity between Python and JavaScript:
 
 - collection creation/existence/stats;
 - document processing without persistence;

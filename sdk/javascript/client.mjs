@@ -126,6 +126,56 @@ export class DataPlatformClient {
     );
   }
 
+  async collectionExists(collectionId) {
+    const path = "/v1/collections/" + encodeURIComponent(collectionId);
+    let response;
+    try {
+      response = await this.fetchImpl(new URL(path, this.baseUrl), {
+        headers: this.headers(),
+      });
+    } catch (error) {
+      throw new DataPlatformError("Data Platform request failed: " + error, {
+        method: "GET",
+        path,
+      });
+    }
+    if (response.status === 200) return true;
+    if (response.status === 404) return false;
+    const body = (await response.text()).slice(0, 500);
+    throw new DataPlatformError(
+      "Data Platform GET " + path + " returned " + response.status + ": " + body,
+      { status: response.status, method: "GET", path },
+    );
+  }
+
+  async processDocument({
+    collectionId,
+    canonicalUri,
+    title,
+    content,
+    filename,
+    contentType = "application/octet-stream",
+    chunkSizeChars = 1500,
+    overlapChars = 200,
+    minChunkChars = 120,
+    maxChars = 2000000,
+  }) {
+    const form = new FormData();
+    form.set("collection_id", collectionId);
+    form.set("title", title);
+    form.set("canonical_uri", canonicalUri);
+    form.set("chunk_size_chars", String(chunkSizeChars));
+    form.set("overlap_chars", String(overlapChars));
+    form.set("min_chunk_chars", String(minChunkChars));
+    form.set("max_chars", String(maxChars));
+    form.set(
+      "file",
+      content instanceof Blob ? content : new Blob([content], { type: contentType }),
+      filename,
+    );
+    return this.json("/v1/process/document", { method: "POST", body: form });
+  }
+
   async ingestDocument({
     collectionId,
     canonicalUri,
