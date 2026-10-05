@@ -355,6 +355,30 @@ def test_v1_requires_internal_api_key_but_health_stays_public() -> None:
     assert response.json()["requests"] >= 2
 
 
+def test_consumer_contract_is_versioned_and_capability_driven() -> None:
+    client = _client()
+    response = client.get(
+        "/v1/contract",
+        headers={"X-Arvectum-Key": "secret"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["name"] == "arvectum-data-consumer"
+    assert payload["version"] == "1.0"
+    assert payload["api_prefix"] == "/v1"
+    assert {
+        "collections",
+        "document_process",
+        "document_ingest",
+        "url_ingest",
+        "search",
+        "discovery",
+        "entities",
+        "entity_relations",
+    }.issubset(set(payload["capabilities"]))
+
+
 def test_collection_ingest_search_and_extract_contracts() -> None:
     client = _client()
     headers = {"X-Arvectum-Key": "secret"}

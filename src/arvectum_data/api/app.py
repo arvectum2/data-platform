@@ -23,11 +23,17 @@ from ..engine import FieldSpec
 from ..observability import configure_logging
 from ..search import SearchQuery
 from .config import Settings
+from .contract import (
+    CONSUMER_CONTRACT_CAPABILITIES,
+    CONSUMER_CONTRACT_NAME,
+    CONSUMER_CONTRACT_VERSION,
+)
 from .schemas import (
     CollectionCreateRequest,
     CollectionResponse,
     CollectionStatsResponse,
     ConnectorHealthResponse,
+    ConsumerContractResponse,
     DiscoveryRequest,
     DiscoveryResponse,
     EntityCreateRequest,
@@ -178,6 +184,18 @@ def create_app(
         prefix="/v1",
         dependencies=[Depends(require_internal_key)],
     )
+
+    @router.get(
+        "/contract",
+        response_model=ConsumerContractResponse,
+        tags=["system"],
+    )
+    def consumer_contract() -> ConsumerContractResponse:
+        return ConsumerContractResponse(
+            name=CONSUMER_CONTRACT_NAME,
+            version=CONSUMER_CONTRACT_VERSION,
+            capabilities=list(CONSUMER_CONTRACT_CAPABILITIES),
+        )
 
     @router.get("/status", response_model=StatusResponse, tags=["system"])
     def status(runtime_service=Depends(runtime)):
