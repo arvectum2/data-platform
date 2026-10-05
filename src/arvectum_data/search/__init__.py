@@ -10,6 +10,7 @@ from .models import (
 )
 from .postgres import PostgresSearchBackend
 from .protocols import LexicalBackend, VectorBackend
+from .rerank import ReasoningReranker, Reranker, RerankScore
 
 __all__ = [
     "BackendHit",
@@ -18,6 +19,9 @@ __all__ = [
     "LexicalBackend",
     "MemorySearchDocument",
     "PostgresSearchBackend",
+    "ReasoningReranker",
+    "Reranker",
+    "RerankScore",
     "SearchEvidence",
     "SearchHit",
     "SearchMode",

@@ -417,6 +417,8 @@ def create_app(
                     query_variants=tuple(payload.query_variants),
                     query_variant_weight=payload.query_variant_weight,
                     collapse_by_canonical_uri=payload.collapse_by_canonical_uri,
+                    rerank=payload.rerank,
+                    rerank_candidates=payload.rerank_candidates,
                 ),
                 consumer=consumer,
             )
@@ -438,6 +440,7 @@ def create_app(
                         "lexical": hit.scores.lexical,
                         "vector": hit.scores.vector,
                         "fusion": hit.scores.fusion,
+                        "rerank": hit.scores.rerank,
                     },
                     evidence=[
                         {

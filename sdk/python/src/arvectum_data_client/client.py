@@ -290,6 +290,8 @@ class DataPlatformClient:
         query_variants: list[str] | None = None,
         query_variant_weight: float = 0.5,
         collapse_by_canonical_uri: bool = False,
+        rerank: bool = False,
+        rerank_candidates: int = 20,
     ) -> list[SearchHit]:
         headers: dict[str, str] = {}
         if self._consumer or self._consumer_key:
@@ -312,6 +314,8 @@ class DataPlatformClient:
                     "query_variants": query_variants or [],
                     "query_variant_weight": query_variant_weight,
                     "collapse_by_canonical_uri": collapse_by_canonical_uri,
+                    "rerank": rerank,
+                    "rerank_candidates": rerank_candidates,
                 },
             ),
         )
@@ -349,6 +353,8 @@ class DataPlatformClient:
             collapse_by_canonical_uri=bool(
                 profile.get("collapse_by_canonical_uri", False)
             ),
+            rerank=bool(profile.get("rerank", False)),
+            rerank_candidates=int(profile.get("rerank_candidates", 20)),
         )
 
     def discover(

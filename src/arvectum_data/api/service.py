@@ -34,7 +34,7 @@ from ..indexing import (
 )
 from ..models import ModelLocality, ModelPolicy, ModelRole, ModelRouter, RoleConfig
 
-from ..search import HybridSearchEngine, PostgresSearchBackend, SearchHit, SearchQuery
+from ..search import HybridSearchEngine, PostgresSearchBackend, ReasoningReranker, SearchHit, SearchQuery
 from ..storage.postgres import (
     ChunkEmbeddingRow,
     ChunkRow,
@@ -745,10 +745,20 @@ class DataPlatformService:
                 self._validate_embedding_contract(collection)
 
             backend = PostgresSearchBackend(DataRepository(session))
+            reasoning_provider = self.model_router.provider(ModelRole.REASONING)
+            reranker = (
+                ReasoningReranker(
+                    reasoning_provider,
+                    max_candidates=request.rerank_candidates,
+                )
+                if request.rerank and reasoning_provider is not None
+                else None
+            )
             engine = HybridSearchEngine(
                 lexical_backend=backend,
                 vector_backend=backend,
                 embedding_provider=self.embedding_provider,
+                reranker=reranker,
             )
             if len(request.collections) == 1 and not request.collapse_by_canonical_uri:
                 return engine.search(request)
@@ -769,6 +779,11 @@ class DataPlatformService:
                 query_variants=request.query_variants,
                 query_variant_weight=request.query_variant_weight,
                 collapse_by_canonical_uri=request.collapse_by_canonical_uri,
+                rerank=request.rerank,
+                rerank_candidates=max(
+                    request.rerank_candidates,
+                    min(100, request.limit * overfetch_factor),
+                ),
             )
             hits = engine.search(expanded_request)
             if request.collapse_by_canonical_uri:

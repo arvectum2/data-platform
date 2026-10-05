@@ -232,6 +232,8 @@ export class DataPlatformClient {
     queryVariants = [],
     queryVariantWeight = 0.5,
     collapseByCanonicalUri = false,
+    rerank = false,
+    rerankCandidates = 20,
   }) {
     const headers = { "Content-Type": "application/json" };
     if (this.consumer || this.consumerKey) {
@@ -252,6 +254,8 @@ export class DataPlatformClient {
         query_variants: queryVariants,
         query_variant_weight: queryVariantWeight,
         collapse_by_canonical_uri: collapseByCanonicalUri,
+        rerank,
+        rerank_candidates: rerankCandidates,
       }),
     });
   }
@@ -275,6 +279,8 @@ export class DataPlatformClient {
       queryVariants,
       queryVariantWeight: profile.queryVariantWeight ?? 0.5,
       collapseByCanonicalUri: profile.collapseByCanonicalUri ?? false,
+      rerank: profile.rerank ?? false,
+      rerankCandidates: profile.rerankCandidates ?? 20,
     });
   }
 

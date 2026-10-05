@@ -78,6 +78,7 @@ class SearchScores(TypedDict):
     lexical: float | None
     vector: float | None
     fusion: float
+    rerank: NotRequired[float | None]
 
 
 class SearchEvidence(TypedDict):
@@ -111,6 +112,8 @@ class SearchProfile(TypedDict, total=False):
     vector_weight: float
     query_variant_weight: float
     collapse_by_canonical_uri: bool
+    rerank: bool
+    rerank_candidates: int
 
 
 class DiscoveredResource(TypedDict, total=False):
