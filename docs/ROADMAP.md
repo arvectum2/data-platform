@@ -548,9 +548,30 @@ Before externalization:
 
 ## DP-BENCH-002 — competitive benchmark suite
 
-Status: PLANNED.
+Status: NEXT / IN PROGRESS (2026-10-05).
+
+The existing production acceptance v3 baseline is already 20/20 top-1 with MRR=1.0, so it is no longer discriminative enough for choosing optional retrieval/model features. The next benchmark increment must deliberately add harder cases where competing strategies can produce measurable differences.
 
 Purpose: evaluate Data Platform against mature reference products by layer, using the same frozen corpora and acceptance questions wherever practical. Product adoption decisions remain benchmark-driven rather than feature-checklist-driven.
+
+### Immediate benchmark increment
+
+- [ ] create a harder frozen v4 corpus with at least:
+  - paraphrased semantic questions with weak lexical overlap;
+  - exact identifiers/numbers/dates/amounts where lexical precision matters;
+  - scanned/image-only pages for OCR;
+  - difficult tables/forms/layout;
+  - conflicting sources and stale/new revisions;
+  - multi-hop questions requiring evidence from more than one chunk/source;
+  - answerable and deliberately unanswerable questions for abstention;
+  - Russian morphological/synonym cases;
+- [ ] run the same frozen cases through base hybrid retrieval first;
+- [ ] evaluate reranking and query expansion only as deltas over that baseline;
+- [ ] add OCR/VLM quality and escalation-rate measurements;
+- [ ] add answer-synthesis groundedness/citation/abstention scoring;
+- [ ] preserve every failing/non-top-1 case instead of relabeling the gold target to make acceptance pass.
+
+This v4 corpus is the prerequisite for deciding whether to activate any optional intelligence layer by default.
 
 Reference set:
 
