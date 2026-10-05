@@ -272,6 +272,151 @@ Collection stats expose first/last source observation, latest embedding time, la
 - [ ] DP-INT-002: close real-data production acceptance on the first non-empty KnowledgeAssetRecord set.
 - [ ] Expand frozen relevance benchmarks with more accepted real consumer cases before promoting BM25, learned reranking, bounded LLM reranking or query expansion from backlog.
 
+## AI/model architecture and capability roadmap
+
+Core principle: Data Platform remains deterministic and useful without a generative LLM. Model-backed capabilities are optional providers with explicit contracts, health checks, model identity, timeouts and fail-closed behavior. Consumers decide which capabilities they need.
+
+### Current production model path
+
+- [x] Hybrid retrieval uses a local embedding provider in production.
+- [x] Mac mini production uses `Qwen3-Embedding-4B` through the local `llama.cpp` OpenAI-compatible embeddings endpoint on `127.0.0.1:8090/v1`.
+- [x] Embeddings are used for semantic/vector retrieval; PostgreSQL FTS provides the lexical side.
+- [x] Normal document extraction is deterministic and does not call an LLM or VLM.
+- [x] The platform can run lexical-only search without embeddings; production hybrid/vector search requires an embedding provider.
+- [x] No generative LLM, "thinking" model or VLM is a hard dependency of the current platform core.
+
+### DP-MODEL-001 — optional local/remote model provider layer
+
+Status: PLANNED.
+
+- [ ] define a product-neutral text-generation/reasoning provider contract;
+- [ ] define a product-neutral vision/VLM provider contract;
+- [ ] support OpenAI-compatible local endpoints so llama.cpp / compatible local runtimes can be attached without consumer-specific code;
+- [ ] keep provider/model/version identity in diagnostics and derived artifacts;
+- [ ] add bounded timeouts, retries, health probes and concurrency controls;
+- [ ] allow local-first operation with optional remote providers selected explicitly by deployment policy;
+- [ ] keep search/indexing available when optional generation/VLM providers are unavailable.
+
+The intended deployment separates model roles: embeddings, reasoning/generation and vision may run as different models/endpoints and can be upgraded independently.
+
+### DP-OCR-001 — OCR and multimodal document ingestion
+
+Status: PLANNED.
+
+Extraction cascade:
+
+1. native deterministic parser first;
+2. conventional OCR for image-only pages/scans;
+3. optional VLM fallback for hard layout, tables, forms, diagrams or low-confidence OCR.
+
+- [ ] detect image-only / low-text PDF pages;
+- [ ] add OCR provider protocol and local implementation;
+- [ ] preserve page coordinates, confidence and source provenance where available;
+- [ ] add optional VLM document-understanding fallback;
+- [ ] extract tables/forms without silently flattening structure;
+- [ ] benchmark accuracy/latency on real procurement and business documents;
+- [ ] never send documents to a remote vision provider unless deployment policy explicitly permits it.
+
+A VLM is therefore not required for ordinary OCR. It is an escalation path for documents where classical OCR/layout extraction is insufficient.
+
+### DP-RERANK-001 — optional intelligent reranking
+
+Status: PLANNED.
+
+- [ ] rerank a bounded top-N candidate set after lexical/vector retrieval;
+- [ ] support lightweight cross-encoder and optional reasoning/LLM rerank providers;
+- [ ] preserve original lexical/vector/fusion scores for explainability;
+- [ ] enable only when frozen relevance benchmarks show a repeatable gain;
+- [ ] keep deterministic hybrid retrieval as fallback.
+
+### DP-QE-001 — query expansion
+
+Status: PLANNED.
+
+- [ ] generate bounded synonyms/paraphrases/domain variants;
+- [ ] support deterministic dictionaries plus optional model-generated variants;
+- [ ] expose every expansion in search diagnostics;
+- [ ] benchmark expansion against unexpanded retrieval before enabling by default.
+
+### DP-STRUCT-001 — schema-driven structured extraction service
+
+Status: PLANNED.
+
+- [ ] accept a consumer-supplied extraction schema;
+- [ ] extract typed records/fields from documents and web resources;
+- [ ] attach evidence/provenance to every extracted field;
+- [ ] support deterministic extractors first and optional LLM/VLM extractors where justified;
+- [ ] expose confidence/review state instead of pretending uncertain fields are facts.
+
+Example target: extract INN, dates, prices, manufacturer and contract number from a corpus while retaining exact evidence for each field.
+
+### DP-RESEARCH-001 — reusable research workflow
+
+Status: PLANNED.
+
+- [ ] discovery -> fetch -> ingest -> search -> evidence synthesis workflow;
+- [ ] bounded source expansion and deduplication;
+- [ ] source-quality and contradiction handling;
+- [ ] optional reasoning model for synthesis while keeping citations grounded in platform evidence;
+- [ ] reusable by Growth, Tender research and future research agents.
+
+### DP-GRAPH-002 — evidence-backed knowledge graph enrichment
+
+Status: PLANNED.
+
+- [ ] suggest entity aliases and relations from indexed evidence;
+- [ ] keep ambiguity-safe resolution;
+- [ ] require explicit policy/review before model-suggested relations become canonical;
+- [ ] support temporal relation metadata;
+- [ ] expose graph traversal to authorized consumers.
+
+The platform must not silently convert model guesses into canonical graph facts.
+
+### DP-SYNC-001 — continuous indexing
+
+Status: PLANNED.
+
+- [ ] scheduled source refresh;
+- [ ] ETag / Last-Modified / content-hash change detection where available;
+- [ ] re-fetch/re-index only changed resources;
+- [ ] stale/deleted source handling;
+- [ ] per-source refresh policy and observability.
+
+### DP-CRAWL-002 — distributed crawling
+
+Status: FUTURE.
+
+- [ ] durable crawl queue;
+- [ ] multiple workers with host-level rate limits;
+- [ ] deduplication and leases;
+- [ ] resumable crawl jobs;
+- [ ] only introduce when single-node throughput becomes a measured bottleneck.
+
+### DP-MEM-001 — shared evidence-backed agent memory
+
+Status: PLANNED.
+
+- [ ] let authorized agents persist durable observations/artifacts into scoped collections;
+- [ ] distinguish source evidence, agent-derived observation and user-authored memory;
+- [ ] retain provenance and producer/model identity;
+- [ ] support retrieval across authorized agents without global-data fallback;
+- [ ] define retention/deletion and conflict rules before enabling autonomous writes.
+
+### DP-PRODUCT-001 — Data Platform as an external Arvectum product
+
+Status: FUTURE.
+
+Potential product contour: connect documents, websites and APIs -> continuously index them -> expose evidence-backed search/API/SDK for customer AI agents.
+
+Before externalization:
+- [ ] tenant isolation and quotas;
+- [ ] customer-managed connectors/credentials;
+- [ ] billing/usage metering;
+- [ ] external auth and key lifecycle;
+- [ ] retention/deletion/export controls;
+- [ ] deployment/privacy modes including local/private installations;
+- [ ] operational SLOs and supportability.
+
 ## Post-v1 backlog
 
 Only after three real consumers are integrated:
