@@ -36,6 +36,7 @@ from ..indexing import (
     build_embedding_provider,
 )
 from ..models import ModelLocality, ModelPolicy, ModelRole, ModelRouter, RoleConfig
+from ..memory import MemoryConflictPolicy, MemoryKind, MemoryWrite, build_memory_ingest
 from ..sync import RefreshPolicy, RefreshResult
 
 from ..search import HybridSearchEngine, PostgresSearchBackend, QueryExpansion, ReasoningQueryExpander, ReasoningReranker, SearchHit, SearchQuery
@@ -44,11 +45,13 @@ from ..storage.postgres import (
     ChunkRow,
     CollectionRow,
     DataRepository,
+    DataRecordRow,
     DocumentRow,
     EntityAliasRow,
     EntityRow,
     EntityRelationRow,
     PipelineRunRow,
+    ProvenanceRow,
     ResourceRow,
     RelevanceFeedbackRow,
     RefreshRunRow,
@@ -77,6 +80,10 @@ class CollectionNotFound(LookupError):
 
 
 class CollectionAccessDenied(PermissionError):
+    pass
+
+
+class MemoryNotFound(LookupError):
     pass
 
 
@@ -525,6 +532,176 @@ class DataPlatformService:
             acquisition=self.acquisition,
         )
         return self._persist_and_index(result)
+
+    def write_memory(
+        self,
+        *,
+        collection_id: str,
+        text: str,
+        kind: MemoryKind | str,
+        producer: str,
+        consumer: str | None,
+        title: str = "Memory",
+        source_chunk_ids: Sequence[str] = (),
+        model_provider: str | None = None,
+        model_name: str | None = None,
+        model_version: str | None = None,
+        subject_key: str | None = None,
+        conflict_policy: MemoryConflictPolicy | str = MemoryConflictPolicy.APPEND,
+        metadata: Mapping[str, object] | None = None,
+    ) -> dict[str, Any]:
+        resolved_kind = MemoryKind(kind)
+        resolved_conflict = MemoryConflictPolicy(conflict_policy)
+        with self._require_factory()() as session:
+            collection = session.get(CollectionRow, collection_id)
+            if collection is None:
+                raise CollectionNotFound(collection_id)
+            policy = dict(collection.access_policy or {})
+            writers = tuple(str(x) for x in policy.get("memory_writers", []) if str(x))
+            user_writers = tuple(str(x) for x in policy.get("user_memory_writers", []) if str(x))
+            if resolved_kind is MemoryKind.USER_MEMORY:
+                if consumer not in user_writers:
+                    raise CollectionAccessDenied(collection_id)
+            elif consumer not in writers:
+                raise CollectionAccessDenied(collection_id)
+            if producer != consumer:
+                raise CollectionAccessDenied(collection_id)
+
+            source_ids = tuple(dict.fromkeys(str(x) for x in source_chunk_ids if str(x)))
+            source_rows = []
+            if source_ids:
+                source_rows = session.scalars(
+                    select(ChunkRow).where(ChunkRow.chunk_id.in_(source_ids))
+                ).all()
+                if len(source_rows) != len(source_ids):
+                    raise ValueError("all source_chunk_ids must exist")
+                for chunk in source_rows:
+                    source_collection = session.scalar(
+                        select(ResourceRow.collection_id)
+                        .join(DocumentRow, DocumentRow.resource_id == ResourceRow.resource_id)
+                        .where(DocumentRow.document_id == chunk.document_id)
+                    )
+                    source = session.get(CollectionRow, source_collection)
+                    allowed = tuple(
+                        str(x)
+                        for x in (source.access_policy or {}).get("allowed_consumers", [])
+                        if str(x)
+                    )
+                    if allowed and consumer not in allowed:
+                        raise CollectionAccessDenied(source_collection)
+
+            if resolved_kind in {MemoryKind.SOURCE_EVIDENCE, MemoryKind.AGENT_OBSERVATION} and not source_ids:
+                raise ValueError("evidence and agent observations require source_chunk_ids")
+            if resolved_kind is MemoryKind.SOURCE_EVIDENCE and not any(
+                text.strip() in source.text for source in source_rows
+            ):
+                raise ValueError("source_evidence text must be an exact excerpt of a source chunk")
+
+            active_conflict = None
+            if subject_key:
+                active_conflict = session.scalar(
+                    select(DataRecordRow)
+                    .join(ResourceRow, ResourceRow.resource_id == DataRecordRow.resource_id)
+                    .where(
+                        ResourceRow.collection_id == collection_id,
+                        DataRecordRow.record_type == "agent_memory",
+                        DataRecordRow.data_json["subject_key"].as_string() == subject_key,
+                        DataRecordRow.review_status == "active",
+                    )
+                    .order_by(DataRecordRow.created_at.desc())
+                    .limit(1)
+                )
+            if active_conflict is not None and resolved_conflict is MemoryConflictPolicy.REJECT:
+                raise ValueError("active memory already exists for subject_key")
+            active_conflict_id = (
+                active_conflict.record_id if active_conflict is not None else None
+            )
+
+        write = MemoryWrite(
+            collection_id=collection_id,
+            text=text,
+            kind=resolved_kind,
+            producer=producer,
+            title=title,
+            source_chunk_ids=source_ids,
+            model_provider=model_provider,
+            model_name=model_name,
+            model_version=model_version,
+            subject_key=subject_key,
+            conflict_policy=resolved_conflict,
+            metadata=metadata,
+        )
+        result = build_memory_ingest(write)
+        indexed = self._persist_and_index(result)
+
+        with self._require_factory()() as session:
+            if active_conflict_id is not None and resolved_conflict is MemoryConflictPolicy.SUPERSEDE:
+                previous = session.get(DataRecordRow, active_conflict_id)
+                if previous is not None:
+                    previous.review_status = "superseded"
+            record = DataRecordRow(
+                record_id=f"memory:{result.resource.resource_id}",
+                resource_id=result.resource.resource_id,
+                document_id=result.document.document_id,
+                record_type="agent_memory",
+                data_json={
+                    "text": text,
+                    "kind": resolved_kind.value,
+                    "producer": producer,
+                    "subject_key": subject_key,
+                    "source_chunk_ids": list(source_ids),
+                    "model": {
+                        "provider": model_provider,
+                        "name": model_name,
+                        "version": model_version,
+                    },
+                },
+                review_status="active",
+                metadata_json=dict(metadata or {}),
+            )
+            session.add(record)
+            for source in source_rows:
+                session.add(
+                    ProvenanceRow(
+                        resource_id=result.resource.resource_id,
+                        document_id=result.document.document_id,
+                        record_id=record.record_id,
+                        chunk_id=source.chunk_id,
+                        source_ref=f"chunk:{source.chunk_id}",
+                        excerpt=source.text[:1000],
+                        metadata_json={"relation": "derived_from"},
+                    )
+                )
+            session.commit()
+        return {
+            **indexed,
+            "record_id": record.record_id,
+            "kind": resolved_kind.value,
+            "producer": producer,
+            "subject_key": subject_key,
+            "source_chunk_ids": list(source_ids),
+        }
+
+    def delete_memory(
+        self, record_id: str, *, consumer: str | None
+    ) -> None:
+        with self._require_factory()() as session:
+            record = session.get(DataRecordRow, record_id)
+            if record is None or record.record_type != "agent_memory":
+                raise MemoryNotFound(record_id)
+            resource = session.get(ResourceRow, record.resource_id)
+            collection = session.get(CollectionRow, resource.collection_id)
+            policy = dict(collection.access_policy or {})
+            writers = {
+                str(x) for x in (
+                    list(policy.get("memory_writers", []))
+                    + list(policy.get("user_memory_writers", []))
+                ) if str(x)
+            }
+            if consumer not in writers:
+                raise CollectionAccessDenied(collection.collection_id)
+            session.delete(resource)
+            session.commit()
 
     def configure_resource_refresh(
         self,

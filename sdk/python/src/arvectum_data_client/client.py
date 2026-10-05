@@ -277,6 +277,54 @@ class DataPlatformClient:
             self.request_json("POST", "/v1/ingest/url", json=payload),
         )
 
+    def write_memory(
+        self,
+        *,
+        collection_id: str,
+        text: str,
+        kind: str,
+        title: str = "Memory",
+        source_chunk_ids: list[str] | None = None,
+        model_provider: str | None = None,
+        model_name: str | None = None,
+        model_version: str | None = None,
+        subject_key: str | None = None,
+        conflict_policy: str = "append",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        headers = {
+            "X-Arvectum-Consumer": self._consumer,
+            "X-Arvectum-Consumer-Key": self._consumer_key,
+        }
+        return cast(
+            dict[str, Any],
+            self.request_json(
+                "POST",
+                "/v1/memory",
+                headers=headers,
+                json={
+                    "collection_id": collection_id,
+                    "text": text,
+                    "kind": kind,
+                    "title": title,
+                    "source_chunk_ids": source_chunk_ids or [],
+                    "model_provider": model_provider,
+                    "model_name": model_name,
+                    "model_version": model_version,
+                    "subject_key": subject_key,
+                    "conflict_policy": conflict_policy,
+                    "metadata": metadata or {},
+                },
+            ),
+        )
+
+    def delete_memory(self, record_id: str) -> None:
+        headers = {
+            "X-Arvectum-Consumer": self._consumer,
+            "X-Arvectum-Consumer-Key": self._consumer_key,
+        }
+        self._request("DELETE", f"/v1/memory/{record_id}", headers=headers)
+
     def search(
         self,
         *,

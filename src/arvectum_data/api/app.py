@@ -54,6 +54,8 @@ from .schemas import (
     IndexJobResponse,
     IndexRebuildRequest,
     IngestResponse,
+    MemoryWriteRequest,
+    MemoryWriteResponse,
     ProcessDocumentResponse,
     RelevanceFeedbackRequest,
     RefreshPolicyRequest,
@@ -77,6 +79,7 @@ from .service import (
     EmbeddingContractMismatch,
     EntityNotFound,
     IndexJobNotFound,
+    MemoryNotFound,
     PlatformNotConfigured,
 )
 
@@ -192,6 +195,8 @@ def create_app(
             return HTTPException(status_code=403, detail="collection access denied")
         if isinstance(exc, IndexJobNotFound):
             return HTTPException(status_code=404, detail="index job not found")
+        if isinstance(exc, MemoryNotFound):
+            return HTTPException(status_code=404, detail="memory not found")
         if isinstance(exc, EntityNotFound):
             return HTTPException(status_code=404, detail="entity not found")
         if isinstance(exc, (EmbeddingContractMismatch, UnsafeURL, ValueError)):
@@ -996,6 +1001,50 @@ def create_app(
                 for hit in hits
             ],
         )
+
+    @router.post("/memory", response_model=MemoryWriteResponse, tags=["memory"])
+    def write_memory_endpoint(
+        payload: MemoryWriteRequest,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
+        runtime_service=Depends(runtime),
+    ):
+        consumer = require_consumer_identity(
+            x_arvectum_consumer, x_arvectum_consumer_key
+        )
+        try:
+            return runtime_service.write_memory(
+                collection_id=payload.collection_id,
+                text=payload.text,
+                kind=payload.kind,
+                producer=consumer,
+                consumer=consumer,
+                title=payload.title,
+                source_chunk_ids=payload.source_chunk_ids,
+                model_provider=payload.model_provider,
+                model_name=payload.model_name,
+                model_version=payload.model_version,
+                subject_key=payload.subject_key,
+                conflict_policy=payload.conflict_policy,
+                metadata=payload.metadata,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.delete("/memory/{record_id}", status_code=204, tags=["memory"])
+    def delete_memory_endpoint(
+        record_id: str,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
+        runtime_service=Depends(runtime),
+    ):
+        consumer = require_consumer_identity(
+            x_arvectum_consumer, x_arvectum_consumer_key
+        )
+        try:
+            runtime_service.delete_memory(record_id, consumer=consumer)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
 
     @router.put(
         "/resources/{resource_id}/refresh-policy",

@@ -555,3 +555,30 @@ class RefreshRunResponse(BaseModel):
     previous_hash: str | None = None
     current_hash: str | None = None
     detail: dict[str, Any] = Field(default_factory=dict)
+
+
+class MemoryWriteRequest(BaseModel):
+    collection_id: str = Field(min_length=1, max_length=128)
+    text: str = Field(min_length=1, max_length=100_000)
+    kind: str = Field(pattern="^(source_evidence|agent_observation|user_memory)$")
+    title: str = Field(default="Memory", min_length=1, max_length=512)
+    source_chunk_ids: list[str] = Field(default_factory=list, max_length=100)
+    model_provider: str | None = Field(default=None, max_length=128)
+    model_name: str | None = Field(default=None, max_length=256)
+    model_version: str | None = Field(default=None, max_length=128)
+    subject_key: str | None = Field(default=None, max_length=512)
+    conflict_policy: str = Field(default="append", pattern="^(append|supersede|reject)$")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MemoryWriteResponse(BaseModel):
+    record_id: str
+    resource_id: str
+    document_id: str
+    collection_id: str
+    chunks: int
+    embeddings: int
+    kind: str
+    producer: str
+    subject_key: str | None = None
+    source_chunk_ids: list[str] = Field(default_factory=list)
