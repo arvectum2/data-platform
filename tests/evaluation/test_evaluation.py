@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -249,3 +250,43 @@ def test_cli_passes_consumer_credentials(monkeypatch, tmp_path) -> None:
     )
     assert captured["consumer"] == "growth-agent"
     assert captured["consumer_key"] == "scoped-secret"
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected_cases"),
+    [
+        ("production_acceptance_v1.json", 9),
+        ("production_acceptance_v2.json", 10),
+        ("production_acceptance_v3.json", 20),
+        ("growth_search_console_v1.json", 12),
+        ("lexical_exact_v1.json", 5),
+    ],
+)
+def test_repository_benchmarks_are_valid_frozen_suites(
+    filename: str,
+    expected_cases: int,
+) -> None:
+    benchmark = Path(__file__).resolve().parents[2] / "benchmarks" / filename
+    suite = EvaluationSuite.from_dict(json.loads(benchmark.read_text(encoding="utf-8")))
+
+    assert len(suite.cases) == expected_cases
+    assert len({case.case_id for case in suite.cases}) == expected_cases
+
+
+def test_production_acceptance_v3_contains_real_consumer_evidence() -> None:
+    benchmark = (
+        Path(__file__).resolve().parents[2]
+        / "benchmarks"
+        / "production_acceptance_v3.json"
+    )
+    suite = EvaluationSuite.from_dict(json.loads(benchmark.read_text(encoding="utf-8")))
+
+    new_cases = suite.cases[-10:]
+    assert {case.metadata.get("consumer") for case in new_cases} == {
+        "growth",
+        "tender-agent",
+    }
+    assert all(
+        case.metadata.get("accepted_into_production_suite") == "2026-10-05"
+        for case in new_cases
+    )

@@ -241,6 +241,14 @@ Tender Agent PR #147 was merged and deployed into the Mac mini runtime on 2026-1
 
 The Arvectum OS database contained zero KnowledgeAssetRecord rows during the 2026-10-04 rollout, so the real-data gate cannot yet be closed. A live synthetic asset passed the full path (versioned deal collection -> pre-chunked ingest -> embedding -> hybrid search -> canonical asset mapping + source refs) with a representative search latency of about 0.18 s.
 
+Rechecked on 2026-10-05 against the production Arvectum OS database:
+`knowledge_asset_sets`, `knowledge_asset_records`, `postmortem_sets`,
+`postmortem_records`, `postmortem_findings`, `archive_export_sets`,
+`dashboard_snapshot_sets` and `deal_closure_sets` all still contain zero rows.
+The remaining acceptance gate is therefore blocked by the absence of a real
+completed upstream deal/postmortem lifecycle, not by Data Platform integration.
+Synthetic data is not used to close this real-data gate.
+
 This integration is retrieval-only. It does not authorize autonomous M-049 Agent Registry or M-050 Prompt / Schema Library execution.
 
 ## DP-INT-003 — Growth / SEO consumer
@@ -285,7 +293,7 @@ Collection stats expose first/last source observation, latest embedding time, la
 - [x] DP-VEC-001: benchmark HNSW versus IVFFlat and keep exact pgvector search until ANN passes the relevance gate.
 - [x] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
 - [ ] DP-INT-002: close real-data production acceptance on the first non-empty KnowledgeAssetRecord set.
-- [ ] DP-BENCH-002: build the competitive frozen-corpus benchmark suite and expand accepted real consumer cases before promoting BM25, learned reranking, bounded LLM reranking, VLM escalation or query expansion.
+- [ ] DP-BENCH-002: build the competitive frozen-corpus benchmark suite before promoting BM25, learned reranking, bounded LLM reranking, VLM escalation or query expansion. Accepted real-consumer retrieval coverage is now expanded to production_acceptance_v3 (20/20 top-1); multi-format, OCR/layout, adversarial and competitive-reference dimensions remain open.
 
 ## AI/model architecture and capability roadmap
 
@@ -599,6 +607,17 @@ Only after three real consumers are integrated:
 Current benchmark evidence does not justify the deferred BM25 backend. On `lexical_exact_v1`, current hybrid retrieval scored top-1 1.00 / MRR 1.00, compared with vector-only 0.60 / 0.80 and PostgreSQL FTS lexical-only 0.80 / 0.90. BM25 remains backlog-only until a larger benchmark shows a repeatable lexical gap.
 
 The first post-v1 evaluation harness is consumer-neutral and runs frozen JSON benchmarks against the HTTP search contract. It reports top-1 accuracy, MRR, hit-rate@3/@5, recall@5 and latency p50/p95/max, with CI-style minimum thresholds. Production snapshot production_acceptance_v1 contains nine accepted Tender/Growth cases; its first run on 2026-10-04 scored top-1=1.0, MRR=1.0, hit-rate@5=1.0 and mean recall@5=1.0, with about 103 ms p50 and 214 ms p95 latency. Relevance feedback capture is now durable and consumer-neutral: consumers can attach relevant / partially_relevant / not_relevant judgments to validated search-hit identities, list judgments, and inspect per-collection label summaries. Raw query text is not stored; only SHA-256 query_hash is persisted. Automatic learning/reranking from this feedback remains deliberately out of scope.
+
+Production acceptance v3 expands the frozen accepted suite to 20 real cases:
+all v2 cases plus six stable real Search Console/Webmaster intents and four live
+document-routing cases from procurement 0137200001226007700. The first
+production run on 2026-10-05 passed 20/20 at top-1 with MRR=1.0,
+hit-rate@5=1.0 and mean recall@5=1.0; latency was about 95.8 ms p50,
+127.4 ms p95 and 184.0 ms max. Known non-top-1 Search Console intents remain
+in the diagnostic suite instead of being relabeled to make acceptance pass.
+This larger accepted baseline still does not justify enabling deferred BM25,
+learned/LLM reranking or platform-generated query expansion without a measured
+incremental gain.
 
 Entity resolution is now deterministic and ambiguity-safe: exact normalized aliases return resolved, ambiguous, or unresolved; the platform never auto-merges multiple candidates. Canonical names are stored as name aliases, while stable identifiers can use separate alias kinds.
 
