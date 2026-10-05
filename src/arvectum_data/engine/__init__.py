@@ -1,6 +1,7 @@
 from .discovery import AutoDiscoveryProvider
 from .engine import ExtractionEngine
 from .html_records import SemanticHTMLRecordProvider
+from .model_provider import ReasoningCandidateProvider
 from .models import (
     Candidate,
     Evidence,
@@ -40,6 +41,7 @@ __all__ = [
     "JSONLDRecordProvider",
     "MultiRecordExtractionEngine",
     "RawAsset",
+    "ReasoningCandidateProvider",
     "RecordBoundary",
     "RecordBoundaryStatus",
     "RecordExtractionResult",

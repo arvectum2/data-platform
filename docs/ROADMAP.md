@@ -419,13 +419,15 @@ Implementation: `docs/QUERY_EXPANSION.md`. Production acceptance v3 is already p
 
 ### DP-STRUCT-001 — schema-driven structured extraction service
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05).
 
-- [ ] accept a consumer-supplied extraction schema;
-- [ ] extract typed records/fields from documents and web resources;
-- [ ] attach evidence/provenance to every extracted field;
-- [ ] support deterministic extractors first and optional LLM/VLM extractors where justified;
-- [ ] expose confidence/review state instead of pretending uncertain fields are facts.
+- [x] accept a consumer-supplied extraction schema;
+- [x] extract typed fields from text/documents and governed web resources;
+- [x] attach evidence/provenance to every selected value and candidate;
+- [x] support deterministic extraction first and explicit policy-controlled reasoning/LLM extraction;
+- [x] expose confidence, candidates and review/unresolved state instead of pretending uncertain fields are facts.
+
+Implementation: `docs/STRUCTURED_EXTRACTION.md`. The existing generic extraction engine, record boundaries and Postgres record/provenance primitives are reused rather than duplicated. Model candidates require a verbatim source excerpt that is verified before resolution.
 
 Example target: extract INN, dates, prices, manufacturer and contract number from a corpus while retaining exact evidence for each field.
 

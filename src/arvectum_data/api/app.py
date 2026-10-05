@@ -94,7 +94,7 @@ def create_app(
     service.state.request_count = 0
     service.state.operation_metrics = {
         name: {"requests": 0, "errors": 0, "total_ms": 0, "max_ms": 0}
-        for name in ("process", "ingest", "search", "discover", "reindex")
+        for name in ("process", "ingest", "search", "discover", "extract", "reindex")
     }
 
     def operation_name(method: str, path: str) -> str | None:
@@ -106,6 +106,8 @@ def create_app(
             return "search"
         if method == "POST" and path == "/v1/discover":
             return "discover"
+        if method == "POST" and path == "/v1/extract":
+            return "extract"
         if method == "POST" and path == "/v1/index/rebuild":
             return "reindex"
         return None
@@ -742,6 +744,7 @@ def create_app(
             FieldSpec(
                 key=field.key,
                 required=field.required,
+                value_type=field.value_type,
                 min_confidence=field.min_confidence,
                 min_margin=field.min_margin,
                 aliases=tuple(field.aliases),
@@ -751,21 +754,24 @@ def create_app(
         warnings: list[str] = []
         try:
             if payload.url:
-                pipeline_result = runtime_service.extract_url(
-                    url=payload.url,
-                    fields=fields,
-                )
+                url_kwargs = {"url": payload.url, "fields": fields}
+                if payload.use_model:
+                    url_kwargs["use_model"] = True
+                pipeline_result = runtime_service.extract_url(**url_kwargs)
                 result = pipeline_result.extraction
                 warnings = list(pipeline_result.acquisition.warnings)
             else:
-                result = runtime_service.extract(
-                    asset_id=payload.asset_id,
-                    source_url=payload.source_url,
-                    text=payload.text,
-                    html=payload.html,
-                    attributes=payload.attributes,
-                    fields=fields,
-                )
+                extract_kwargs = {
+                    "asset_id": payload.asset_id,
+                    "source_url": payload.source_url,
+                    "text": payload.text,
+                    "html": payload.html,
+                    "attributes": payload.attributes,
+                    "fields": fields,
+                }
+                if payload.use_model:
+                    extract_kwargs["use_model"] = True
+                result = runtime_service.extract(**extract_kwargs)
         except Exception as exc:
             raise map_service_error(exc) from exc
 
@@ -780,6 +786,43 @@ def create_app(
                     if decision.selected is not None
                     else None
                 ),
+                confidence=(
+                    decision.selected.confidence if decision.selected is not None else None
+                ),
+                provider=(
+                    decision.selected.provider if decision.selected is not None else None
+                ),
+                evidence=(
+                    [
+                        {
+                            "kind": evidence.kind,
+                            "source_ref": evidence.source_ref,
+                            "excerpt": evidence.excerpt,
+                            "metadata": dict(evidence.metadata),
+                        }
+                        for evidence in decision.selected.evidence
+                    ]
+                    if decision.selected is not None
+                    else []
+                ),
+                candidates=[
+                    {
+                        "candidate_id": candidate.candidate_id,
+                        "value": candidate.value,
+                        "confidence": candidate.confidence,
+                        "provider": candidate.provider,
+                        "evidence": [
+                            {
+                                "kind": evidence.kind,
+                                "source_ref": evidence.source_ref,
+                                "excerpt": evidence.excerpt,
+                                "metadata": dict(evidence.metadata),
+                            }
+                            for evidence in candidate.evidence
+                        ],
+                    }
+                    for candidate in decision.candidates
+                ],
                 reason=decision.reason,
             )
             for key, decision in result.decisions.items()

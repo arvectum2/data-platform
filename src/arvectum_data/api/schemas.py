@@ -112,6 +112,7 @@ class ProcessDocumentResponse(BaseModel):
 class FieldSpecRequest(BaseModel):
     key: str = Field(min_length=1)
     required: bool = False
+    value_type: str = Field(default="string", pattern="^(string|integer|number|boolean)$")
     min_confidence: float = Field(default=0.80, ge=0.0, le=1.0)
     min_margin: float = Field(default=0.10, ge=0.0, le=1.0)
     aliases: list[str] = Field(default_factory=list)
@@ -119,6 +120,7 @@ class FieldSpecRequest(BaseModel):
 
 class ExtractRequest(BaseModel):
     asset_id: str = "api-extract"
+    use_model: bool = False
     url: str | None = None
     source_url: str | None = None
     text: str | None = None
@@ -133,10 +135,29 @@ class ExtractRequest(BaseModel):
         return self
 
 
+class ExtractEvidenceResponse(BaseModel):
+    kind: str
+    source_ref: str
+    excerpt: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExtractCandidateResponse(BaseModel):
+    candidate_id: str
+    value: Any
+    confidence: float
+    provider: str
+    evidence: list[ExtractEvidenceResponse] = Field(default_factory=list)
+
+
 class ExtractDecisionResponse(BaseModel):
     status: str
     selected_value: Any | None = None
     selected_candidate_id: str | None = None
+    confidence: float | None = None
+    provider: str | None = None
+    evidence: list[ExtractEvidenceResponse] = Field(default_factory=list)
+    candidates: list[ExtractCandidateResponse] = Field(default_factory=list)
     reason: str | None = None
 
 
