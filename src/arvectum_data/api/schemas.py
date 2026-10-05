@@ -446,3 +446,34 @@ class AnswerResponse(BaseModel):
     uncertainty: str | None = None
     abstained: bool
     evidence: list[SearchHitResponse] = Field(default_factory=list)
+
+
+class ResearchRequest(BaseModel):
+    query: str = Field(min_length=1)
+    collection_id: str = Field(min_length=1, max_length=128)
+    connector: str = Field(default="duckduckgo_html", min_length=1, max_length=128)
+    source_limit: int = Field(default=8, ge=1, le=25)
+    evidence_limit: int = Field(default=8, ge=1, le=50)
+    rerank: bool = False
+    expand_query: bool = False
+
+
+class ResearchSourceResponse(BaseModel):
+    canonical_uri: str
+    title: str | None = None
+    provider: str
+    rank: int | None = None
+    ingested: bool
+    error: str | None = None
+
+
+class ResearchResponse(BaseModel):
+    query: str
+    answer: str | None = None
+    claims: list[AnswerClaimResponse] = Field(default_factory=list)
+    contradictions: list[str] = Field(default_factory=list)
+    uncertainty: str | None = None
+    abstained: bool
+    sources: list[ResearchSourceResponse] = Field(default_factory=list)
+    evidence: list[SearchHitResponse] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
