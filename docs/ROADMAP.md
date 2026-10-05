@@ -443,18 +443,20 @@ Status: PLANNED.
 
 ### DP-ANSWER-001 — evidence-grounded answer synthesis
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05); production activation remains faithfulness-gated.
 
 Purpose: turn retrieved evidence into a concise answer without weakening the platform's source-of-truth boundary.
 
-- [ ] accept a bounded set of SearchHit/evidence objects as the only synthesis context by default;
-- [ ] support an optional local ReasoningProvider for answer generation;
-- [ ] require claim-level source references for material factual statements;
-- [ ] surface contradictions instead of silently choosing one source;
-- [ ] abstain or mark uncertainty when evidence is insufficient;
-- [ ] preserve the underlying retrieval scores, collection IDs and evidence identities;
-- [ ] keep synthesis optional so consumers can retrieve raw evidence without invoking any LLM;
-- [ ] benchmark answer faithfulness separately from retrieval relevance.
+- [x] accept a bounded set of SearchHit/evidence objects as the only synthesis context by default;
+- [x] support an optional policy-controlled ReasoningProvider for answer generation;
+- [x] require claim-level chunk references for material factual statements and reject unknown citations;
+- [x] surface contradictions instead of silently choosing one source;
+- [x] abstain or mark uncertainty when evidence is insufficient or synthesis fails validation;
+- [x] preserve underlying retrieval scores, collection metadata and evidence identities;
+- [x] keep synthesis optional so consumers can retrieve raw evidence without invoking any LLM;
+- [x] define answer-faithfulness evaluation separately from retrieval relevance.
+
+Implementation: `docs/ANSWER_SYNTHESIS.md`. Production rollout remains gated on a frozen faithfulness suite covering claim support, contradiction recall, abstention correctness and synthesis latency.
 
 Target pipeline:
 

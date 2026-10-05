@@ -14,6 +14,7 @@ from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..acquisition import AcquisitionEngine
+from ..answers import GroundedAnswer, ReasoningAnswerSynthesizer
 from ..acquisition.security import UnsafeURL, validate_public_url
 from ..documents import TesseractOCRProvider, ingest_file, ingest_url
 from ..processing import ChunkingConfig
@@ -814,6 +815,41 @@ class DataPlatformService:
                 self._dedupe_federated_hits(hits, limit=request.limit),
                 engine.last_expansions,
             )
+
+
+    def answer(
+        self,
+        request: SearchQuery,
+        *,
+        consumer: str | None = None,
+    ) -> tuple[GroundedAnswer, list[SearchHit]]:
+        hits = self.search(request, consumer=consumer)
+        reasoning_provider = self.model_router.provider(ModelRole.REASONING)
+        if reasoning_provider is None:
+            return (
+                GroundedAnswer(
+                    answer=None,
+                    claims=(),
+                    contradictions=(),
+                    uncertainty="Reasoning provider is not configured.",
+                    abstained=True,
+                ),
+                hits,
+            )
+        try:
+            answer = ReasoningAnswerSynthesizer(
+                reasoning_provider,
+                max_hits=request.limit,
+            ).synthesize(request.query, hits)
+        except Exception as exc:
+            answer = GroundedAnswer(
+                answer=None,
+                claims=(),
+                contradictions=(),
+                uncertainty=f"Synthesis unavailable: {type(exc).__name__}.",
+                abstained=True,
+            )
+        return answer, hits
 
 
 

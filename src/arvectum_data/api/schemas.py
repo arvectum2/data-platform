@@ -421,3 +421,28 @@ class EntityRelationResponse(BaseModel):
     chunk_id: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: Any
+
+
+class AnswerClaimResponse(BaseModel):
+    text: str
+    chunk_ids: list[str]
+
+
+class AnswerRequest(BaseModel):
+    query: str = Field(min_length=1)
+    collections: list[str] = Field(min_length=1)
+    filters: dict[str, list[str]] = Field(default_factory=dict)
+    evidence_limit: int = Field(default=8, ge=1, le=50)
+    mode: SearchMode = SearchMode.HYBRID
+    rerank: bool = False
+    expand_query: bool = False
+
+
+class AnswerResponse(BaseModel):
+    query: str
+    answer: str | None = None
+    claims: list[AnswerClaimResponse] = Field(default_factory=list)
+    contradictions: list[str] = Field(default_factory=list)
+    uncertainty: str | None = None
+    abstained: bool
+    evidence: list[SearchHitResponse] = Field(default_factory=list)
