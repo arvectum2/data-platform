@@ -17,6 +17,7 @@ from ..acquisition import AcquisitionEngine
 from ..answers import GroundedAnswer, ReasoningAnswerSynthesizer
 from ..acquisition.security import UnsafeURL, validate_public_url
 from ..documents import TesseractOCRProvider, ingest_file, ingest_url
+from ..graph import EvidenceGraphSuggester, GraphSuggestions
 from ..processing import ChunkingConfig
 from ..research import ResearchResult, ResearchWorkflow
 from ..connectors import (
@@ -1273,6 +1274,9 @@ class DataPlatformService:
             "source_entity_id": row.source_entity_id,
             "target_entity_id": row.target_entity_id,
             "relation_type": row.relation_type,
+            "status": row.status,
+            "valid_from": row.valid_from,
+            "valid_to": row.valid_to,
             "source_collection_id": row.source_collection_id,
             "resource_id": row.resource_id,
             "document_id": row.document_id,
@@ -1287,6 +1291,9 @@ class DataPlatformService:
         source_entity_id: str,
         target_entity_id: str,
         relation_type: str,
+        status: str = "canonical",
+        valid_from: datetime | None = None,
+        valid_to: datetime | None = None,
         source_collection_id: str | None = None,
         resource_id: str | None = None,
         document_id: str | None = None,
@@ -1298,6 +1305,13 @@ class DataPlatformService:
         normalized_type = relation_type.strip()
         if not normalized_type:
             raise ValueError("relation_type is required")
+        normalized_status = status.strip().lower()
+        if normalized_status not in {"canonical", "proposed", "rejected"}:
+            raise ValueError("relation status must be canonical, proposed or rejected")
+        if valid_from is not None and valid_to is not None and valid_to < valid_from:
+            raise ValueError("valid_to must be greater than or equal to valid_from")
+        if normalized_status == "proposed" and chunk_id is None:
+            raise ValueError("proposed relations require chunk evidence")
 
         with self._require_factory()() as session:
             if session.get(EntityRow, source_entity_id) is None:
@@ -1361,6 +1375,9 @@ class DataPlatformService:
                 source_entity_id=source_entity_id,
                 target_entity_id=target_entity_id,
                 relation_type=normalized_type,
+                status=normalized_status,
+                valid_from=valid_from,
+                valid_to=valid_to,
                 source_collection_id=resolved_collection,
                 resource_id=resolved_resource,
                 document_id=resolved_document,
@@ -1378,6 +1395,7 @@ class DataPlatformService:
         *,
         direction: str = "both",
         relation_type: str | None = None,
+        status: str | None = "canonical",
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         normalized_direction = direction.strip().lower()
@@ -1408,6 +1426,11 @@ class DataPlatformService:
                 statement = statement.where(
                     EntityRelationRow.relation_type == relation_type.strip()
                 )
+            if status is not None:
+                normalized_status = status.strip().lower()
+                if normalized_status not in {"canonical", "proposed", "rejected"}:
+                    raise ValueError("relation status must be canonical, proposed or rejected")
+                statement = statement.where(EntityRelationRow.status == normalized_status)
             statement = statement.order_by(
                 EntityRelationRow.created_at.asc(),
                 EntityRelationRow.relation_id.asc(),
@@ -1416,6 +1439,99 @@ class DataPlatformService:
                 self._relation_payload(row)
                 for row in session.scalars(statement).all()
             ]
+
+    def suggest_graph_enrichment(
+        self,
+        *,
+        query: str,
+        collection_id: str,
+        entity_ids: Sequence[str],
+        evidence_limit: int = 8,
+        consumer: str | None = None,
+    ) -> GraphSuggestions:
+        provider = self.model_router.provider(ModelRole.REASONING)
+        if provider is None:
+            return GraphSuggestions((), ())
+        entities = [self.get_entity(entity_id) for entity_id in dict.fromkeys(entity_ids)]
+        hits = self.search(
+            SearchQuery(
+                query=query,
+                collections=(collection_id,),
+                limit=max(1, min(evidence_limit, 20)),
+            ),
+            consumer=consumer,
+        )
+        return EvidenceGraphSuggester(provider).suggest(entities=entities, hits=hits)
+
+    def review_entity_relation(
+        self,
+        relation_id: str,
+        *,
+        decision: str,
+        reviewer: str | None = None,
+    ) -> dict[str, Any]:
+        normalized = decision.strip().lower()
+        if normalized not in {"canonical", "rejected"}:
+            raise ValueError("review decision must be canonical or rejected")
+        with self._require_factory()() as session:
+            row = session.get(EntityRelationRow, relation_id)
+            if row is None:
+                raise LookupError(relation_id)
+            if row.status != "proposed":
+                raise ValueError("only proposed relations can be reviewed")
+            row.status = normalized
+            metadata = dict(row.metadata_json or {})
+            metadata["review"] = {"decision": normalized, "reviewer": reviewer}
+            row.metadata_json = metadata
+            session.commit()
+            session.refresh(row)
+            return self._relation_payload(row)
+
+    def traverse_entity_graph(
+        self,
+        entity_id: str,
+        *,
+        max_depth: int = 2,
+        relation_type: str | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        if max_depth < 1 or max_depth > 5:
+            raise ValueError("max_depth must be between 1 and 5")
+        frontier = {entity_id}
+        visited = {entity_id}
+        result: list[dict[str, Any]] = []
+        seen_relations: set[str] = set()
+        for depth in range(1, max_depth + 1):
+            next_frontier: set[str] = set()
+            for current in sorted(frontier):
+                rows = self.list_entity_relations(
+                    current,
+                    direction="both",
+                    relation_type=relation_type,
+                    status="canonical",
+                    limit=min(limit, 500),
+                )
+                for row in rows:
+                    if row["relation_id"] in seen_relations:
+                        continue
+                    seen_relations.add(row["relation_id"])
+                    enriched = dict(row)
+                    enriched["depth"] = depth
+                    result.append(enriched)
+                    if len(result) >= limit:
+                        return result
+                    neighbor = (
+                        row["target_entity_id"]
+                        if row["source_entity_id"] == current
+                        else row["source_entity_id"]
+                    )
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        next_frontier.add(neighbor)
+            frontier = next_frontier
+            if not frontier:
+                break
+        return result
 
     @staticmethod
     def _feedback_payload(row: RelevanceFeedbackRow) -> dict[str, Any]:

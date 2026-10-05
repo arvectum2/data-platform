@@ -233,6 +233,7 @@ class FakePlatformService:
         *,
         direction="both",
         relation_type=None,
+        status="canonical",
         limit=100,
     ):
         relation = self.create_entity_relation(
