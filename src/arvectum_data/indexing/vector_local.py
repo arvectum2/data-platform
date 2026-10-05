@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import json
 import math
-from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Mapping, Sequence
+from typing import Any
+
+from .protocols import VectorSearchResult
 
 
-@dataclass(frozen=True)
-class SearchResult:
-    vector_id: str
-    score: float
-    metadata: dict
+SearchResult = VectorSearchResult
 
 
 class JsonVectorStore:
@@ -51,7 +50,12 @@ class JsonVectorStore:
         self._ensure_loaded()
         return vector_id in self._vectors
 
-    def upsert(self, vector_id: str, vector: list[float], metadata: dict | None = None) -> None:
+    def upsert(
+        self,
+        vector_id: str,
+        vector: Sequence[float],
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
         self._ensure_loaded()
         if self._dimension is None:
             self._dimension = len(vector)
@@ -60,17 +64,22 @@ class JsonVectorStore:
                 f"Vector dimension mismatch: expected {self._dimension}, got {len(vector)}"
             )
         self._vectors[vector_id] = {
-            "values": vector,
-            "metadata": metadata or {},
+            "values": list(vector),
+            "metadata": dict(metadata or {}),
         }
+
+    def delete(self, vector_id: str) -> bool:
+        self._ensure_loaded()
+        return self._vectors.pop(vector_id, None) is not None
 
     def search(
         self,
-        query_vector: list[float],
+        query_vector: Sequence[float],
         *,
         limit: int = 10,
         allowed_vector_ids: set[str] | None = None,
-    ) -> list[SearchResult]:
+        filters: Mapping[str, Sequence[str]] | None = None,
+    ) -> list[VectorSearchResult]:
         self._ensure_loaded()
         if self._dimension is None or not self._vectors:
             return []
@@ -82,28 +91,34 @@ class JsonVectorStore:
         if query_norm == 0:
             return []
 
-        scored: list[SearchResult] = []
+        scored: list[VectorSearchResult] = []
         for vector_id, payload in self._vectors.items():
             if allowed_vector_ids is not None and vector_id not in allowed_vector_ids:
+                continue
+            metadata = payload.get("metadata", {})
+            if any(
+                str(metadata.get(key)) not in {str(value) for value in values}
+                for key, values in (filters or {}).items()
+            ):
                 continue
             vector = payload.get("values", [])
             score = _cosine_similarity(query_vector, query_norm, vector)
             scored.append(
-                SearchResult(
+                VectorSearchResult(
                     vector_id=vector_id,
                     score=score,
-                    metadata=payload.get("metadata", {}),
+                    metadata=metadata,
                 )
             )
         scored.sort(key=lambda item: item.score, reverse=True)
         return scored[:limit]
 
 
-def _vector_norm(vector: list[float]) -> float:
+def _vector_norm(vector: Sequence[float]) -> float:
     return math.sqrt(sum(value * value for value in vector))
 
 
-def _cosine_similarity(query: list[float], query_norm: float, doc: list[float]) -> float:
+def _cosine_similarity(query: Sequence[float], query_norm: float, doc: Sequence[float]) -> float:
     doc_norm = _vector_norm(doc)
     if query_norm == 0 or doc_norm == 0:
         return 0.0

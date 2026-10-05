@@ -11,7 +11,13 @@ def test_json_vector_store_persists_filters_and_searches(tmp_path) -> None:
     reopened = JsonVectorStore(path)
     all_hits = reopened.search([1.0, 0.0], limit=2)
     scoped = reopened.search([1.0, 0.0], limit=2, allowed_vector_ids={"b"})
+    filtered = reopened.search(
+        [1.0, 0.0],
+        limit=2,
+        filters={"collection_id": ("two",)},
+    )
 
     assert [hit.vector_id for hit in all_hits] == ["a", "b"]
     assert [hit.vector_id for hit in scoped] == ["b"]
+    assert [hit.vector_id for hit in filtered] == ["b"]
     assert reopened.dimension == 2

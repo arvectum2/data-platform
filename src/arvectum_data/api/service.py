@@ -223,6 +223,17 @@ class DataPlatformService:
     ) -> dict[str, Any]:
         with self._require_factory()() as session:
             repo = DataRepository(session)
+            existing = session.get(CollectionRow, collection_id)
+            if (
+                existing is not None
+                and not self._embedding_contract_matches(existing)
+                and repo.collection_chunk_count(collection_id) > 0
+            ):
+                raise EmbeddingContractMismatch(
+                    f"collection {collection_id!r} already contains indexed chunks with "
+                    f"{self._collection_embedding_contract(existing)!r}; "
+                    "run /v1/index/rebuild to migrate before changing the active embedding contract"
+                )
             row = repo.ensure_collection(
                 collection_id,
                 owner=owner,
@@ -431,22 +442,82 @@ class DataPlatformService:
         )
         return self._persist_and_index(result)
 
-    def _validate_embedding_contract(self, collection: CollectionRow) -> None:
-        expected = (
-            collection.embedding_provider,
-            collection.embedding_model,
-            collection.embedding_dimension,
-        )
-        actual = (
+    def _runtime_embedding_contract(self) -> tuple[str, str, int | None]:
+        return (
             self.embedding_provider.provider_name,
             self.embedding_provider.model_name,
             self.embedding_provider.dimension,
         )
-        if expected != actual:
+
+    @staticmethod
+    def _collection_embedding_contract(
+        collection: CollectionRow,
+    ) -> tuple[str | None, str | None, int | None]:
+        return (
+            collection.embedding_provider,
+            collection.embedding_model,
+            collection.embedding_dimension,
+        )
+
+    def _embedding_contract_matches(self, collection: CollectionRow) -> bool:
+        expected_provider, expected_model, expected_dimension = (
+            self._collection_embedding_contract(collection)
+        )
+        actual_provider, actual_model, actual_dimension = self._runtime_embedding_contract()
+        if expected_provider != actual_provider or expected_model != actual_model:
+            return False
+        if (
+            expected_dimension is not None
+            and actual_dimension is not None
+            and expected_dimension != actual_dimension
+        ):
+            return False
+        return True
+
+    def _validate_embedding_contract(self, collection: CollectionRow) -> None:
+        if not self._embedding_contract_matches(collection):
             raise EmbeddingContractMismatch(
                 f"collection {collection.collection_id!r} embedding contract "
-                f"{expected!r} does not match runtime {actual!r}"
+                f"{self._collection_embedding_contract(collection)!r} does not match runtime "
+                f"{self._runtime_embedding_contract()!r}; run an explicit index rebuild to migrate"
             )
+
+    def _resolve_target_embedding_dimension(
+        self,
+        repo: DataRepository,
+        collection_id: str,
+        *,
+        vectors: Sequence[Sequence[float]] | None = None,
+    ) -> int | None:
+        if vectors:
+            dimensions = {len(vector) for vector in vectors}
+            if len(dimensions) != 1:
+                raise EmbeddingContractMismatch(
+                    f"embedding provider returned inconsistent dimensions: {sorted(dimensions)}"
+                )
+            dimension = dimensions.pop()
+            if self.embedding_provider.dimension is None:
+                self.embedding_provider.dimension = dimension
+            elif self.embedding_provider.dimension != dimension:
+                raise EmbeddingContractMismatch(
+                    f"runtime embedding dimension {self.embedding_provider.dimension} "
+                    f"does not match generated dimension {dimension}"
+                )
+            return dimension
+        if self.embedding_provider.dimension is not None:
+            return int(self.embedding_provider.dimension)
+        dimensions = repo.embedding_dimensions(
+            collection_id,
+            provider=self.embedding_provider.provider_name,
+            model=self.embedding_provider.model_name,
+        )
+        if len(dimensions) == 1:
+            return next(iter(dimensions))
+        if len(dimensions) > 1:
+            raise EmbeddingContractMismatch(
+                f"multiple embedding dimensions exist for target model: {sorted(dimensions)}"
+            )
+        return None
 
     def _embed_texts_with_retry(
         self,
@@ -670,7 +741,6 @@ class DataPlatformService:
             collection = session.get(CollectionRow, collection_id)
             if collection is None:
                 raise CollectionNotFound(collection_id)
-            self._validate_embedding_contract(collection)
             chunks = list(
                 session.scalars(
                     select(ChunkRow)
@@ -707,6 +777,18 @@ class DataPlatformService:
                 elif existing_run.status == "running":
                     return self._job_payload(existing_run)
                 elif existing_run.status == "completed":
+                    repo = DataRepository(session)
+                    target_dimension = self._resolve_target_embedding_dimension(
+                        repo,
+                        collection_id,
+                    )
+                    repo.activate_collection_embedding(
+                        collection_id,
+                        provider=self.embedding_provider.provider_name,
+                        model=self.embedding_provider.model_name,
+                        dimension=target_dimension,
+                        require_complete=True,
+                    )
                     collection.active_index_revision = revision
                     session.commit()
                     return self._job_payload(existing_run)
@@ -733,7 +815,6 @@ class DataPlatformService:
                 collection = session.get(CollectionRow, collection_id)
                 if collection is None:
                     raise CollectionNotFound(collection_id)
-                self._validate_embedding_contract(collection)
                 chunks = list(
                     session.scalars(
                         select(ChunkRow)
@@ -754,6 +835,12 @@ class DataPlatformService:
                     raise RuntimeError("embedding provider returned unexpected vector count")
 
                 repo = DataRepository(session)
+                target_dimension = self._resolve_target_embedding_dimension(
+                    repo,
+                    collection_id,
+                    vectors=vectors,
+                )
+                previous_contract = self._collection_embedding_contract(collection)
                 for chunk, vector in zip(chunks, vectors):
                     repo.upsert_embedding(
                         chunk_id=chunk.chunk_id,
@@ -777,12 +864,24 @@ class DataPlatformService:
                 run = session.get(PipelineRunRow, run_id)
                 if run is None:
                     raise RuntimeError("reindex run disappeared")
+                repo.activate_collection_embedding(
+                    collection_id,
+                    provider=self.embedding_provider.provider_name,
+                    model=self.embedding_provider.model_name,
+                    dimension=target_dimension,
+                    require_complete=True,
+                )
+                target_contract = self._collection_embedding_contract(collection)
                 run.status = "completed"
                 run.metrics_json = {
                     "chunks_seen": len(chunks),
                     "embeddings_written": len(vectors),
                     "embedding_attempts": embedding_attempts,
                     "skipped_unchanged": False,
+                    "embedding_migration": previous_contract != target_contract,
+                    "embedding_provider": target_contract[0],
+                    "embedding_model": target_contract[1],
+                    "embedding_dimension": target_contract[2],
                 }
                 run.completed_at = datetime.now(UTC)
                 collection.active_index_revision = revision

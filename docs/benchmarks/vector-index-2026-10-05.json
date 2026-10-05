@@ -1,0 +1,157 @@
+{
+  "identity": {
+    "provider": "llama_cpp",
+    "model": "Qwen3-Embedding-4B",
+    "dimension": 2560,
+    "rows": 697
+  },
+  "results": [
+    {
+      "strategy": "exact-vector",
+      "rows": 697,
+      "dimension": 2560,
+      "queries": 100,
+      "k": 10,
+      "build_ms": null,
+      "index_bytes": null,
+      "p50_ms": 2.94,
+      "p95_ms": 3.321,
+      "mean_ms": 2.981,
+      "recall_at_k": 1.0,
+      "min_recall_at_k": 1.0,
+      "settings": {
+        "precision": "float32",
+        "planner": "sequential-scan"
+      }
+    },
+    {
+      "strategy": "exact-halfvec",
+      "rows": 697,
+      "dimension": 2560,
+      "queries": 100,
+      "k": 10,
+      "build_ms": null,
+      "index_bytes": null,
+      "p50_ms": 4.36,
+      "p95_ms": 4.664,
+      "mean_ms": 4.396,
+      "recall_at_k": 1.0,
+      "min_recall_at_k": 1.0,
+      "settings": {
+        "precision": "float16",
+        "planner": "sequential-scan"
+      }
+    },
+    {
+      "strategy": "hnsw-halfvec-ef40",
+      "rows": 697,
+      "dimension": 2560,
+      "queries": 100,
+      "k": 10,
+      "build_ms": 89.148,
+      "index_bytes": 3399680,
+      "p50_ms": 0.433,
+      "p95_ms": 0.499,
+      "mean_ms": 0.444,
+      "recall_at_k": 0.939,
+      "min_recall_at_k": 0.7,
+      "settings": {
+        "m": 16,
+        "ef_construction": 64,
+        "ef_search": 40
+      }
+    },
+    {
+      "strategy": "hnsw-halfvec-ef100",
+      "rows": 697,
+      "dimension": 2560,
+      "queries": 100,
+      "k": 10,
+      "build_ms": 89.148,
+      "index_bytes": 3399680,
+      "p50_ms": 0.492,
+      "p95_ms": 0.564,
+      "mean_ms": 0.496,
+      "recall_at_k": 0.939,
+      "min_recall_at_k": 0.7,
+      "settings": {
+        "m": 16,
+        "ef_construction": 64,
+        "ef_search": 100
+      }
+    },
+    {
+      "strategy": "hnsw-halfvec-high-recall",
+      "rows": 697,
+      "dimension": 2560,
+      "queries": 100,
+      "k": 10,
+      "build_ms": 185.18,
+      "index_bytes": 3399680,
+      "p50_ms": 0.547,
+      "p95_ms": 0.647,
+      "mean_ms": 0.55,
+      "recall_at_k": 0.939,
+      "min_recall_at_k": 0.7,
+      "settings": {
+        "m": 32,
+        "ef_construction": 128,
+        "ef_search": 100
+      }
+    },
+    {
+      "strategy": "ivfflat-halfvec-recommended",
+      "rows": 697,
+      "dimension": 2560,
+      "queries": 100,
+      "k": 10,
+      "build_ms": 14.621,
+      "index_bytes": 5726208,
+      "p50_ms": 0.58,
+      "p95_ms": 0.686,
+      "mean_ms": 0.594,
+      "recall_at_k": 0.952,
+      "min_recall_at_k": 0.8,
+      "settings": {
+        "lists": 1,
+        "probes": 1
+      }
+    },
+    {
+      "strategy": "ivfflat-halfvec-partitioned",
+      "rows": 697,
+      "dimension": 2560,
+      "queries": 100,
+      "k": 10,
+      "build_ms": 29.246,
+      "index_bytes": 5931008,
+      "p50_ms": 0.431,
+      "p95_ms": 0.518,
+      "mean_ms": 0.436,
+      "recall_at_k": 0.955,
+      "min_recall_at_k": 0.8,
+      "settings": {
+        "lists": 26,
+        "probes": 5
+      }
+    },
+    {
+      "strategy": "ivfflat-halfvec-high-recall",
+      "rows": 697,
+      "dimension": 2560,
+      "queries": 100,
+      "k": 10,
+      "build_ms": 28.984,
+      "index_bytes": 5931008,
+      "p50_ms": 0.533,
+      "p95_ms": 0.624,
+      "mean_ms": 0.541,
+      "recall_at_k": 0.952,
+      "min_recall_at_k": 0.7,
+      "settings": {
+        "lists": 26,
+        "probes": 13
+      }
+    }
+  ]
+}

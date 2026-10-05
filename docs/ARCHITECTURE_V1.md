@@ -230,9 +230,22 @@ This is not claimed as BM25. If benchmark evidence later justifies true BM25, a 
 
 ### Vector backend
 
-Production default: PostgreSQL + pgvector with an actual vector column and indexed similarity query.
+Production default: PostgreSQL + pgvector behind the storage-level `VectorIndex`
+protocol. `JsonVectorStore` remains a local/test implementation and
+`PostgresVectorIndex` is the production implementation consumed by the search
+backend.
 
-The current Tender Agent JSON vector store remains a local/test backend, not the production engine.
+The current measured production strategy is exact full-precision cosine search.
+A 2026-10-05 benchmark on 697 real 2560-dimensional Qwen3-Embedding-4B vectors
+measured exact search at 3.321 ms p95 with 100% recall@10. Tested HNSW and
+IVFFlat `halfvec` expression indexes were faster in isolation but reduced
+recall@10, so ANN remains disabled until a future benchmark demonstrates a
+worthwhile end-to-end latency gain inside the accepted relevance envelope.
+
+Embedding provider/model/dimension changes use staged migration. Target
+embeddings are written under the new identity, complete collection coverage is
+verified, and only then are the collection embedding contract and active index
+revision switched atomically.
 
 ## 8. Security and isolation
 

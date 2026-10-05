@@ -82,9 +82,45 @@ class DataRepository:
             row.owner = owner
             row.name = name
             row.default_language = default_language
-            row.embedding_provider = embedding_provider
-            row.embedding_model = embedding_model
-            row.embedding_dimension = embedding_dimension
+            requested_provider = (
+                embedding_provider
+                if embedding_provider is not None
+                else row.embedding_provider
+            )
+            requested_model = (
+                embedding_model
+                if embedding_model is not None
+                else row.embedding_model
+            )
+            requested_dimension = embedding_dimension
+            if (
+                requested_dimension is None
+                and requested_provider == row.embedding_provider
+                and requested_model == row.embedding_model
+            ):
+                requested_dimension = row.embedding_dimension
+            requested_contract = (
+                requested_provider,
+                requested_model,
+                requested_dimension,
+            )
+            active_contract = (
+                row.embedding_provider,
+                row.embedding_model,
+                row.embedding_dimension,
+            )
+            if (
+                active_contract != requested_contract
+                and self.collection_chunk_count(collection_id) > 0
+            ):
+                raise ValueError(
+                    f"embedding contract for non-empty collection {collection_id!r} "
+                    f"cannot change from {active_contract!r} to {requested_contract!r}; "
+                    "stage embeddings and activate them atomically instead"
+                )
+            row.embedding_provider = requested_provider
+            row.embedding_model = requested_model
+            row.embedding_dimension = requested_dimension
             if access_policy is not None:
                 row.access_policy = dict(access_policy)
         self.session.flush()
@@ -180,6 +216,170 @@ class DataRepository:
             )
         )
 
+    def collection_chunk_count(self, collection_id: str) -> int:
+        return int(
+            self.session.scalar(
+                select(func.count())
+                .select_from(ChunkRow)
+                .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                .where(ResourceRow.collection_id == collection_id)
+            )
+            or 0
+        )
+
+    def chunk_belongs_to_collection(self, chunk_id: str, collection_id: str) -> bool:
+        return bool(
+            self.session.scalar(
+                select(func.count())
+                .select_from(ChunkRow)
+                .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                .where(
+                    ChunkRow.chunk_id == chunk_id,
+                    ResourceRow.collection_id == collection_id,
+                )
+            )
+        )
+
+    def embedding_exists(
+        self,
+        chunk_id: str,
+        *,
+        collection_id: str,
+        provider: str,
+        model: str,
+        dimension: int | None = None,
+    ) -> bool:
+        conditions = [
+            ChunkEmbeddingRow.chunk_id == chunk_id,
+            ResourceRow.collection_id == collection_id,
+            ChunkEmbeddingRow.provider == provider,
+            ChunkEmbeddingRow.model == model,
+        ]
+        if dimension is not None:
+            conditions.append(ChunkEmbeddingRow.dimension == dimension)
+        return bool(
+            self.session.scalar(
+                select(func.count())
+                .select_from(ChunkEmbeddingRow)
+                .join(ChunkRow, ChunkRow.chunk_id == ChunkEmbeddingRow.chunk_id)
+                .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                .where(*conditions)
+            )
+        )
+
+    def delete_embedding(
+        self,
+        chunk_id: str,
+        *,
+        collection_id: str,
+        provider: str,
+        model: str,
+    ) -> bool:
+        row = self.session.scalar(
+            select(ChunkEmbeddingRow)
+            .join(ChunkRow, ChunkRow.chunk_id == ChunkEmbeddingRow.chunk_id)
+            .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+            .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+            .where(
+                ChunkEmbeddingRow.chunk_id == chunk_id,
+                ResourceRow.collection_id == collection_id,
+                ChunkEmbeddingRow.provider == provider,
+                ChunkEmbeddingRow.model == model,
+            )
+            .limit(1)
+        )
+        if row is None:
+            return False
+        self.session.delete(row)
+        self.session.flush()
+        return True
+
+    def embedding_dimensions(
+        self,
+        collection_id: str,
+        *,
+        provider: str,
+        model: str,
+    ) -> set[int]:
+        return {
+            int(value)
+            for value in self.session.scalars(
+                select(ChunkEmbeddingRow.dimension)
+                .join(ChunkRow, ChunkRow.chunk_id == ChunkEmbeddingRow.chunk_id)
+                .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                .where(
+                    ResourceRow.collection_id == collection_id,
+                    ChunkEmbeddingRow.provider == provider,
+                    ChunkEmbeddingRow.model == model,
+                )
+                .distinct()
+            )
+        }
+
+    def embedding_coverage(
+        self,
+        collection_id: str,
+        *,
+        provider: str,
+        model: str,
+        dimension: int,
+    ) -> tuple[int, int]:
+        total = self.collection_chunk_count(collection_id)
+        covered = int(
+            self.session.scalar(
+                select(func.count(func.distinct(ChunkEmbeddingRow.chunk_id)))
+                .select_from(ChunkEmbeddingRow)
+                .join(ChunkRow, ChunkRow.chunk_id == ChunkEmbeddingRow.chunk_id)
+                .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                .where(
+                    ResourceRow.collection_id == collection_id,
+                    ChunkEmbeddingRow.provider == provider,
+                    ChunkEmbeddingRow.model == model,
+                    ChunkEmbeddingRow.dimension == dimension,
+                )
+            )
+            or 0
+        )
+        return covered, total
+
+    def activate_collection_embedding(
+        self,
+        collection_id: str,
+        *,
+        provider: str,
+        model: str,
+        dimension: int | None,
+        require_complete: bool = True,
+    ) -> CollectionRow:
+        collection = self.session.get(CollectionRow, collection_id)
+        if collection is None:
+            raise LookupError(f"collection {collection_id!r} not found")
+        total = self.collection_chunk_count(collection_id)
+        if total and dimension is None:
+            raise ValueError("embedding dimension must be known before activation")
+        if require_complete and total:
+            covered, expected = self.embedding_coverage(
+                collection_id,
+                provider=provider,
+                model=model,
+                dimension=int(dimension),
+            )
+            if covered != expected:
+                raise ValueError(
+                    f"embedding migration incomplete for collection {collection_id!r}: "
+                    f"{covered}/{expected} chunks have {provider}/{model}/{dimension}"
+                )
+        collection.embedding_provider = provider
+        collection.embedding_model = model
+        collection.embedding_dimension = dimension
+        self.session.flush()
+        return collection
+
     def upsert_embedding(
         self,
         *,
@@ -243,13 +443,19 @@ class DataRepository:
         model: str,
         limit: int = 10,
         filters: Mapping[str, Sequence[str]] | None = None,
+        allowed_chunk_ids: set[str] | None = None,
     ) -> list[VectorSearchHit]:
         if limit < 1:
+            return []
+        if allowed_chunk_ids is not None and not allowed_chunk_ids:
             return []
         vector = [float(value) for value in query_vector]
         if not vector:
             return []
         distance = ChunkEmbeddingRow.vector.cosine_distance(vector)
+        scope_conditions = []
+        if allowed_chunk_ids is not None:
+            scope_conditions.append(ChunkRow.chunk_id.in_(allowed_chunk_ids))
         statement = (
             select(
                 ChunkRow.chunk_id,
@@ -268,6 +474,7 @@ class DataRepository:
                 ChunkEmbeddingRow.provider == provider,
                 ChunkEmbeddingRow.model == model,
                 ChunkEmbeddingRow.dimension == len(vector),
+                *scope_conditions,
                 *self._filter_conditions(filters),
             )
             .order_by(distance.asc(), ChunkRow.chunk_id.asc())
