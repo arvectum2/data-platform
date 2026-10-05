@@ -520,13 +520,15 @@ Status: FUTURE.
 
 ### DP-MEM-001 — shared evidence-backed agent memory
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05).
 
-- [ ] let authorized agents persist durable observations/artifacts into scoped collections;
-- [ ] distinguish source evidence, agent-derived observation and user-authored memory;
-- [ ] retain provenance and producer/model identity;
-- [ ] support retrieval across authorized agents without global-data fallback;
-- [ ] define retention/deletion and conflict rules before enabling autonomous writes.
+- [x] authorized agents can persist durable observations into explicitly write-enabled scoped collections;
+- [x] distinguish source evidence, agent-derived observation and user-authored memory;
+- [x] retain source-chunk provenance plus authenticated producer and declared model identity;
+- [x] retrieval across authorized agents uses normal collection-scoped search with no global-data fallback;
+- [x] explicit retention/deletion boundary and append/supersede/reject conflict rules are defined before autonomous writes.
+
+Implementation: `docs/AGENT_MEMORY.md`. Writes are deny-by-default through `memory_writers`; source evidence must be an exact indexed excerpt, agent observations require source chunks, and user memory has a separate writer policy.
 
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 

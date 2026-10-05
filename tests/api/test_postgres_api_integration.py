@@ -7,11 +7,14 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from arvectum_data.api.app import create_app
 from arvectum_data.api.config import Settings
-from arvectum_data.api.service import DataPlatformService
+from arvectum_data.api.service import CollectionAccessDenied, DataPlatformService
 from arvectum_data.indexing import EmbeddingServerUnavailableError, HashingEmbeddingProvider
+from arvectum_data.search import SearchQuery
+from arvectum_data.storage.postgres import DataRecordRow, ProvenanceRow
 
 
 pytestmark = pytest.mark.postgres
@@ -922,6 +925,126 @@ def test_entity_relations_are_idempotent_and_provenance_checked() -> None:
         json=mismatched,
     )
     assert invalid_relation.status_code == 400
+
+def test_evidence_backed_memory_requires_write_policy_and_preserves_provenance() -> None:
+    database_url = _database_url()
+    os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url
+    command.upgrade(Config("alembic.ini"), "head")
+    service = DataPlatformService(
+        Settings(
+            environment="test",
+            log_level="WARNING",
+            database_url=database_url,
+            internal_api_key="test-secret",
+            embedding_provider="hashing",
+            embedding_model="memory-test-hash",
+            embedding_dimension=32,
+        )
+    )
+    service.create_collection(
+        collection_id="evidence:shared",
+        owner="tests",
+        name="Evidence",
+        default_language="english",
+        access_policy={"allowed_consumers": ["tender-agent", "growth-agent"]},
+    )
+    service.create_collection(
+        collection_id="memory:shared",
+        owner="tests",
+        name="Shared memory",
+        default_language="english",
+        access_policy={
+            "allowed_consumers": ["tender-agent", "growth-agent"],
+            "memory_writers": ["tender-agent"],
+            "user_memory_writers": ["human-ui"],
+        },
+    )
+
+    from arvectum_data.documents import ingest_file
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as handle:
+        handle.write((b"The procurement requires a signed attachment. " * 5))
+        path = handle.name
+    try:
+        evidence = ingest_file(path, collection_id="evidence:shared", title="Tender")
+    finally:
+        Path(path).unlink(missing_ok=True)
+    service._persist_and_index(evidence)
+    source_chunk = evidence.chunks[0].chunk_id
+
+    memory = service.write_memory(
+        collection_id="memory:shared",
+        text="Tender requires a signed attachment.",
+        kind="agent_observation",
+        producer="tender-agent",
+        consumer="tender-agent",
+        source_chunk_ids=[source_chunk],
+        subject_key="tender:signature",
+        conflict_policy="supersede",
+        model_provider="local",
+        model_name="test-model",
+    )
+    assert memory["kind"] == "agent_observation"
+    assert memory["source_chunk_ids"] == [source_chunk]
+
+    hits = service.search(
+        SearchQuery(
+            query="signed attachment",
+            collections=("memory:shared",),
+            limit=5,
+        ),
+        consumer="growth-agent",
+    )
+    assert hits
+    assert "signed attachment" in hits[0].text.lower()
+
+    with service._require_factory()() as session:
+        provenance = session.scalars(
+            select(ProvenanceRow).where(ProvenanceRow.record_id == memory["record_id"])
+        ).all()
+        assert len(provenance) == 1
+        assert provenance[0].chunk_id == source_chunk
+        assert provenance[0].metadata_json["relation"] == "derived_from"
+
+    with pytest.raises(ValueError, match="active memory"):
+        service.write_memory(
+            collection_id="memory:shared",
+            text="Conflicting observation",
+            kind="agent_observation",
+            producer="tender-agent",
+            consumer="tender-agent",
+            source_chunk_ids=[source_chunk],
+            subject_key="tender:signature",
+            conflict_policy="reject",
+        )
+
+    replacement = service.write_memory(
+        collection_id="memory:shared",
+        text="Updated signed attachment observation.",
+        kind="agent_observation",
+        producer="tender-agent",
+        consumer="tender-agent",
+        source_chunk_ids=[source_chunk],
+        subject_key="tender:signature",
+        conflict_policy="supersede",
+    )
+    with service._require_factory()() as session:
+        previous = session.get(DataRecordRow, memory["record_id"])
+        current = session.get(DataRecordRow, replacement["record_id"])
+        assert previous.review_status == "superseded"
+        assert current.review_status == "active"
+
+    with pytest.raises(CollectionAccessDenied):
+        service.write_memory(
+            collection_id="memory:shared",
+            text="Unauthorized memory",
+            kind="source_evidence",
+            producer="growth-agent",
+            consumer="growth-agent",
+        )
+
 
 def test_continuous_refresh_tracks_unchanged_content_without_reembedding(monkeypatch) -> None:
     database_url = _database_url()

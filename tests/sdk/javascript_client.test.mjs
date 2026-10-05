@@ -169,3 +169,34 @@ test("searchWithProfile forwards the consumer-owned ranking profile", async () =
   });
   assert.deepEqual(payload.hits, []);
 });
+
+
+test("writeMemory sends authenticated evidence-backed memory payload", async () => {
+  const fetchImpl = async (url, options = {}) => {
+    assert.equal(new URL(url).pathname, "/v1/memory");
+    assert.equal(options.headers["X-Arvectum-Consumer"], "tender-agent");
+    assert.equal(options.headers["X-Arvectum-Consumer-Key"], "secret");
+    const payload = JSON.parse(options.body);
+    assert.equal(payload.kind, "agent_observation");
+    assert.deepEqual(payload.source_chunk_ids, ["chunk-1"]);
+    assert.equal(payload.subject_key, "tender:42");
+    return new Response(JSON.stringify({ record_id: "memory:1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  const client = new DataPlatformClient({
+    baseUrl: "http://data-platform.test",
+    consumer: "tender-agent",
+    consumerKey: "secret",
+    fetchImpl,
+  });
+  const result = await client.writeMemory({
+    collectionId: "memory:shared",
+    text: "Observation",
+    kind: "agent_observation",
+    sourceChunkIds: ["chunk-1"],
+    subjectKey: "tender:42",
+  });
+  assert.equal(result.record_id, "memory:1");
+});

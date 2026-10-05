@@ -221,6 +221,52 @@ export class DataPlatformClient {
     });
   }
 
+  writeMemory({
+    collectionId,
+    text,
+    kind,
+    title = "Memory",
+    sourceChunkIds = [],
+    modelProvider = null,
+    modelName = null,
+    modelVersion = null,
+    subjectKey = null,
+    conflictPolicy = "append",
+    metadata = {},
+  }) {
+    return this.json("/v1/memory", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Arvectum-Consumer": this.consumer,
+        "X-Arvectum-Consumer-Key": this.consumerKey,
+      },
+      body: JSON.stringify({
+        collection_id: collectionId,
+        text,
+        kind,
+        title,
+        source_chunk_ids: sourceChunkIds,
+        model_provider: modelProvider,
+        model_name: modelName,
+        model_version: modelVersion,
+        subject_key: subjectKey,
+        conflict_policy: conflictPolicy,
+        metadata,
+      }),
+    });
+  }
+
+  deleteMemory(recordId) {
+    return this.raw("/v1/memory/" + encodeURIComponent(recordId), {
+      method: "DELETE",
+      headers: {
+        "X-Arvectum-Consumer": this.consumer,
+        "X-Arvectum-Consumer-Key": this.consumerKey,
+      },
+    });
+  }
+
   search({
     query,
     collections,
