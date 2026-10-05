@@ -117,6 +117,48 @@ production_acceptance_v2 extends the first production snapshot with an authorize
 The first v2 run exposed a federation presentation issue: the same canonical product URL appeared from both the site and product collections. Federation now collapses cross-collection duplicates by canonical URI while preserving same-collection chunks. Re-running v2 after the fix kept top-1 accuracy and MRR at 1.0 and returned five unique canonical URIs for the federated Photo Size case.
 
 
+
+## Production acceptance v3
+
+`benchmarks/production_acceptance_v3.json` expands the accepted production suite
+from 10 to 20 real consumer cases without weakening the acceptance target. It
+retains all v2 cases and adds:
+
+- six Google Search Console / Yandex Webmaster intents whose consumer-defined
+  landing pages are stable top-1 results on the current Growth corpus;
+- four document-routing intents from live procurement
+  `0137200001226007700`, covering the object description, application
+  requirements, NMCK justification and contract terms.
+
+The procurement cases use `collapse_by_canonical_uri=true` because the
+acceptance unit is the canonical source document, while each source can contain
+many independently retrieved chunks. This avoids treating multiple chunks from
+the same document as distinct document-level answers.
+
+The first production run on 2026-10-05 passed all 20 cases:
+
+| Metric | v3 |
+| --- | ---: |
+| Top-1 accuracy | 1.00 |
+| MRR | 1.00 |
+| Hit@3 | 1.00 |
+| Hit@5 | 1.00 |
+| Mean recall@5 | 1.00 |
+| p50 latency | ~95.8 ms |
+| p95 latency | ~127.4 ms |
+| max latency | ~184.0 ms |
+
+The remaining Search Console/Webmaster intents that are not stable top-1 results
+remain in `growth_search_console_v1.json` as diagnostic evidence. They are not
+silently promoted into the accepted suite by changing expected URLs. This keeps
+the frozen acceptance benchmark separate from known retrieval/formulation gaps.
+
+The larger accepted suite still does not justify enabling BM25, learned
+reranking, LLM reranking or platform-generated query expansion by default.
+Those features remain benchmark-gated: a candidate must show a repeatable gain
+on accepted and diagnostic suites without weakening provenance, isolation or
+deterministic fallback behavior.
+
 ## Search Console intent benchmark
 
 `benchmarks/growth_search_console_v1.json` freezes twelve real Google Search Console / Yandex Webmaster intent formulations observed during the 2026-10-04 SEO review against the active Arvectum site collection.
