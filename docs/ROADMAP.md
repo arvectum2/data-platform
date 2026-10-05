@@ -285,6 +285,32 @@ Core principle: Data Platform remains deterministic and useful without a generat
 - [x] The platform can run lexical-only search without embeddings; production hybrid/vector search requires an embedding provider.
 - [x] No generative LLM, "thinking" model or VLM is a hard dependency of the current platform core.
 
+### Model architecture invariants
+
+- [x] Embedding, reasoning/generation and vision are separate roles; one large model is never required to serve every role.
+- [x] The deterministic core remains usable without a reasoning LLM or VLM.
+- [x] Local-first is the default deployment policy for model-backed capabilities.
+- [x] Remote model use must be explicitly enabled; there is no silent fallback from local/private processing to a cloud provider.
+- [x] Evidence retrieval happens before synthesis: reasoning models consume bounded, provenance-bearing context rather than becoming an alternative source of truth.
+- [x] Model-produced facts/relations are suggestions until validated by deterministic checks, source evidence or explicit review.
+- [x] Optional model failure must degrade to a lower capability tier where safe instead of taking down indexing/search.
+
+Target role topology:
+
+~~~text
+Data Platform
+    |
+    +-- EmbeddingProvider  -> semantic indexing/search
+    |
+    +-- ReasoningProvider  -> bounded rerank / extraction / research / synthesis
+    |
+    +-- OCRProvider        -> image-to-text for scans
+    |
+    +-- VisionProvider     -> hard layout / tables / forms / diagrams
+~~~
+
+These roles may point to separate local endpoints/models and may be upgraded independently. A "thinking model" is therefore an optional ReasoningProvider, not a platform prerequisite.
+
 ### DP-MODEL-001 — optional local/remote model provider layer
 
 Status: PLANNED.
@@ -295,6 +321,11 @@ Status: PLANNED.
 - [ ] keep provider/model/version identity in diagnostics and derived artifacts;
 - [ ] add bounded timeouts, retries, health probes and concurrency controls;
 - [ ] allow local-first operation with optional remote providers selected explicitly by deployment policy;
+- [ ] add per-role routing policy: local-only / explicit remote allowlist / disabled;
+- [ ] prohibit implicit cloud fallback when a local provider is unavailable;
+- [ ] expose provider capability discovery and readiness per role;
+- [ ] record bounded latency/usage/error metrics per provider without logging sensitive prompts/documents;
+- [ ] support independent model upgrades/configuration for embedding, reasoning and vision roles;
 - [ ] keep search/indexing available when optional generation/VLM providers are unavailable.
 
 The intended deployment separates model roles: embeddings, reasoning/generation and vision may run as different models/endpoints and can be upgraded independently.
@@ -360,6 +391,45 @@ Status: PLANNED.
 - [ ] optional reasoning model for synthesis while keeping citations grounded in platform evidence;
 - [ ] reusable by Growth, Tender research and future research agents.
 
+### DP-ANSWER-001 — evidence-grounded answer synthesis
+
+Status: PLANNED.
+
+Purpose: turn retrieved evidence into a concise answer without weakening the platform's source-of-truth boundary.
+
+- [ ] accept a bounded set of SearchHit/evidence objects as the only synthesis context by default;
+- [ ] support an optional local ReasoningProvider for answer generation;
+- [ ] require claim-level source references for material factual statements;
+- [ ] surface contradictions instead of silently choosing one source;
+- [ ] abstain or mark uncertainty when evidence is insufficient;
+- [ ] preserve the underlying retrieval scores, collection IDs and evidence identities;
+- [ ] keep synthesis optional so consumers can retrieve raw evidence without invoking any LLM;
+- [ ] benchmark answer faithfulness separately from retrieval relevance.
+
+Target pipeline:
+
+~~~text
+discovery/acquisition
+        ↓
+native parser
+        ↓ if needed
+      OCR
+        ↓ if needed
+      VLM
+        ↓
+chunks + structured records
+        ↓
+PostgreSQL FTS + embeddings
+        ↓
+hybrid retrieval
+        ↓ optional
+reranker / query expansion
+        ↓ optional
+reasoning synthesis
+        ↓
+answer + evidence + uncertainty
+~~~
+
 ### DP-GRAPH-002 — evidence-backed knowledge graph enrichment
 
 Status: PLANNED.
@@ -414,7 +484,8 @@ Before externalization:
 - [ ] billing/usage metering;
 - [ ] external auth and key lifecycle;
 - [ ] retention/deletion/export controls;
-- [ ] deployment/privacy modes including local/private installations;
+- [ ] deployment/privacy modes including a local/private mode in which documents and model requests never leave customer-controlled infrastructure;
+- [ ] explicit per-capability policy for whether remote LLM/VLM providers are permitted;
 - [ ] operational SLOs and supportability.
 
 ## Post-v1 backlog
