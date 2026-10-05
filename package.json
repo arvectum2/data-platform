@@ -1,0 +1,14 @@
+{
+  "name": "@arvectum/data-platform-client",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Lightweight JavaScript consumer SDK for Arvectum Data Platform",
+  "exports": "./sdk/javascript/client.mjs",
+  "files": [
+    "sdk/javascript"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -7,6 +7,14 @@ from pydantic import BaseModel, Field, model_validator
 from ..search import SearchMode
 
 
+class ConsumerContractResponse(BaseModel):
+    name: str
+    version: str
+    api_prefix: str = "/v1"
+    capabilities: list[str]
+    internal_api_key_header: str = "X-Arvectum-Key"
+    consumer_id_header: str = "X-Arvectum-Consumer"
+    consumer_key_header: str = "X-Arvectum-Consumer-Key"
 
 
 class CollectionAccessPolicy(BaseModel):
