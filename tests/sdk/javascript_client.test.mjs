@@ -70,3 +70,64 @@ test("errors expose HTTP context", async () => {
       error.method === "GET",
   );
 });
+
+test("collectionExists distinguishes 200 and 404", async () => {
+  const client = new DataPlatformClient({
+    baseUrl: "http://data-platform.test",
+    fetchImpl: async (url) => {
+      const path = new URL(url).pathname;
+      if (path.endsWith("/present")) return new Response("{}", { status: 200 });
+      if (path.endsWith("/missing")) return new Response("{}", { status: 404 });
+      return new Response("unexpected", { status: 500 });
+    },
+  });
+  assert.equal(await client.collectionExists("present"), true);
+  assert.equal(await client.collectionExists("missing"), false);
+});
+
+test("processDocument uses the canonical multipart processing contract", async () => {
+  const client = new DataPlatformClient({
+    baseUrl: "http://data-platform.test",
+    fetchImpl: async (url, options = {}) => {
+      assert.equal(new URL(url).pathname, "/v1/process/document");
+      assert.equal(options.method, "POST");
+      assert.ok(options.body instanceof FormData);
+      assert.equal(options.body.get("collection_id"), "growth:processing");
+      assert.equal(options.body.get("canonical_uri"), "test://document");
+      assert.equal(options.body.get("chunk_size_chars"), "1000");
+      assert.equal(options.body.get("overlap_chars"), "100");
+      assert.equal(options.body.get("min_chunk_chars"), "20");
+      assert.equal(options.body.get("max_chars"), "50000");
+      const file = options.body.get("file");
+      assert.equal(file.name, "sample.txt");
+      return new Response(
+        JSON.stringify({
+          resource_id: "resource-1",
+          document_id: "doc-1",
+          collection_id: "growth:processing",
+          canonical_uri: "test://document",
+          title: "sample",
+          media_type: "text/plain",
+          extraction_status: "extracted",
+          text: "hello",
+          chunks: [],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    },
+  });
+
+  const result = await client.processDocument({
+    collectionId: "growth:processing",
+    canonicalUri: "test://document",
+    title: "sample",
+    content: "hello",
+    filename: "sample.txt",
+    contentType: "text/plain",
+    chunkSizeChars: 1000,
+    overlapChars: 100,
+    minChunkChars: 20,
+    maxChars: 50000,
+  });
+  assert.equal(result.extraction_status, "extracted");
+});
