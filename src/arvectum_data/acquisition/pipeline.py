@@ -263,6 +263,8 @@ class AcquisitionEngine:
                     "rendered": snapshot.rendered,
                     "status_code": snapshot.status_code,
                     "content_type": snapshot.content_type,
+                    "etag": snapshot.headers.get("ETag") or snapshot.headers.get("Etag"),
+                    "last_modified": snapshot.headers.get("Last-Modified"),
                 }
             },
         )

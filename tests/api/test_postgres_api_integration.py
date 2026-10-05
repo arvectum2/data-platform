@@ -923,6 +923,65 @@ def test_entity_relations_are_idempotent_and_provenance_checked() -> None:
     )
     assert invalid_relation.status_code == 400
 
+def test_continuous_refresh_tracks_unchanged_content_without_reembedding(monkeypatch) -> None:
+    database_url = _database_url()
+    os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url
+    command.upgrade(Config("alembic.ini"), "head")
+
+    settings = Settings(
+        environment="test",
+        log_level="WARNING",
+        database_url=database_url,
+        internal_api_key="test-secret",
+        embedding_provider="hashing",
+        embedding_model="sync-test-hash",
+        embedding_dimension=32,
+        allow_private_fetches=True,
+    )
+    service = DataPlatformService(settings)
+    service.create_collection(
+        collection_id="sync:docs",
+        owner="tests",
+        name="Sync documents",
+        default_language="english",
+    )
+
+    from arvectum_data.documents import ingest_file
+
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as handle:
+        handle.write(b"stable sync content")
+        path = handle.name
+    try:
+        initial = ingest_file(
+            path,
+            collection_id="sync:docs",
+            source_type="url",
+            canonical_uri="https://example.test/sync",
+            title="Sync",
+        )
+    finally:
+        Path(path).unlink(missing_ok=True)
+    service._persist_and_index(initial)
+    resource_id = initial.resource.resource_id
+    service.configure_resource_refresh(
+        resource_id, interval_seconds=300, missing_after_failures=2
+    )
+
+    monkeypatch.setattr(
+        "arvectum_data.api.service.ingest_url",
+        lambda *args, **kwargs: initial,
+    )
+    result = service.refresh_resource(resource_id)
+    assert result.outcome == "unchanged"
+    assert result.changed is False
+    assert result.previous_hash == result.current_hash
+    runs = service.list_refresh_runs(resource_id)
+    assert runs[0]["outcome"] == "unchanged"
+
+
 def test_federated_search_deduplicates_same_canonical_uri_across_collections() -> None:
     database_url = _database_url()
     os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url

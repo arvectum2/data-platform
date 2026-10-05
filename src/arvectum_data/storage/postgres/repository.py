@@ -144,7 +144,10 @@ class DataRepository:
         else:
             resource.content_hash = result.resource.content_hash
             resource.last_seen_at = now
+            resource.status = "ready"
             resource.metadata_json = dict(result.resource.metadata)
+        resource.etag = result.resource.metadata.get("etag")
+        resource.last_modified = result.resource.metadata.get("last_modified")
         self.session.flush()
 
         document = self.session.get(DocumentRow, result.document.document_id)

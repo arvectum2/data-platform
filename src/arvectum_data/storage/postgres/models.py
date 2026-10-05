@@ -65,6 +65,10 @@ class ResourceRow(TimestampMixin, Base):
     external_id: Mapped[str | None] = mapped_column(String(512), nullable=True)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="ready", nullable=False)
+    etag: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_modified: Mapped[str | None] = mapped_column(Text, nullable=True)
+    refresh_policy: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict, nullable=False)
+    next_refresh_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
@@ -88,6 +92,30 @@ class ResourceRow(TimestampMixin, Base):
             name="uq_dp_resource_collection_source_uri",
         ),
         Index("ix_dp_resources_collection_hash", "collection_id", "content_hash"),
+        Index("ix_dp_resources_next_refresh", "next_refresh_at", "status"),
+    )
+
+
+class RefreshRunRow(Base):
+    __tablename__ = "dp_refresh_runs"
+
+    refresh_run_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    resource_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_resources.resource_id", ondelete="CASCADE"), nullable=False
+    )
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False)
+    previous_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    current_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    detail_json: Mapped[dict[str, Any]] = mapped_column("detail", JSON_TYPE, default=dict, nullable=False)
+
+    __table_args__ = (
+        Index("ix_dp_refresh_runs_resource_started", "resource_id", "started_at"),
     )
 
 
