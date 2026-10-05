@@ -34,6 +34,27 @@ class Settings(BaseSettings):
     embedding_retry_base_delay_seconds: float = Field(default=0.25, ge=0.0)
     embedding_retry_max_delay_seconds: float = Field(default=2.0, ge=0.0)
 
+    reasoning_policy: str = "disabled"
+    reasoning_provider: str = "openai-compatible"
+    reasoning_model: str = ""
+    reasoning_model_version: str = ""
+    reasoning_base_url: str = "http://127.0.0.1:8080/v1"
+    reasoning_locality: str = "local"
+    reasoning_remote_allowlist: str = ""
+    reasoning_api_key: str = ""
+    vision_policy: str = "disabled"
+    vision_provider: str = "openai-compatible"
+    vision_model: str = ""
+    vision_model_version: str = ""
+    vision_base_url: str = "http://127.0.0.1:8081/v1"
+    vision_locality: str = "local"
+    vision_remote_allowlist: str = ""
+    vision_api_key: str = ""
+    model_timeout_seconds: float = Field(default=60, gt=0)
+    model_retry_max_attempts: int = Field(default=2, ge=1, le=10)
+    model_retry_base_delay_seconds: float = Field(default=0.25, ge=0)
+    model_max_concurrency: int = Field(default=2, ge=1, le=128)
+
     @property
     def embeddings_provider(self) -> str:
         return self.embedding_provider

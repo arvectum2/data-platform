@@ -353,20 +353,22 @@ The mode name describes pipeline depth, not a specific model. Consumers therefor
 
 ### DP-MODEL-001 — optional local/remote model provider layer
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05).
 
-- [ ] define a product-neutral text-generation/reasoning provider contract;
-- [ ] define a product-neutral vision/VLM provider contract;
-- [ ] support OpenAI-compatible local endpoints so llama.cpp / compatible local runtimes can be attached without consumer-specific code;
-- [ ] keep provider/model/version identity in diagnostics and derived artifacts;
-- [ ] add bounded timeouts, retries, health probes and concurrency controls;
-- [ ] allow local-first operation with optional remote providers selected explicitly by deployment policy;
-- [ ] add per-role routing policy: local-only / explicit remote allowlist / disabled;
-- [ ] prohibit implicit cloud fallback when a local provider is unavailable;
-- [ ] expose provider capability discovery and readiness per role;
-- [ ] record bounded latency/usage/error metrics per provider without logging sensitive prompts/documents;
-- [ ] support independent model upgrades/configuration for embedding, reasoning and vision roles;
-- [ ] keep search/indexing available when optional generation/VLM providers are unavailable.
+- [x] define a product-neutral text-generation/reasoning provider contract;
+- [x] define a product-neutral vision/VLM provider contract;
+- [x] support OpenAI-compatible local endpoints so llama.cpp / compatible local runtimes can be attached without consumer-specific code;
+- [x] keep provider/model/version identity in diagnostics and model responses so derived artifacts can preserve provenance;
+- [x] add bounded timeouts, retries, health probes and concurrency controls;
+- [x] allow local-first operation with optional remote providers selected explicitly by deployment policy;
+- [x] add per-role routing policy: local-only / explicit remote allowlist / disabled;
+- [x] prohibit implicit cloud fallback when a local provider is unavailable;
+- [x] expose provider capability discovery and readiness per role via `/v1/status` and `/v1/models/status?probe=true`;
+- [x] record bounded latency/usage/error metrics per provider without logging sensitive prompts/documents;
+- [x] support independent model upgrades/configuration for embedding, reasoning and vision roles;
+- [x] keep search/indexing available when optional generation/VLM providers are unavailable.
+
+Implementation notes: `docs/MODEL_PROVIDERS.md`. `local-only` is enforced with a loopback endpoint check; retries never change endpoint/provider.
 
 The intended deployment separates model roles: embeddings, reasoning/generation and vision may run as different models/endpoints and can be upgraded independently.
 
