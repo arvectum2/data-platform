@@ -1,6 +1,6 @@
 # Data Platform migration roadmap
 
-Date: 2026-10-04
+Date: 2026-10-05
 
 Legend: [x] done, [ ] ready/planned.
 
@@ -13,6 +13,8 @@ Legend: [x] done, [ ] ready/planned.
 - [x] Migration strategy fixed: compatibility/strangler migration, no big-bang rewrite.
 - [x] Generic platform code has been promoted from Discount Parser into src/arvectum_data.
 - [x] No blockers remain for the platform foundation.
+- [x] Versioned consumer contract 1.x plus lightweight Python/JavaScript SDKs are the canonical cross-product boundary.
+- [x] Tender Agent no longer owns a duplicate generic RAG/document-processing implementation; procurement presets, namespaces and evidence mapping remain consumer-owned.
 
 ## DP-FND-001 — repository/package foundation
 
@@ -142,6 +144,22 @@ Status: COMPLETE.
 - [x] internal API-key auth boundary;
 - [x] OpenAPI contract tests.
 
+## DP-SDK-001 — versioned consumer contract and SDKs
+
+Status: COMPLETE.
+
+- [x] publish versioned HTTP consumer contract via /v1/contract;
+- [x] lightweight Python SDK without server/runtime dependencies;
+- [x] zero-dependency JavaScript ESM SDK;
+- [x] Python/JavaScript conformance parity for collection, processing, ingest, search, discovery, entity and relation operations;
+- [x] collection_exists / collectionExists and process_document / processDocument parity;
+- [x] neutral SearchProfile / search_with_profile / searchWithProfile primitives;
+- [x] neutral build_collection_id / buildCollectionId namespace composition;
+- [x] consumer-scoped authentication support for protected/federated search;
+- [x] release consumer SDK 0.3.0 while keeping HTTP consumer contract 1.x backward-compatible.
+
+Domain-specific ranking weights, collection namespaces and policy remain in each consumer repository.
+
 ## DP-CONN-001 — connector SDK + generic web discovery
 
 Status: COMPLETE.
@@ -162,9 +180,9 @@ Status: COMPLETE.
 
 First production consumer.
 
-Status: PRODUCTION RUNTIME ACCEPTED; legacy removal pending.
+Status: COMPLETE.
 
-Merged in Tender Agent PR #144 (cbd5275).
+Initial production integration merged in Tender Agent PR #144 (cbd5275). Migration closure merged through PRs #151–157, culminating in #157 (9cceb49d).
 
 - [x] compatibility adapter from Tender RAG to Data Platform;
 - [x] preserve Tender Agent as canonical owner of procurement chunks while using Data Platform pre-chunked ingestion;
@@ -178,13 +196,18 @@ Merged in Tender Agent PR #144 (cbd5275).
 - [x] prepare/reindex real pilot tender(s) against the Data Platform backend;
 - [x] switch Tender runtime to AI_CORP_RAG_RETRIEVAL_BACKEND=data_platform;
 - [x] compare production retrieval quality, citations and latency against the legacy backend;
-- [ ] remove duplicate legacy JSON-vector/generic retrieval code only after production acceptance.
+- [x] remove duplicate legacy JSON-vector/generic retrieval code after production acceptance;
+- [x] delegate generic document processing/extraction to Data Platform;
+- [x] replace Tender Agent-local generic HTTP client surface with the shared Data Platform consumer SDK;
+- [x] move procurement retrieval weights and collection namespaces into Tender Agent-owned presets while using neutral SDK primitives.
 
 Code gate passed: existing Tender Agent workflows and CI remain green, and normal retrieval is scoped to one deterministic versioned collection per tender.
 
 Production runtime gate passed on the Mac mini on 2026-10-04. Data Platform is supervised by launchd on 127.0.0.1:8094, uses the dedicated arvectum_data database in the existing pgvector PostgreSQL runtime, and uses the local Qwen3-Embedding-4B embedding service on 127.0.0.1:8090. Pilot tender 0187200001726001304 was indexed as 60 resources / 60 documents / 60 chunks / 60 embeddings. Tender readiness became ready_for_analysis=true; a live hybrid query returned 5 mapped Tender hits in about 0.32 s, and retrieval-only analyze_tender fast mode completed 10 sections with 16 unique sources in about 1.5 s with no warnings or errors.
 
 Legacy parity was rebuilt safely in an isolated temporary JSON-vector index from the same 60 current production chunks using the same Qwen3-Embedding-4B provider, without writing legacy embedding metadata back to production. Across five representative procurement queries, equal-weight Data Platform hybrid retrieval matched legacy semantic top-1 on 4/5 queries and averaged about 0.129 s versus about 0.196 s for legacy retrieval. The one mismatch was traced to a weak singleton PostgreSQL FTS hit over-promoted by equal-weight RRF. Data Platform therefore added generic per-request RRF weights while keeping its platform default at 1:1. Tender Agent PR #146 (4df33d7) selected a semantic-first profile lexical_weight=1, vector_weight=4. Production re-validation then matched the isolated legacy semantic top-1 on 5/5 queries, with Data Platform averaging about 0.159 s for the five-query run. Retrieval-only fast analysis still completed 10 sections with 16 unique sources in about 1.44 s with no warnings or errors.
+Migration closure completed on 2026-10-05. Tender Agent PR #151 isolated the legacy RAG path, #152 made Data Platform the default backend, #153 removed the legacy generic RAG backend, #154 removed the local generic document extractor in favor of Data Platform processing, #155 switched consumer calls to the shared SDK, #156 bumped the SDK dependency to 0.2.0, and #157 adopted SDK 0.3.0 consumer-owned search profiles and canonical collection naming. Tender Agent main at 9cceb49d passed CI after the final merge. Data Platform main at 51147af6 also passed its post-merge workflows for consumer SDK 0.3.0.
+
 
 ## DP-INT-002 — Arvectum OS RAG migration
 
@@ -241,6 +264,14 @@ Repeated ingest now preserves deterministic resource/document/chunk identities a
 
 Collection stats expose first/last source observation, latest embedding time, latest completed reindex time and the active revision. Global status exposes bounded object counts. Runtime operation counters now expose requests, errors, total latency and max latency for ingest, search, discovery and reindex. The status payload is deliberately secret-free: it contains no database URL, API key, query text, fetched URL or exception message. Production smoke on the Mac mini confirmed live search/discovery counters after restart. PostgreSQL backup/restore helpers now produce a custom-format dump, SHA-256 sidecar and manifest, refuse accidental production overwrite by default, and passed a live restore drill into a temporary database with exact row-count parity. Capacity is bounded by upload bytes, max chunks per ingest, max collections per search, existing search result limits and bounded crawl/discovery policies. Transient embedding-server outages use bounded exponential retry; exhausting retries moves a durable reindex job to dead_letter without changing the active revision. Re-running the same revision reuses that durable job and can recover it after the provider returns.
 
+## Immediate next priorities
+
+- [ ] DP-VEC-001: formalize the VectorIndex protocol boundary.
+- [ ] DP-VEC-001: benchmark HNSW versus IVFFlat before selecting a production ANN index strategy.
+- [ ] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
+- [ ] DP-INT-002: close real-data production acceptance on the first non-empty KnowledgeAssetRecord set.
+- [ ] Expand frozen relevance benchmarks with more accepted real consumer cases before promoting BM25, learned reranking, bounded LLM reranking or query expansion from backlog.
+
 ## Post-v1 backlog
 
 Only after three real consumers are integrated:
@@ -291,6 +322,8 @@ DP-LEX-001 + DP-VEC-001
 DP-SEARCH-001
     ↓
 DP-API-001 + DP-CONN-001
+    ↓
+DP-SDK-001
     ↓
 DP-INT-001 Tender Agent
     ↓
