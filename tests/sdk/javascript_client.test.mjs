@@ -131,3 +131,41 @@ test("processDocument uses the canonical multipart processing contract", async (
   });
   assert.equal(result.extraction_status, "extracted");
 });
+
+test("collection naming helper composes neutral namespaces", async () => {
+  const { buildCollectionId } = await import("../../sdk/javascript/client.mjs");
+  assert.equal(buildCollectionId("domain", "scope", "rev1"), "domain:scope:rev1");
+  assert.throws(() => buildCollectionId("domain", "bad:scope"), TypeError);
+});
+
+test("searchWithProfile forwards the consumer-owned ranking profile", async () => {
+  const fetchImpl = async (url, options = {}) => {
+    assert.equal(new URL(url).pathname, "/v1/search");
+    const payload = JSON.parse(options.body);
+    assert.equal(payload.mode, "hybrid");
+    assert.equal(payload.lexical_weight, 1);
+    assert.equal(payload.vector_weight, 4);
+    assert.equal(payload.query_variant_weight, 0.7);
+    assert.equal(payload.collapse_by_canonical_uri, true);
+    return new Response(JSON.stringify({ query: "q", hits: [] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  const client = new DataPlatformClient({
+    baseUrl: "http://data-platform.test",
+    fetchImpl,
+  });
+  const payload = await client.searchWithProfile({
+    query: "q",
+    collections: ["domain:scope:rev1"],
+    profile: {
+      mode: "hybrid",
+      lexicalWeight: 1,
+      vectorWeight: 4,
+      queryVariantWeight: 0.7,
+      collapseByCanonicalUri: true,
+    },
+  });
+  assert.deepEqual(payload.hits, []);
+});

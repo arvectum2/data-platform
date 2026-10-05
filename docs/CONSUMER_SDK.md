@@ -88,14 +88,14 @@ The SDKs cover the shared cross-product surface with parity between Python and J
 - document processing without persistence;
 - document ingestion;
 - URL ingestion;
-- lexical/vector/hybrid search;
+- lexical/vector/hybrid search and generic consumer-supplied search profiles;
 - connector discovery;
 - entity resolution/creation;
 - entity relations;
 - health and contract compatibility.
 
-Consumer-specific ranking presets, tender evidence mapping, SEO intent strategy,
-report generation and agent policy remain outside the SDK.
+Consumer-specific ranking preset values, collection namespaces, tender evidence mapping, SEO intent strategy,
+report generation and agent policy remain outside the SDK. The SDK supplies only neutral search-profile and collection-ID composition helpers.
 
 ## Authentication
 

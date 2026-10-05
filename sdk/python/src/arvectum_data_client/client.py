@@ -16,6 +16,7 @@ from .models import (
     IngestResult,
     ProcessedDocument,
     SearchHit,
+    SearchProfile,
     SearchResponse,
 )
 
@@ -324,6 +325,31 @@ class DataPlatformClient:
             for item in hits
             if isinstance(item, dict)
         ]
+
+    def search_with_profile(
+        self,
+        *,
+        query: str,
+        collections: list[str],
+        limit: int,
+        profile: SearchProfile,
+        filters: dict[str, list[str]] | None = None,
+        query_variants: list[str] | None = None,
+    ) -> list[SearchHit]:
+        return self.search(
+            query=query,
+            collections=collections,
+            limit=limit,
+            mode=str(profile.get("mode", "hybrid")),
+            lexical_weight=float(profile.get("lexical_weight", 1.0)),
+            vector_weight=float(profile.get("vector_weight", 1.0)),
+            filters=filters,
+            query_variants=query_variants,
+            query_variant_weight=float(profile.get("query_variant_weight", 0.5)),
+            collapse_by_canonical_uri=bool(
+                profile.get("collapse_by_canonical_uri", False)
+            ),
+        )
 
     def discover(
         self,

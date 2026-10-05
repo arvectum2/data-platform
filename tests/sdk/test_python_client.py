@@ -146,3 +146,36 @@ def test_http_error_exposes_status_method_and_path() -> None:
     assert exc_info.value.status_code == 503
     assert exc_info.value.method == "GET"
     assert exc_info.value.path == "/v1/collections/missing/stats"
+
+
+def test_collection_naming_helper_is_domain_neutral() -> None:
+    from arvectum_data_client import build_collection_id
+
+    assert build_collection_id("domain", "scope", "rev1") == "domain:scope:rev1"
+    with pytest.raises(ValueError, match="must not contain"):
+        build_collection_id("domain", "bad:scope")
+
+
+def test_search_with_profile_forwards_consumer_owned_weights() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        assert payload["mode"] == "hybrid"
+        assert payload["lexical_weight"] == 1.0
+        assert payload["vector_weight"] == 4.0
+        assert payload["query_variant_weight"] == 0.7
+        assert payload["collapse_by_canonical_uri"] is True
+        return httpx.Response(200, json={"query": "q", "hits": []})
+
+    client = _client(handler)
+    assert client.search_with_profile(
+        query="q",
+        collections=["domain:scope:rev1"],
+        limit=10,
+        profile={
+            "mode": "hybrid",
+            "lexical_weight": 1.0,
+            "vector_weight": 4.0,
+            "query_variant_weight": 0.7,
+            "collapse_by_canonical_uri": True,
+        },
+    ) == []
