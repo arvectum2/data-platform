@@ -8,8 +8,11 @@ from pathlib import Path
 
 from ..acquisition import AcquisitionEngine, AcquisitionRequest
 from ..core import Chunk, Document, Provenance, Resource
+from ..models import VisionProvider
 from ..processing.chunking import ChunkingConfig, chunk_text
 from .extractor import extract_text
+from .ocr import OCRProvider
+from .pdf_pipeline import extract_pdf_cascade
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,6 +113,8 @@ def ingest_file(
     chunking: ChunkingConfig | None = None,
     pre_chunked: bool = False,
     max_chars: int = 2_000_000,
+    ocr_provider: OCRProvider | None = None,
+    vision_provider: VisionProvider | None = None,
 ) -> DocumentIngestResult:
     if not collection_id.strip():
         raise ValueError("collection_id must not be blank")
@@ -118,9 +123,62 @@ def ingest_file(
     content = file_path.read_bytes()
     content_hash = hashlib.sha256(content).hexdigest()
     uri = canonical_uri or file_path.as_uri()
-    status, text = extract_text(str(file_path), max_chars=max_chars)
     media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
     metadata = {"file_name": file_path.name}
+    if content.startswith(b"%PDF-") and ocr_provider is not None:
+        pdf_result = extract_pdf_cascade(
+            content,
+            max_chars=max_chars,
+            ocr_provider=ocr_provider,
+            vision_provider=vision_provider,
+        )
+        text = pdf_result.text
+        status = "extracted" if text.strip() else "empty"
+        metadata["pdf_pages"] = [
+            {
+                "page_number": page.page_number,
+                "native_char_count": page.native_char_count,
+                "needs_ocr": page.needs_ocr,
+            }
+            for page in pdf_result.pages
+        ]
+        metadata["ocr"] = {
+            "provider": pdf_result.ocr.provider if pdf_result.ocr else None,
+            "page_numbers": list(pdf_result.ocr_page_numbers),
+            "mean_confidence": (
+                pdf_result.ocr.mean_confidence if pdf_result.ocr else None
+            ),
+            "pages": [
+                {
+                    "page_number": page.page_number,
+                    "confidence": page.confidence,
+                    "regions": [
+                        {
+                            "text": region.text,
+                            "confidence": region.confidence,
+                            "left": region.left,
+                            "top": region.top,
+                            "width": region.width,
+                            "height": region.height,
+                        }
+                        for region in page.regions
+                    ],
+                }
+                for page in (pdf_result.ocr.pages if pdf_result.ocr else ())
+            ],
+        }
+        metadata["vlm"] = [
+            {
+                "page_number": page.page_number,
+                "reason": page.reason,
+                "provider": page.provider,
+                "model": page.model,
+                "locality": page.locality.value,
+            }
+            for page in pdf_result.vlm
+        ]
+    else:
+        status, text = extract_text(str(file_path), max_chars=max_chars)
     resolved_chunking = chunking
     if pre_chunked:
         resolved_chunking = ChunkingConfig(

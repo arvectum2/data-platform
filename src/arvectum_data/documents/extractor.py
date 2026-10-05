@@ -378,21 +378,9 @@ def _extract_docx(content: bytes) -> str:
 
 
 def _extract_pdf(content: bytes, max_chars: int) -> str:
-    try:
-        import pypdf
-    except ImportError:
-        return ""
-    try:
-        reader = pypdf.PdfReader(io.BytesIO(content))
-        texts = []
-        for i, page in enumerate(reader.pages):
-            if i >= 10:
-                break
-            t = page.extract_text() or ""
-            texts.append(t)
-        return " ".join(texts)[:max_chars]
-    except Exception:
-        return ""
+    from .pdf_pipeline import extract_pdf_cascade
+
+    return extract_pdf_cascade(content, max_chars=max_chars).text
 
 
 def _extract_xlsx(content: bytes) -> str:

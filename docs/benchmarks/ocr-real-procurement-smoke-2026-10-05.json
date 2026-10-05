@@ -1,0 +1,16 @@
+{
+  "benchmark": "ocr_real_procurement_smoke_v1",
+  "date": "2026-10-05",
+  "corpus": "8 unique PDF filenames from the existing Arvectum OS / Tender Agent runtime corpus",
+  "results": [
+    {"file":"01-2.pdf","pages":3,"native_chars":4766,"ocr_pages":[],"output_chars":6197,"confidence":null,"latency_ms":43.2},
+    {"file":"02-attachment-2.pdf","pages":1,"native_chars":0,"ocr_pages":[1],"output_chars":925,"confidence":93.16,"latency_ms":1082.2},
+    {"file":"04-17213719-1.pdf","pages":10,"native_chars":19348,"ocr_pages":[],"output_chars":22864,"confidence":null,"latency_ms":45.3},
+    {"file":"04-attachment-4.pdf","pages":6,"native_chars":17702,"ocr_pages":[],"output_chars":20659,"confidence":null,"latency_ms":117.0},
+    {"file":"05-17213719-1.pdf","pages":10,"native_chars":17824,"ocr_pages":[],"output_chars":21277,"confidence":null,"latency_ms":54.9},
+    {"file":"05-25-6.pdf","pages":10,"native_chars":13099,"ocr_pages":[],"output_chars":15725,"confidence":null,"latency_ms":172.4},
+    {"file":"05-attachment-5.pdf","pages":1,"native_chars":1112,"ocr_pages":[],"output_chars":1273,"confidence":null,"latency_ms":6.9},
+    {"file":"07-attachment-7.pdf","pages":1,"native_chars":1681,"ocr_pages":[],"output_chars":1938,"confidence":null,"latency_ms":15.9}
+  ],
+  "interpretation": "7/8 documents stayed on native extraction. The one image-only scan escalated to local OCR and recovered 925 characters at 93.16 mean confidence. This is a smoke benchmark, not the final frozen OCR accuracy benchmark."
+}
