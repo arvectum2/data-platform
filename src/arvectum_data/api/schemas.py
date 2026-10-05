@@ -520,3 +520,38 @@ class RelationSuggestionResponse(BaseModel):
 class GraphSuggestionResponse(BaseModel):
     aliases: list[AliasSuggestionResponse] = Field(default_factory=list)
     relations: list[RelationSuggestionResponse] = Field(default_factory=list)
+
+
+class RefreshPolicyRequest(BaseModel):
+    interval_seconds: int = Field(default=86400, ge=300, le=31_536_000)
+    missing_after_failures: int = Field(default=3, ge=1, le=100)
+    enabled: bool = True
+
+
+class RefreshPolicyResponse(BaseModel):
+    resource_id: str
+    refresh_policy: dict[str, Any]
+    next_refresh_at: datetime | None = None
+    status: str
+
+
+class RefreshResultResponse(BaseModel):
+    refresh_run_id: str
+    resource_id: str
+    outcome: str
+    changed: bool
+    previous_hash: str | None = None
+    current_hash: str | None = None
+    next_refresh_at: datetime | None = None
+    detail: dict[str, Any] = Field(default_factory=dict)
+
+
+class RefreshRunResponse(BaseModel):
+    refresh_run_id: str
+    resource_id: str
+    started_at: datetime
+    completed_at: datetime | None = None
+    outcome: str
+    previous_hash: str | None = None
+    current_hash: str | None = None
+    detail: dict[str, Any] = Field(default_factory=dict)

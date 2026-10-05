@@ -239,6 +239,8 @@ def ingest_url(
         "requested_url": url,
         "acquisition_method": acquisition_meta.get("method"),
         "rendered": bool(acquisition_meta.get("rendered", False)),
+        "etag": acquisition_meta.get("etag"),
+        "last_modified": acquisition_meta.get("last_modified"),
         "warnings": tuple(acquired.warnings),
     }
 

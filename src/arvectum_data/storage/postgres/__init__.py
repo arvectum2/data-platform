@@ -12,6 +12,7 @@ from .models import (
     PipelineRunRow,
     ProvenanceRow,
     RelevanceFeedbackRow,
+    RefreshRunRow,
     ResourceRow,
 )
 from .repository import DataRepository, VectorSearchHit
@@ -30,6 +31,7 @@ __all__ = [
     "PipelineRunRow",
     "ProvenanceRow",
     "RelevanceFeedbackRow",
+    "RefreshRunRow",
     "ResourceRow",
     "VectorSearchHit",
     "build_engine",

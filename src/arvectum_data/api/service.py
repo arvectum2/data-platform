@@ -36,6 +36,7 @@ from ..indexing import (
     build_embedding_provider,
 )
 from ..models import ModelLocality, ModelPolicy, ModelRole, ModelRouter, RoleConfig
+from ..sync import RefreshPolicy, RefreshResult
 
 from ..search import HybridSearchEngine, PostgresSearchBackend, QueryExpansion, ReasoningQueryExpander, ReasoningReranker, SearchHit, SearchQuery
 from ..storage.postgres import (
@@ -50,6 +51,7 @@ from ..storage.postgres import (
     PipelineRunRow,
     ResourceRow,
     RelevanceFeedbackRow,
+    RefreshRunRow,
     build_engine,
     build_session_factory,
 )
@@ -523,6 +525,171 @@ class DataPlatformService:
             acquisition=self.acquisition,
         )
         return self._persist_and_index(result)
+
+    def configure_resource_refresh(
+        self,
+        resource_id: str,
+        *,
+        interval_seconds: int = 86400,
+        missing_after_failures: int = 3,
+        enabled: bool = True,
+    ) -> dict[str, Any]:
+        policy = RefreshPolicy(interval_seconds, missing_after_failures, enabled)
+        with self._require_factory()() as session:
+            resource = session.get(ResourceRow, resource_id)
+            if resource is None:
+                raise LookupError(resource_id)
+            if resource.source_type != "url":
+                raise ValueError("continuous refresh currently supports URL resources only")
+            resource.refresh_policy = policy.as_dict()
+            resource.next_refresh_at = policy.next_at()
+            session.commit()
+            return {
+                "resource_id": resource.resource_id,
+                "refresh_policy": dict(resource.refresh_policy),
+                "next_refresh_at": resource.next_refresh_at,
+                "status": resource.status,
+            }
+
+    def refresh_resource(self, resource_id: str) -> RefreshResult:
+        now = datetime.now(UTC)
+        with self._require_factory()() as session:
+            resource = session.get(ResourceRow, resource_id)
+            if resource is None:
+                raise LookupError(resource_id)
+            if resource.source_type != "url":
+                raise ValueError("continuous refresh currently supports URL resources only")
+            policy = RefreshPolicy.from_mapping(resource.refresh_policy)
+            previous_hash = resource.content_hash
+            collection_id = resource.collection_id
+            url = resource.canonical_uri
+            title = None
+            latest_document = session.scalar(
+                select(DocumentRow)
+                .where(DocumentRow.resource_id == resource_id)
+                .order_by(DocumentRow.created_at.desc())
+                .limit(1)
+            )
+            if latest_document is not None:
+                title = latest_document.title
+            run = RefreshRunRow(
+                resource_id=resource_id,
+                started_at=now,
+                outcome="running",
+                previous_hash=previous_hash,
+                detail_json={},
+            )
+            session.add(run)
+            session.commit()
+            run_id = run.refresh_run_id
+
+        try:
+            if not self.settings.allow_private_fetches:
+                validate_public_url(url)
+            candidate = ingest_url(
+                url,
+                collection_id=collection_id,
+                title=title,
+                acquisition=self.acquisition,
+            )
+            current_hash = candidate.resource.content_hash
+            if current_hash == previous_hash:
+                with self._require_factory()() as session:
+                    resource = session.get(ResourceRow, resource_id)
+                    run = session.get(RefreshRunRow, run_id)
+                    resource.last_seen_at = now
+                    resource.status = "ready"
+                    resource.etag = candidate.resource.metadata.get("etag")
+                    resource.last_modified = candidate.resource.metadata.get("last_modified")
+                    resource.next_refresh_at = policy.next_at(now)
+                    run.outcome = "unchanged"
+                    run.current_hash = current_hash
+                    run.completed_at = datetime.now(UTC)
+                    session.commit()
+                    return RefreshResult(
+                        run_id, resource_id, "unchanged", False, previous_hash,
+                        current_hash, resource.next_refresh_at, {},
+                    )
+            indexed = self._persist_and_index(candidate)
+            with self._require_factory()() as session:
+                resource = session.get(ResourceRow, resource_id)
+                run = session.get(RefreshRunRow, run_id)
+                resource.next_refresh_at = policy.next_at(now)
+                run.outcome = "changed"
+                run.current_hash = current_hash
+                run.completed_at = datetime.now(UTC)
+                run.detail_json = {
+                    "document_id": indexed["document_id"],
+                    "embeddings_written": indexed["embeddings_written"],
+                }
+                session.commit()
+                return RefreshResult(
+                    run_id, resource_id, "changed", True, previous_hash,
+                    current_hash, resource.next_refresh_at, dict(run.detail_json),
+                )
+        except Exception as exc:
+            with self._require_factory()() as session:
+                resource = session.get(ResourceRow, resource_id)
+                run = session.get(RefreshRunRow, run_id)
+                previous_failures = int(
+                    (resource.metadata_json or {}).get("consecutive_refresh_failures", 0)
+                )
+                failures = previous_failures + 1
+                metadata = dict(resource.metadata_json or {})
+                metadata["consecutive_refresh_failures"] = failures
+                resource.metadata_json = metadata
+                resource.status = (
+                    "stale" if failures >= policy.missing_after_failures else "refresh_error"
+                )
+                resource.next_refresh_at = policy.next_at(now)
+                run.outcome = resource.status
+                run.completed_at = datetime.now(UTC)
+                run.detail_json = {"error_type": type(exc).__name__}
+                session.commit()
+            return RefreshResult(
+                run_id, resource_id, resource.status, False, previous_hash,
+                None, resource.next_refresh_at, {"error_type": type(exc).__name__},
+            )
+
+    def refresh_due_resources(self, *, limit: int = 50) -> list[RefreshResult]:
+        now = datetime.now(UTC)
+        with self._require_factory()() as session:
+            resource_ids = list(
+                session.scalars(
+                    select(ResourceRow.resource_id)
+                    .where(
+                        ResourceRow.next_refresh_at.is_not(None),
+                        ResourceRow.next_refresh_at <= now,
+                    )
+                    .order_by(ResourceRow.next_refresh_at.asc())
+                    .limit(max(1, min(limit, 200)))
+                )
+            )
+        return [self.refresh_resource(resource_id) for resource_id in resource_ids]
+
+    def list_refresh_runs(
+        self, resource_id: str, *, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        with self._require_factory()() as session:
+            rows = session.scalars(
+                select(RefreshRunRow)
+                .where(RefreshRunRow.resource_id == resource_id)
+                .order_by(RefreshRunRow.started_at.desc())
+                .limit(max(1, min(limit, 200)))
+            ).all()
+            return [
+                {
+                    "refresh_run_id": row.refresh_run_id,
+                    "resource_id": row.resource_id,
+                    "started_at": row.started_at,
+                    "completed_at": row.completed_at,
+                    "outcome": row.outcome,
+                    "previous_hash": row.previous_hash,
+                    "current_hash": row.current_hash,
+                    "detail": dict(row.detail_json or {}),
+                }
+                for row in rows
+            ]
 
     def _runtime_embedding_contract(self) -> tuple[str, str, int | None]:
         return (

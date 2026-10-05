@@ -498,13 +498,15 @@ Implementation: `docs/KNOWLEDGE_GRAPH.md`. Model output is suggestion-only, prop
 
 ### DP-SYNC-001 — continuous indexing
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05).
 
-- [ ] scheduled source refresh;
-- [ ] ETag / Last-Modified / content-hash change detection where available;
-- [ ] re-fetch/re-index only changed resources;
-- [ ] stale/deleted source handling;
-- [ ] per-source refresh policy and observability.
+- [x] scheduled/due source refresh boundary with per-resource next-run state;
+- [x] ETag / Last-Modified capture plus authoritative content-hash change detection;
+- [x] re-fetch/re-index only changed resources; unchanged content skips embedding;
+- [x] stale source handling without deleting last-known evidence;
+- [x] per-source refresh policy and durable refresh-run observability.
+
+Implementation: `docs/CONTINUOUS_INDEXING.md`. Scheduling is intentionally external to the API process; cron/systemd/Arvectum orchestration invokes the bounded due-work endpoint.
 
 ### DP-CRAWL-002 — distributed crawling
 
