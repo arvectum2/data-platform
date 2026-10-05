@@ -10,6 +10,7 @@ from .embeddings import (
     probe_embedding_provider,
     resolve_embedding_dimension,
 )
+from .protocols import VectorIndex, VectorSearchResult
 from .vector_local import JsonVectorStore, SearchResult
 
 __all__ = [
@@ -21,6 +22,8 @@ __all__ = [
     "JsonVectorStore",
     "LlamaCppEmbeddingProvider",
     "SearchResult",
+    "VectorIndex",
+    "VectorSearchResult",
     "SentenceTransformersEmbeddingProvider",
     "build_embedding_provider",
     "probe_embedding_provider",

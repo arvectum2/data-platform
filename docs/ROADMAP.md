@@ -105,15 +105,30 @@ True BM25 is deferred until benchmarks show PostgreSQL FTS is insufficient.
 
 ## DP-VEC-001 — production pgvector backend
 
-- [ ] VectorIndex protocol;
+Status: COMPLETE.
+
+- [x] VectorIndex protocol;
 - [x] keep JSON/local backend for dev/tests;
 - [x] pgvector storage/query;
 - [x] collection-scoped vector query;
-- [ ] measured HNSW/IVFFlat decision;
-- [ ] model/dimension migration safety;
+- [x] measured HNSW/IVFFlat decision;
+- [x] model/dimension migration safety;
 - [x] PostgreSQL integration tests.
 
-Gate: no production search path depends on JsonVectorStore.
+Measured on 2026-10-05 against 697 real Qwen3-Embedding-4B vectors at 2560
+dimensions: exact float32 search remained below 3.4 ms p95 with 100% recall@10,
+while tested HNSW/IVFFlat halfvec indexes reduced isolated latency below 0.7 ms
+but recall@10 to roughly 94–96%. Production therefore remains exact pgvector
+search; ANN is a future benchmark-gated optimization, not a default. The
+reproducible benchmark and raw aggregate result live in
+`docs/VECTOR_INDEX_BENCHMARK.md` and `docs/benchmarks/vector-index-2026-10-05.json`.
+
+Embedding identity migration is staged: a new provider/model/dimension is fully
+written and coverage-checked before the collection contract and active revision
+switch atomically. Normal search remains bound to the active contract.
+
+Gate passed: production search uses the VectorIndex-backed PostgreSQL path and no
+production search path depends on JsonVectorStore.
 
 ## DP-SEARCH-001 — hybrid retrieval
 
@@ -266,9 +281,9 @@ Collection stats expose first/last source observation, latest embedding time, la
 
 ## Immediate next priorities
 
-- [ ] DP-VEC-001: formalize the VectorIndex protocol boundary.
-- [ ] DP-VEC-001: benchmark HNSW versus IVFFlat before selecting a production ANN index strategy.
-- [ ] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
+- [x] DP-VEC-001: formalize the VectorIndex protocol boundary.
+- [x] DP-VEC-001: benchmark HNSW versus IVFFlat and keep exact pgvector search until ANN passes the relevance gate.
+- [x] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
 - [ ] DP-INT-002: close real-data production acceptance on the first non-empty KnowledgeAssetRecord set.
 - [ ] Expand frozen relevance benchmarks with more accepted real consumer cases before promoting BM25, learned reranking, bounded LLM reranking or query expansion from backlog.
 

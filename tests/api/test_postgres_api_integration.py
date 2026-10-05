@@ -10,7 +10,8 @@ from fastapi.testclient import TestClient
 
 from arvectum_data.api.app import create_app
 from arvectum_data.api.config import Settings
-from arvectum_data.indexing import EmbeddingServerUnavailableError
+from arvectum_data.api.service import DataPlatformService
+from arvectum_data.indexing import EmbeddingServerUnavailableError, HashingEmbeddingProvider
 
 
 pytestmark = pytest.mark.postgres
@@ -978,3 +979,155 @@ def test_federated_search_deduplicates_same_canonical_uri_across_collections() -
         shared_uri,
         "https://example.com/other",
     }
+
+
+def test_embedding_model_migration_is_staged_and_activated_atomically() -> None:
+    database_url = _database_url()
+    os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url
+    command.upgrade(Config("alembic.ini"), "head")
+
+    first_provider = HashingEmbeddingProvider(
+        model_name="migration-v1",
+        dimension=32,
+    )
+    app = create_app(
+        Settings(
+            environment="test",
+            log_level="WARNING",
+            database_url=database_url,
+            internal_api_key="test-secret",
+            embedding_provider="hashing",
+            embedding_model="migration-v1",
+            embedding_dimension=32,
+        ),
+        platform_service=DataPlatformService(
+            Settings(
+                environment="test",
+                log_level="WARNING",
+                database_url=database_url,
+                internal_api_key="test-secret",
+                embedding_provider="hashing",
+                embedding_model="migration-v1",
+                embedding_dimension=32,
+            ),
+            embedding_provider=first_provider,
+        ),
+    )
+    client = TestClient(app)
+    headers = {"X-Arvectum-Key": "test-secret"}
+    collection_id = f"migration:test:{uuid.uuid4().hex[:8]}"
+
+    created = client.post(
+        "/v1/collections",
+        headers=headers,
+        json={
+            "collection_id": collection_id,
+            "owner": "tests",
+            "name": collection_id,
+            "default_language": "russian",
+        },
+    )
+    assert created.status_code == 200
+
+    ingested = client.post(
+        "/v1/ingest/document",
+        headers=headers,
+        data={
+            "collection_id": collection_id,
+            "canonical_uri": f"external-document://{collection_id}",
+            "pre_chunked": "true",
+        },
+        files={
+            "file": (
+                "migration.txt",
+                "Безопасная миграция эмбеддингов без частичного переключения.".encode("utf-8"),
+                "text/plain",
+            )
+        },
+    )
+    assert ingested.status_code == 200
+
+    service = app.state.platform_service
+
+    class FailingMigrationProvider:
+        provider_name = "hashing"
+        model_name = "migration-v2"
+        dimension = 48
+
+        def embed_texts(self, texts):
+            raise RuntimeError("synthetic migration failure")
+
+        def embed_query(self, text):
+            raise RuntimeError("synthetic migration failure")
+
+    service.embedding_provider = FailingMigrationProvider()
+
+    failed_migration = client.post(
+        "/v1/index/rebuild",
+        headers=headers,
+        json={"collection_id": collection_id},
+    )
+    assert failed_migration.status_code == 500
+
+    unchanged = client.get(f"/v1/collections/{collection_id}", headers=headers)
+    assert unchanged.status_code == 200
+    assert unchanged.json()["embedding_model"] == "migration-v1"
+    assert unchanged.json()["embedding_dimension"] == 32
+
+    service.embedding_provider = HashingEmbeddingProvider(
+        model_name="migration-v2",
+        dimension=48,
+    )
+
+    blocked_search = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "миграция эмбеддингов",
+            "collections": [collection_id],
+            "mode": "vector",
+        },
+    )
+    assert blocked_search.status_code == 400
+
+    blocked_collection_update = client.post(
+        "/v1/collections",
+        headers=headers,
+        json={
+            "collection_id": collection_id,
+            "owner": "tests",
+            "name": collection_id,
+            "default_language": "russian",
+        },
+    )
+    assert blocked_collection_update.status_code == 400
+
+    rebuilt = client.post(
+        "/v1/index/rebuild",
+        headers=headers,
+        json={"collection_id": collection_id},
+    )
+    assert rebuilt.status_code == 200
+    job = rebuilt.json()
+    assert job["status"] == "completed"
+    assert job["metrics"]["embedding_migration"] is True
+    assert job["metrics"]["embedding_model"] == "migration-v2"
+    assert job["metrics"]["embedding_dimension"] == 48
+
+    fetched = client.get(f"/v1/collections/{collection_id}", headers=headers)
+    assert fetched.status_code == 200
+    assert fetched.json()["embedding_model"] == "migration-v2"
+    assert fetched.json()["embedding_dimension"] == 48
+    assert fetched.json()["active_index_revision"] == job["revision"]
+
+    migrated_search = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "миграция эмбеддингов",
+            "collections": [collection_id],
+            "mode": "vector",
+        },
+    )
+    assert migrated_search.status_code == 200
+    assert migrated_search.json()["hits"]
