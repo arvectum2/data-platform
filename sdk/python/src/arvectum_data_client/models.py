@@ -101,9 +101,16 @@ class SearchHit(TypedDict):
     metadata: dict[str, Any]
 
 
+class QueryExpansion(TypedDict):
+    text: str
+    source: str
+    weight: float
+
+
 class SearchResponse(TypedDict):
     query: str | None
     hits: list[SearchHit]
+    query_expansions: NotRequired[list[QueryExpansion]]
 
 
 class SearchProfile(TypedDict, total=False):
@@ -111,6 +118,8 @@ class SearchProfile(TypedDict, total=False):
     lexical_weight: float
     vector_weight: float
     query_variant_weight: float
+    expand_query: bool
+    query_expansion_limit: int
     collapse_by_canonical_uri: bool
     rerank: bool
     rerank_candidates: int

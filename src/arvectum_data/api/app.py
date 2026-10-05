@@ -402,26 +402,33 @@ def create_app(
                 x_arvectum_consumer_key,
             )
         try:
-            hits = runtime_service.search(
-                SearchQuery(
-                    query=payload.query,
-                    collections=tuple(payload.collections),
-                    filters={
-                        key: tuple(values)
-                        for key, values in payload.filters.items()
-                    },
-                    limit=payload.limit,
-                    mode=payload.mode,
-                    lexical_weight=payload.lexical_weight,
-                    vector_weight=payload.vector_weight,
-                    query_variants=tuple(payload.query_variants),
-                    query_variant_weight=payload.query_variant_weight,
-                    collapse_by_canonical_uri=payload.collapse_by_canonical_uri,
-                    rerank=payload.rerank,
-                    rerank_candidates=payload.rerank_candidates,
-                ),
-                consumer=consumer,
+            search_query = SearchQuery(
+                query=payload.query,
+                collections=tuple(payload.collections),
+                filters={
+                    key: tuple(values)
+                    for key, values in payload.filters.items()
+                },
+                limit=payload.limit,
+                mode=payload.mode,
+                lexical_weight=payload.lexical_weight,
+                vector_weight=payload.vector_weight,
+                query_variants=tuple(payload.query_variants),
+                query_variant_weight=payload.query_variant_weight,
+                expand_query=payload.expand_query,
+                query_expansion_limit=payload.query_expansion_limit,
+                collapse_by_canonical_uri=payload.collapse_by_canonical_uri,
+                rerank=payload.rerank,
+                rerank_candidates=payload.rerank_candidates,
             )
+            if hasattr(runtime_service, "search_with_diagnostics"):
+                hits, query_expansions = runtime_service.search_with_diagnostics(
+                    search_query,
+                    consumer=consumer,
+                )
+            else:
+                hits = runtime_service.search(search_query, consumer=consumer)
+                query_expansions = ()
         except Exception as exc:
             raise map_service_error(exc) from exc
 
@@ -454,6 +461,14 @@ def create_app(
                     metadata=dict(hit.metadata),
                 )
                 for hit in hits
+            ],
+            query_expansions=[
+                {
+                    "text": item.text,
+                    "source": item.source,
+                    "weight": item.weight,
+                }
+                for item in query_expansions
             ],
         )
 

@@ -408,12 +408,14 @@ Implementation notes: `docs/RERANKING.md`. The existing production acceptance v3
 
 ### DP-QE-001 — query expansion
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05); default activation remains benchmark-gated.
 
-- [ ] generate bounded synonyms/paraphrases/domain variants;
-- [ ] support deterministic dictionaries plus optional model-generated variants;
-- [ ] expose every expansion in search diagnostics;
-- [ ] benchmark expansion against unexpanded retrieval before enabling by default.
+- [x] generate bounded synonyms/paraphrases/domain variants;
+- [x] support deterministic dictionaries plus optional policy-controlled model-generated variants;
+- [x] expose every automatic expansion, source and weight in search diagnostics;
+- [x] add an unexpanded-vs-expanded frozen benchmark gate before any default activation.
+
+Implementation: `docs/QUERY_EXPANSION.md`. Production acceptance v3 is already perfect on top-1, MRR and recall@5, so automatic expansion correctly remains opt-in until a harder frozen suite demonstrates measurable gain.
 
 ### DP-STRUCT-001 — schema-driven structured extraction service
 

@@ -289,6 +289,8 @@ class DataPlatformClient:
         filters: dict[str, list[str]] | None = None,
         query_variants: list[str] | None = None,
         query_variant_weight: float = 0.5,
+        expand_query: bool = False,
+        query_expansion_limit: int = 4,
         collapse_by_canonical_uri: bool = False,
         rerank: bool = False,
         rerank_candidates: int = 20,
@@ -313,6 +315,8 @@ class DataPlatformClient:
                     "vector_weight": vector_weight,
                     "query_variants": query_variants or [],
                     "query_variant_weight": query_variant_weight,
+                    "expand_query": expand_query,
+                    "query_expansion_limit": query_expansion_limit,
                     "collapse_by_canonical_uri": collapse_by_canonical_uri,
                     "rerank": rerank,
                     "rerank_candidates": rerank_candidates,
@@ -350,6 +354,8 @@ class DataPlatformClient:
             filters=filters,
             query_variants=query_variants,
             query_variant_weight=float(profile.get("query_variant_weight", 0.5)),
+            expand_query=bool(profile.get("expand_query", False)),
+            query_expansion_limit=int(profile.get("query_expansion_limit", 4)),
             collapse_by_canonical_uri=bool(
                 profile.get("collapse_by_canonical_uri", False)
             ),

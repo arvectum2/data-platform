@@ -159,6 +159,8 @@ class SearchRequest(BaseModel):
     vector_weight: float = Field(default=1.0, ge=0.0, le=20.0)
     query_variants: list[str] = Field(default_factory=list, max_length=8)
     query_variant_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    expand_query: bool = False
+    query_expansion_limit: int = Field(default=4, ge=1, le=8)
     collapse_by_canonical_uri: bool = False
     rerank: bool = False
     rerank_candidates: int = Field(default=20, ge=1, le=100)
@@ -212,9 +214,16 @@ class SearchHitResponse(BaseModel):
     metadata: dict[str, Any]
 
 
+class QueryExpansionResponse(BaseModel):
+    text: str
+    source: str
+    weight: float
+
+
 class SearchResponse(BaseModel):
     query: str | None = None
     hits: list[SearchHitResponse]
+    query_expansions: list[QueryExpansionResponse] = Field(default_factory=list)
 
 
 class StatusResponse(BaseModel):

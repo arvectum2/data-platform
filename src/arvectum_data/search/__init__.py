@@ -1,3 +1,4 @@
+from .expansion import DictionaryQueryExpander, QueryExpander, QueryExpansion, ReasoningQueryExpander
 from .hybrid import HybridSearchEngine
 from .memory import InMemoryLexicalBackend, MemorySearchDocument
 from .models import (
@@ -14,6 +15,10 @@ from .rerank import ReasoningReranker, Reranker, RerankScore
 
 __all__ = [
     "BackendHit",
+    "DictionaryQueryExpander",
+    "QueryExpander",
+    "QueryExpansion",
+    "ReasoningQueryExpander",
     "HybridSearchEngine",
     "InMemoryLexicalBackend",
     "LexicalBackend",
