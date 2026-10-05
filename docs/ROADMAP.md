@@ -486,15 +486,15 @@ answer + evidence + uncertainty
 
 ### DP-GRAPH-002 — evidence-backed knowledge graph enrichment
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-05).
 
-- [ ] suggest entity aliases and relations from indexed evidence;
-- [ ] keep ambiguity-safe resolution;
-- [ ] require explicit policy/review before model-suggested relations become canonical;
-- [ ] support temporal relation metadata;
-- [ ] expose graph traversal to authorized consumers.
+- [x] suggest entity aliases and relations from bounded indexed evidence;
+- [x] keep existing ambiguity-safe entity resolution;
+- [x] require explicit review before proposed/model-suggested relations become canonical;
+- [x] support temporal relation metadata with validated intervals;
+- [x] expose bounded canonical graph traversal to authorized API consumers.
 
-The platform must not silently convert model guesses into canonical graph facts.
+Implementation: `docs/KNOWLEDGE_GRAPH.md`. Model output is suggestion-only, proposed relations require chunk evidence, and proposed/rejected edges never enter canonical traversal. The platform does not silently convert model guesses into graph facts.
 
 ### DP-SYNC-001 — continuous indexing
 

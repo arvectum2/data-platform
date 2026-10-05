@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
@@ -403,6 +404,9 @@ class EntityRelationCreateRequest(BaseModel):
     source_entity_id: str = Field(min_length=1, max_length=36)
     target_entity_id: str = Field(min_length=1, max_length=36)
     relation_type: str = Field(min_length=1, max_length=128)
+    status: str = Field(default="canonical", pattern="^(canonical|proposed|rejected)$")
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
     source_collection_id: str | None = Field(default=None, max_length=128)
     resource_id: str | None = Field(default=None, max_length=64)
     document_id: str | None = Field(default=None, max_length=64)
@@ -415,6 +419,9 @@ class EntityRelationResponse(BaseModel):
     source_entity_id: str
     target_entity_id: str
     relation_type: str
+    status: str = "canonical"
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
     source_collection_id: str | None = None
     resource_id: str | None = None
     document_id: str | None = None
@@ -477,3 +484,39 @@ class ResearchResponse(BaseModel):
     sources: list[ResearchSourceResponse] = Field(default_factory=list)
     evidence: list[SearchHitResponse] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+
+
+class EntityRelationReviewRequest(BaseModel):
+    decision: str = Field(pattern="^(canonical|rejected)$")
+    reviewer: str | None = Field(default=None, max_length=128)
+
+
+class EntityGraphEdgeResponse(EntityRelationResponse):
+    depth: int = Field(ge=1, le=5)
+
+
+class GraphSuggestionRequest(BaseModel):
+    query: str = Field(min_length=1)
+    collection_id: str = Field(min_length=1, max_length=128)
+    entity_ids: list[str] = Field(min_length=1, max_length=50)
+    evidence_limit: int = Field(default=8, ge=1, le=20)
+
+
+class AliasSuggestionResponse(BaseModel):
+    entity_id: str
+    alias: str
+    chunk_id: str
+
+
+class RelationSuggestionResponse(BaseModel):
+    source_entity_id: str
+    target_entity_id: str
+    relation_type: str
+    chunk_id: str
+    valid_from: str | None = None
+    valid_to: str | None = None
+
+
+class GraphSuggestionResponse(BaseModel):
+    aliases: list[AliasSuggestionResponse] = Field(default_factory=list)
+    relations: list[RelationSuggestionResponse] = Field(default_factory=list)

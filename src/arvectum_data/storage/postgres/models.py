@@ -349,6 +349,9 @@ class EntityRelationRow(Base):
         nullable=False,
     )
     relation_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="canonical", nullable=False)
+    valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     source_collection_id: Mapped[str | None] = mapped_column(
         ForeignKey("dp_collections.collection_id", ondelete="SET NULL"),
         nullable=True,
@@ -384,6 +387,7 @@ class EntityRelationRow(Base):
             "relation_type",
         ),
         Index("ix_dp_entity_relations_chunk", "chunk_id"),
+        Index("ix_dp_entity_relations_status", "status"),
     )
 
 class RelevanceFeedbackRow(Base):

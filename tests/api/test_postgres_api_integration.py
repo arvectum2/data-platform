@@ -873,6 +873,47 @@ def test_entity_relations_are_idempotent_and_provenance_checked() -> None:
         relation["relation_id"]
     ]
 
+    proposed_payload = dict(relation_payload)
+    proposed_payload["relation_type"] = "distributes"
+    proposed_payload["status"] = "proposed"
+    proposed_payload["valid_from"] = "2026-01-01T00:00:00Z"
+    proposed = client.post(
+        "/v1/entity-relations",
+        headers=headers,
+        json=proposed_payload,
+    )
+    assert proposed.status_code == 200
+    assert proposed.json()["status"] == "proposed"
+    assert proposed.json()["valid_from"].startswith("2026-01-01")
+
+    canonical_only = client.get(
+        f"/v1/entities/{source_entity.json()['entity_id']}/relations",
+        headers=headers,
+    )
+    assert proposed.json()["relation_id"] not in {
+        item["relation_id"] for item in canonical_only.json()
+    }
+
+    reviewed = client.post(
+        f"/v1/entity-relations/{proposed.json()['relation_id']}/review",
+        headers=headers,
+        json={"decision": "canonical", "reviewer": "integration-test"},
+    )
+    assert reviewed.status_code == 200
+    assert reviewed.json()["status"] == "canonical"
+    assert reviewed.json()["metadata"]["review"]["reviewer"] == "integration-test"
+
+    graph = client.get(
+        f"/v1/entities/{source_entity.json()['entity_id']}/graph?max_depth=2",
+        headers=headers,
+    )
+    assert graph.status_code == 200
+    assert {item["relation_id"] for item in graph.json()} >= {
+        relation["relation_id"],
+        proposed.json()["relation_id"],
+    }
+    assert all(item["depth"] >= 1 for item in graph.json())
+
     mismatched = dict(relation_payload)
     mismatched["document_id"] = "not-the-document"
     invalid_relation = client.post(
