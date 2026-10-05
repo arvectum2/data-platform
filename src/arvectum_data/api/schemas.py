@@ -79,6 +79,28 @@ class IngestResponse(BaseModel):
     extraction_status: str = "unknown"
 
 
+class ProcessedChunkResponse(BaseModel):
+    chunk_id: str
+    ordinal: int
+    text: str
+    content_hash: str
+    char_start: int
+    char_end: int
+    token_estimate: int
+
+
+class ProcessDocumentResponse(BaseModel):
+    resource_id: str
+    document_id: str
+    collection_id: str
+    canonical_uri: str
+    title: str
+    media_type: str
+    extraction_status: str
+    text: str
+    chunks: list[ProcessedChunkResponse]
+
+
 class FieldSpecRequest(BaseModel):
     key: str = Field(min_length=1)
     required: bool = False

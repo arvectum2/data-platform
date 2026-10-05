@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from ..acquisition import AcquisitionEngine
 from ..acquisition.security import UnsafeURL, validate_public_url
 from ..documents import ingest_file, ingest_url
+from ..processing import ChunkingConfig
 from ..connectors import (
     ConnectorRegistry,
     DuckDuckGoHTMLConnector,
@@ -321,6 +322,66 @@ class DataPlatformService:
                     collection.active_index_revision if collection else None
                 ),
             }
+
+    def process_document_bytes(
+        self,
+        *,
+        collection_id: str,
+        filename: str,
+        content: bytes,
+        title: str | None = None,
+        canonical_uri: str | None = None,
+        chunk_size_chars: int = 1500,
+        overlap_chars: int = 200,
+        min_chunk_chars: int = 120,
+        max_chars: int = 2_000_000,
+    ) -> dict[str, Any]:
+        suffix = Path(filename).suffix[:16]
+        temporary_path: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as handle:
+                handle.write(content)
+                temporary_path = handle.name
+            result = ingest_file(
+                temporary_path,
+                collection_id=collection_id,
+                canonical_uri=canonical_uri or f"upload://{filename}",
+                title=title or filename,
+                chunking=ChunkingConfig(
+                    chunk_size_chars=max(1, int(chunk_size_chars)),
+                    overlap_chars=max(0, int(overlap_chars)),
+                    min_chunk_chars=max(1, int(min_chunk_chars)),
+                ),
+                max_chars=max(1, int(max_chars)),
+            )
+            return {
+                "collection_id": result.resource.collection_id,
+                "resource_id": result.resource.resource_id,
+                "document_id": result.document.document_id,
+                "canonical_uri": result.resource.canonical_uri,
+                "title": result.document.title,
+                "media_type": result.document.media_type,
+                "extraction_status": result.document.extraction_status,
+                "text": result.document.text,
+                "chunks": [
+                    {
+                        "chunk_id": chunk.chunk_id,
+                        "ordinal": chunk.ordinal,
+                        "text": chunk.text,
+                        "content_hash": chunk.content_hash,
+                        "char_start": chunk.char_start,
+                        "char_end": chunk.char_end,
+                        "token_estimate": chunk.token_estimate,
+                    }
+                    for chunk in result.chunks
+                ],
+            }
+        finally:
+            if temporary_path:
+                try:
+                    os.unlink(temporary_path)
+                except FileNotFoundError:
+                    pass
 
     def ingest_document_bytes(
         self,
