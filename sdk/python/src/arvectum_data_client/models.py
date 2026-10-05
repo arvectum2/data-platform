@@ -105,6 +105,14 @@ class SearchResponse(TypedDict):
     hits: list[SearchHit]
 
 
+class SearchProfile(TypedDict, total=False):
+    mode: str
+    lexical_weight: float
+    vector_weight: float
+    query_variant_weight: float
+    collapse_by_canonical_uri: bool
+
+
 class DiscoveredResource(TypedDict, total=False):
     canonical_uri: str
     provider: str

@@ -1,5 +1,16 @@
 export const CONSUMER_CONTRACT_MAJOR = 1;
 
+export function buildCollectionId(namespace, ...segments) {
+  const parts = [namespace, ...segments].map((value) => String(value).trim());
+  if (parts.some((part) => !part)) {
+    throw new TypeError("collection id segments must not be blank");
+  }
+  if (parts.some((part) => part.includes(":"))) {
+    throw new TypeError("collection id segments must not contain colon");
+  }
+  return parts.join(":");
+}
+
 export class DataPlatformError extends Error {
   constructor(message, { status = null, method = null, path = null } = {}) {
     super(message);
@@ -242,6 +253,28 @@ export class DataPlatformClient {
         query_variant_weight: queryVariantWeight,
         collapse_by_canonical_uri: collapseByCanonicalUri,
       }),
+    });
+  }
+
+  searchWithProfile({
+    query,
+    collections,
+    limit = 10,
+    profile = {},
+    filters = {},
+    queryVariants = [],
+  }) {
+    return this.search({
+      query,
+      collections,
+      limit,
+      mode: profile.mode ?? "hybrid",
+      lexicalWeight: profile.lexicalWeight ?? 1,
+      vectorWeight: profile.vectorWeight ?? 1,
+      filters,
+      queryVariants,
+      queryVariantWeight: profile.queryVariantWeight ?? 0.5,
+      collapseByCanonicalUri: profile.collapseByCanonicalUri ?? false,
     });
   }
 

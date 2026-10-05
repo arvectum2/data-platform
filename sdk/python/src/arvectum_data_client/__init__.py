@@ -1,4 +1,5 @@
 from .client import DataPlatformClient, DataPlatformError, DataPlatformHttpClient
+from .naming import build_collection_id
 from .models import (
     Collection,
     CollectionStats,
@@ -15,6 +16,7 @@ from .models import (
     ProcessedDocument,
     SearchEvidence,
     SearchHit,
+    SearchProfile,
     SearchResponse,
     SearchScores,
 )
@@ -38,6 +40,8 @@ __all__ = [
     "ProcessedDocument",
     "SearchEvidence",
     "SearchHit",
+    "SearchProfile",
     "SearchResponse",
+    "build_collection_id",
     "SearchScores",
 ]
