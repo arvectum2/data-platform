@@ -241,13 +241,13 @@ Tender Agent PR #147 was merged and deployed into the Mac mini runtime on 2026-1
 
 The Arvectum OS database contained zero KnowledgeAssetRecord rows during the 2026-10-04 rollout, so the real-data gate cannot yet be closed. A live synthetic asset passed the full path (versioned deal collection -> pre-chunked ingest -> embedding -> hybrid search -> canonical asset mapping + source refs) with a representative search latency of about 0.18 s.
 
-Rechecked on 2026-10-05 against the production Arvectum OS database:
-`knowledge_asset_sets`, `knowledge_asset_records`, `postmortem_sets`,
-`postmortem_records`, `postmortem_findings`, `archive_export_sets`,
-`dashboard_snapshot_sets` and `deal_closure_sets` all still contain zero rows.
-The remaining acceptance gate is therefore blocked by the absence of a real
-completed upstream deal/postmortem lifecycle, not by Data Platform integration.
-Synthetic data is not used to close this real-data gate.
+Rechecked again on 2026-10-06 against the production Arvectum OS database:
+`knowledge_asset_sets=0`, `knowledge_asset_records=0`,
+`postmortem_sets=0`, `postmortem_records=0` and
+`deal_closure_sets=0`. The remaining acceptance gate is therefore still
+blocked by the absence of a real completed upstream deal/postmortem lifecycle,
+not by Data Platform integration. Synthetic data is not used to close this
+real-data gate.
 
 This integration is retrieval-only. It does not authorize autonomous M-049 Agent Registry or M-050 Prompt / Schema Library execution.
 
