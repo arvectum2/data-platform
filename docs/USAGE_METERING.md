@@ -9,10 +9,11 @@ The HTTP layer meters authenticated consumer requests for:
 - search;
 - answer synthesis;
 - research;
+- discovery for authenticated consumers;
 - memory write;
 - memory delete.
 
-Internal-only control-plane traffic is not billed by this meter. Customer ingest/discovery metering will be added when those surfaces are exposed through customer-managed connectors and credentials.
+Internal-only control-plane traffic is not billed by this meter. Authenticated consumer discovery is metered now that customer-managed connector credentials are supported. Customer ingest remains internal until an external ingest contract is explicitly introduced.
 
 Each event stores only:
 
