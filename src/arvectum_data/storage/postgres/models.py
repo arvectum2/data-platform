@@ -562,10 +562,13 @@ class BillingCatalogRow(Base):
     )
 
 
-class TenantBillingRow(Base):
-    __tablename__ = "dp_tenant_billing"
+class TenantBillingAssignmentRow(Base):
+    __tablename__ = "dp_tenant_billing_assignments"
 
-    tenant_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    assignment_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    tenant_id: Mapped[str] = mapped_column(String(128), nullable=False)
     catalog_id: Mapped[str] = mapped_column(
         ForeignKey("dp_billing_catalogs.catalog_id", ondelete="RESTRICT"),
         nullable=False,
@@ -577,14 +580,23 @@ class TenantBillingRow(Base):
         String(256), nullable=True
     )
     status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)
-    assigned_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, nullable=False
+    effective_from: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
     )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    effective_to: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
     )
 
     __table_args__ = (
+        Index(
+            "ix_dp_tenant_billing_tenant_effective",
+            "tenant_id",
+            "effective_from",
+            "effective_to",
+        ),
         Index(
             "ix_dp_tenant_billing_catalog_status",
             "catalog_id",
