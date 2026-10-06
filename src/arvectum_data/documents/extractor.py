@@ -29,6 +29,7 @@ _WVHTML_TIMEOUT_SECONDS = 30
 _WVHTML_MAX_HTML_BYTES = 16 * 1024 * 1024
 _SUPPORTED_EXTENSIONS = (
     ".txt",
+    ".md",
     ".doc",
     ".docx",
     ".rtf",
@@ -101,7 +102,7 @@ def _extract_by_ext(
     *,
     local_path: str | None = None,
 ) -> str | None:
-    if ext == ".txt":
+    if ext in (".txt", ".md"):
         return _extract_txt(content)
     if ext in (".doc", ".rtf"):
         return (
@@ -113,8 +114,10 @@ def _extract_by_ext(
         return _extract_docx(content)
     if ext == ".pdf":
         return _extract_pdf(content, max_chars)
-    if ext in (".xlsx", ".xls"):
+    if ext == ".xlsx":
         return _extract_xlsx(content)
+    if ext == ".xls":
+        return _extract_xls(content)
     if ext in (".html", ".htm"):
         return _extract_html(content)
     if ext == ".xml":
@@ -404,6 +407,61 @@ def _extract_xlsx(content: bytes) -> str:
         return "\n".join(lines)
     except Exception:
         return ""
+
+
+def _extract_xls(content: bytes) -> str:
+    """Extract legacy BIFF .xls workbooks with deterministic row projection."""
+
+    try:
+        import xlrd
+    except ImportError:
+        return ""
+    try:
+        workbook = xlrd.open_workbook(file_contents=content, on_demand=True)
+        lines: list[str] = []
+        for sheet in workbook.sheets():
+            sheet_lines: list[str] = []
+            for row_index in range(sheet.nrows):
+                values = [
+                    _format_xls_cell(
+                        sheet.cell(row_index, column_index),
+                        datemode=workbook.datemode,
+                        xlrd_module=xlrd,
+                    )
+                    for column_index in range(sheet.ncols)
+                ]
+                # Preserve interior empty cells as tab separators but discard
+                # trailing empties that carry no table structure.
+                while values and not values[-1]:
+                    values.pop()
+                if values:
+                    sheet_lines.append("\t".join(values))
+            if sheet_lines:
+                lines.append(f"=== {sheet.name} ===")
+                lines.extend(sheet_lines)
+        workbook.release_resources()
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def _format_xls_cell(cell, *, datemode: int, xlrd_module) -> str:
+    if cell.ctype in (xlrd_module.XL_CELL_EMPTY, xlrd_module.XL_CELL_BLANK):
+        return ""
+    if cell.ctype == xlrd_module.XL_CELL_DATE:
+        value = xlrd_module.xldate.xldate_as_datetime(cell.value, datemode)
+        if value.time().isoformat() == "00:00:00":
+            return value.date().isoformat()
+        return value.isoformat(sep=" ")
+    if cell.ctype == xlrd_module.XL_CELL_BOOLEAN:
+        return "TRUE" if bool(cell.value) else "FALSE"
+    if cell.ctype == xlrd_module.XL_CELL_NUMBER:
+        number = float(cell.value)
+        if number.is_integer():
+            return str(int(number))
+        return format(number, ".15g")
+    # Embedded newlines belong to the cell, not to the projected row boundary.
+    return " ".join(str(cell.value).split())
 
 
 def _extract_html(content: bytes) -> str:
