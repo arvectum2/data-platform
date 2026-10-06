@@ -293,7 +293,7 @@ Collection stats expose first/last source observation, latest embedding time, la
 - [x] DP-VEC-001: benchmark HNSW versus IVFFlat and keep exact pgvector search until ANN passes the relevance gate.
 - [x] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
 - [ ] DP-INT-002: close real-data production acceptance on the first non-empty KnowledgeAssetRecord set.
-- [ ] DP-BENCH-002: build the competitive frozen-corpus benchmark suite before promoting BM25, learned reranking, bounded LLM reranking, VLM escalation or query expansion. Accepted real-consumer retrieval coverage is now expanded to production_acceptance_v3 (20/20 top-1); multi-format, OCR/layout, adversarial and competitive-reference dimensions remain open.
+- [ ] DP-BENCH-002: build the competitive frozen-corpus benchmark suite before promoting BM25, learned reranking, bounded LLM reranking, VLM escalation or query expansion. Multi-format, OCR/layout, adversarial, faithfulness, multi-hop, sync, latency/resource and private-core dimensions are now executable; external competitive-reference runs and live VLM quality comparison remain open.
 
 ## AI/model architecture and capability roadmap
 
@@ -592,7 +592,7 @@ Required benchmark dimensions:
 - [x] incremental-sync efficiency: changed resources versus total reprocessed resources;
 - [x] latency p50/p95/max by pipeline stage;
 - [x] CPU/RAM/GPU footprint and throughput;
-- [ ] fully local/private execution coverage.
+- [x] fully local/private execution coverage.
 
 Competitive acceptance rule: no external system needs to be beaten on every dimension. Data Platform must meet its own product gates and document where a reference product is materially better, so the gap can be either intentionally accepted or added to the roadmap.
 
