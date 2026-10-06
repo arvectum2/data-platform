@@ -81,6 +81,7 @@ class ResearchWorkflow:
         source_limit: int = 8,
         evidence_limit: int = 8,
         consumer: str | None = None,
+        credential_id: str | None = None,
         rerank: bool = False,
         expand_query: bool = False,
     ) -> ResearchResult:
@@ -93,11 +94,20 @@ class ResearchWorkflow:
         diagnostics: list[ResearchStageDiagnostic] = []
 
         started = time.perf_counter()
-        page = self.service.discover(
-            connector_name=connector,
-            query=query,
-            limit=source_limit,
-        )
+        if credential_id is None:
+            page = self.service.discover(
+                connector_name=connector,
+                query=query,
+                limit=source_limit,
+            )
+        else:
+            page = self.service.discover(
+                connector_name=connector,
+                query=query,
+                limit=source_limit,
+                consumer=consumer,
+                credential_id=credential_id,
+            )
         diagnostics.append(
             ResearchStageDiagnostic(
                 stage="discovery",
@@ -124,11 +134,25 @@ class ResearchWorkflow:
             seen.add(uri)
             attempted += 1
             try:
-                self.service.ingest_url(
-                    collection_id=collection_id,
-                    url=uri,
-                    title=resource.title,
+                ingest_discovered = getattr(
+                    self.service,
+                    "ingest_discovered_resource",
+                    None,
                 )
+                if credential_id is not None and callable(ingest_discovered):
+                    ingest_discovered(
+                        collection_id=collection_id,
+                        connector_name=connector,
+                        resource=resource,
+                        consumer=consumer,
+                        credential_id=credential_id,
+                    )
+                else:
+                    self.service.ingest_url(
+                        collection_id=collection_id,
+                        url=uri,
+                        title=resource.title,
+                    )
                 ingested_count += 1
                 sources.append(
                     ResearchSource(

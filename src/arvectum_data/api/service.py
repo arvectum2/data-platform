@@ -25,7 +25,9 @@ from ..research import ResearchResult, ResearchWorkflow
 from ..connectors import (
     ConnectorRegistry,
     CredentialCipher,
+    DiscoveredResource,
     DuckDuckGoHTMLConnector,
+    GitHubRepositoryConnector,
     ManualURLConnector,
     SitemapConnector,
 )
@@ -332,6 +334,7 @@ class DataPlatformService:
         registry.register(ManualURLConnector())
         registry.register(SitemapConnector())
         registry.register(DuckDuckGoHTMLConnector())
+        registry.register(GitHubRepositoryConnector())
         return registry
 
     @staticmethod
@@ -403,6 +406,33 @@ class DataPlatformService:
             for item in self.connector_registry.health()
         ]
 
+    def _connector_for_request(
+        self,
+        connector_name: str,
+        *,
+        consumer: str | None = None,
+        credential_id: str | None = None,
+    ):
+        connector = self.connector_registry.get(connector_name)
+        if credential_id is None:
+            return connector
+        if consumer is None:
+            raise CollectionAccessDenied("connector credential requires consumer identity")
+        credential = self.resolve_connector_credential(
+            credential_id,
+            consumer_id=consumer,
+            connector_name=connector_name,
+        )
+        configure = getattr(connector, "with_credentials", None)
+        if configure is None:
+            raise ValueError(
+                f"connector {connector_name!r} does not support managed credentials"
+            )
+        return configure(
+            credential["secrets"],
+            metadata=credential["metadata"],
+        )
+
     def discover(
         self,
         *,
@@ -413,28 +443,62 @@ class DataPlatformService:
         consumer: str | None = None,
         credential_id: str | None = None,
     ):
-        connector = self.connector_registry.get(connector_name)
-        if credential_id is not None:
-            if consumer is None:
-                raise CollectionAccessDenied("connector credential requires consumer identity")
-            credential = self.resolve_connector_credential(
-                credential_id,
-                consumer_id=consumer,
-                connector_name=connector_name,
-            )
-            configure = getattr(connector, "with_credentials", None)
-            if configure is None:
-                raise ValueError(
-                    f"connector {connector_name!r} does not support managed credentials"
-                )
-            connector = configure(
-                credential["secrets"],
-                metadata=credential["metadata"],
-            )
+        connector = self._connector_for_request(
+            connector_name,
+            consumer=consumer,
+            credential_id=credential_id,
+        )
         discover = getattr(connector, "discover", None)
         if discover is None:
             raise ValueError(f"connector {connector_name!r} does not support discovery")
         return discover(query, cursor=cursor, limit=limit)
+
+    def ingest_discovered_resource(
+        self,
+        *,
+        collection_id: str,
+        connector_name: str,
+        resource: DiscoveredResource,
+        consumer: str | None = None,
+        credential_id: str | None = None,
+    ) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            collection = session.get(CollectionRow, collection_id)
+            if collection is None:
+                raise CollectionNotFound(collection_id)
+            self._authorize_collection_consumer(
+                collection,
+                consumer,
+                session=session,
+            )
+
+        connector = self._connector_for_request(
+            connector_name,
+            consumer=consumer,
+            credential_id=credential_id,
+        )
+        fetch = getattr(connector, "fetch", None)
+        if fetch is None:
+            raise ValueError(f"connector {connector_name!r} does not support fetch")
+        acquired = fetch(resource)
+        asset = acquired.asset
+        if asset.html is not None:
+            content = asset.html.encode("utf-8")
+            filename = str(resource.metadata.get("path") or resource.title or "resource.html")
+            if not Path(filename).suffix:
+                filename += ".html"
+        else:
+            content = (asset.text or "").encode("utf-8")
+            filename = str(resource.metadata.get("path") or resource.title or "resource.txt")
+            if not Path(filename).suffix:
+                filename += ".txt"
+        return self.ingest_document_bytes(
+            collection_id=collection_id,
+            filename=filename,
+            content=content,
+            title=resource.title,
+            canonical_uri=resource.canonical_uri,
+        )
 
     def _require_factory(self) -> sessionmaker[Session]:
         if self.session_factory is None:
@@ -2141,9 +2205,24 @@ class DataPlatformService:
         source_limit: int = 8,
         evidence_limit: int = 8,
         consumer: str | None = None,
+        credential_id: str | None = None,
         rerank: bool = False,
         expand_query: bool = False,
     ) -> ResearchResult:
+        if consumer is not None:
+            with self._require_factory()() as session:
+                collection = session.get(CollectionRow, collection_id)
+                if collection is None:
+                    raise CollectionNotFound(collection_id)
+                self._authorize_collection_consumer(
+                    collection,
+                    consumer,
+                    session=session,
+                )
+        if credential_id is not None and consumer is None:
+            raise CollectionAccessDenied(
+                "research connector credential requires consumer identity"
+            )
         return ResearchWorkflow(self).run(
             query=query,
             collection_id=collection_id,
@@ -2151,6 +2230,7 @@ class DataPlatformService:
             source_limit=source_limit,
             evidence_limit=evidence_limit,
             consumer=consumer,
+            credential_id=credential_id,
             rerank=rerank,
             expand_query=expand_query,
         )

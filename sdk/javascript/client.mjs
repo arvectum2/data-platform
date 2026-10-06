@@ -431,6 +431,38 @@ export class DataPlatformClient {
     });
   }
 
+  research({
+    query,
+    collectionId,
+    connector = "duckduckgo_html",
+    credentialId = null,
+    sourceLimit = 8,
+    evidenceLimit = 8,
+    rerank = false,
+    expandQuery = false,
+    executionMode = null,
+  }) {
+    const headers = { "Content-Type": "application/json" };
+    if (credentialId || this.consumer || this.consumerKey) {
+      Object.assign(headers, this.consumerHeadersRequired());
+    }
+    return this.json("/v1/research", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        query,
+        collection_id: collectionId,
+        connector,
+        ...(credentialId ? { credential_id: credentialId } : {}),
+        source_limit: sourceLimit,
+        evidence_limit: evidenceLimit,
+        rerank,
+        expand_query: expandQuery,
+        ...(executionMode ? { execution_mode: executionMode } : {}),
+      }),
+    });
+  }
+
   resolveEntity({ entityType, value, aliasKind = "name", limit = 20 }) {
     return this.json("/v1/entities/resolve", {
       method: "POST",

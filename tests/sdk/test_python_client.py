@@ -216,6 +216,26 @@ def test_connector_credential_sdk_contract() -> None:
                 200,
                 json={"resources": [], "next_cursor": None, "warnings": []},
             )
+        if request.url.path == "/v1/research":
+            payload = json.loads(request.content)
+            assert payload["connector"] == "private-search"
+            assert payload["credential_id"] == "cred-1"
+            assert payload["collection_id"] == "research:private"
+            return httpx.Response(
+                200,
+                json={
+                    "query": "supplier",
+                    "answer": None,
+                    "claims": [],
+                    "contradictions": [],
+                    "uncertainty": "disabled",
+                    "abstained": True,
+                    "sources": [],
+                    "evidence": [],
+                    "warnings": [],
+                    "diagnostics": None,
+                },
+            )
         raise AssertionError(request.url.path)
 
     client = _client(handler)
@@ -231,8 +251,16 @@ def test_connector_credential_sdk_contract() -> None:
         query="supplier",
         credential_id="cred-1",
     )["resources"] == []
+    assert client.research(
+        query="supplier",
+        collection_id="research:private",
+        connector="private-search",
+        credential_id="cred-1",
+        execution_mode="research",
+    )["abstained"] is True
     assert calls == [
         ("POST", "/v1/connectors/credentials"),
         ("GET", "/v1/connectors/credentials"),
         ("POST", "/v1/discover"),
+        ("POST", "/v1/research"),
     ]

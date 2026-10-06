@@ -558,11 +558,11 @@ Status: COMPLETE (platform vault/binding, 2026-10-06).
 - [x] fail-closed connector/consumer/tenant/status checks before decryption;
 - [x] Python and JavaScript SDK support;
 - [x] consumer discovery participates in usage metering;
-- [ ] ship the first concrete authenticated third-party connector package.
+- [x] ship the first concrete authenticated third-party connector package (`github_repository`);\n- [ ] run live private-repository acceptance with a tenant-owned GitHub credential.
 
 Implementation: `docs/CONNECTOR_CREDENTIALS.md`. The platform deliberately does not provide a generic arbitrary Authorization-header forwarder: each authenticated connector must define its own credential schema/application so secrets cannot be leaked through redirects or unrelated hosts.
 
-Connector-vault production acceptance (2026-10-06): migration `0011_connector_credentials` is live in `arvectum_data`; the production runtime has the cryptography dependency and a mode-0600, runtime-only master key at key version `v1`. A live encryption/decryption smoke confirmed ciphertext contains no plaintext secret and round-trips correctly. The API restarted healthy on the merged build. No real customer credential row was created for the acceptance.
+Connector-vault production acceptance (2026-10-06): migration `0011_connector_credentials` is live in `arvectum_data`; the production runtime has the cryptography dependency and a mode-0600, runtime-only master key at key version `v1`. A live encryption/decryption smoke confirmed ciphertext contains no plaintext secret and round-trips correctly. The API restarted healthy on the merged build. No real customer credential row was created for the acceptance.\n\nGitHub connector increment (2026-10-06): `github_repository` is the first concrete credential-aware connector package. Its token is resolved only from the encrypted vault; repository/ref scope is separate safe metadata; Authorization is restricted to fixed `api.github.com` HTTPS requests and credentialed redirects are rejected. The connector supports repository-scoped code discovery, raw text-file acquisition and credential-aware RESEARCH ingestion. Python/JavaScript SDKs now expose connector credential lifecycle, discovery and research. Live private-repository acceptance remains pending until a tenant-owned GitHub token is deliberately supplied; Data Platform does not scrape tokens from local Git tooling.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: FUTURE.
@@ -572,7 +572,7 @@ Potential product contour: connect documents, websites and APIs -> continuously 
 Before externalization:
 - [x] tenant isolation and quotas;
 - [x] customer-managed encrypted credential vault + connector binding;
-- [ ] first authenticated third-party connector package;
+- [x] first authenticated third-party connector package (`github_repository`);\n- [ ] live private GitHub repository acceptance with a customer-owned credential;
 - [x] billing-grade usage metering;
 - [ ] product pricing / invoicing / payment-provider integration;
 - [x] external auth and key lifecycle;
