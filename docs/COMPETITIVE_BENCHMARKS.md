@@ -312,3 +312,26 @@ A first external reference run is now reproducible with scripts/benchmark_qdrant
 On growth_search_console_v1 with 159 points and Qwen3-Embedding-4B/2560, Qdrant 1.19.2 and Data Platform vector-only produced identical quality: top-1 0.4167, MRR 0.625, Recall@5 0.8333 and nDCG@5 0.6796. Qdrant search-only p95 was about 5.4 ms. Including the shared query-embedding call, its end-to-end p95 was about 95.9 ms versus 126.6 ms through the Data Platform vector-only API.
 
 This does not justify replacing pgvector. The existing direct exact-pgvector benchmark measures about 3.3 ms p95 at 100% sampled recall on a larger 697-vector workload, so the observed end-to-end gap is primarily orchestration/API overhead rather than vector-engine weakness. Decision: keep exact pgvector and optimize the request path only if vector-only end-to-end latency becomes material.
+
+## External ingestion reference — Unstructured
+
+A second external reference run uses scripts/benchmark_unstructured_reference.py
+in a separate benchmark environment, so Unstructured and its OCR/inference stack
+do not become Data Platform runtime dependencies.
+
+With Unstructured 0.27.16, unstructured.pytesseract 0.3.15 and
+unstructured-inference 1.6.13, all five native artifacts (PDF, DOCX, XLSX and
+HTML) passed the same required-text/minimum-content checks as Data Platform.
+Both image-only PDF cases failed before OCR scoring. The failure is in the
+reference wrapper: its Tesseract adapter loses the temporary PNG path and then
+passes PNG bytes beginning with 0x89PNG as a filename; the wrapper subsequently
+raises UnicodeDecodeError while decoding the Tesseract error stream.
+
+On the same frozen corpus Data Platform passed 7/7 with direct Tesseract OCR,
+including the two scan profiles and the existing CER/WER plus structure gates.
+
+Decision: retain the current lightweight native extractors and direct Tesseract
+OCR path. Unstructured remains a useful layout/document-understanding reference,
+but the measured current version does not justify making its much larger
+dependency stack mandatory. Re-run future versions if they offer table/layout
+quality gains without regressing the Russian scanned-PDF path.
