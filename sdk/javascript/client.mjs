@@ -45,6 +45,17 @@ export class DataPlatformClient {
     return headers;
   }
 
+  consumerHeadersRequired(extra = {}) {
+    if (!this.consumer || !this.consumerKey) {
+      throw new TypeError("consumer credentials are required for this Data Platform operation");
+    }
+    return {
+      ...extra,
+      "X-Arvectum-Consumer": this.consumer,
+      "X-Arvectum-Consumer-Key": this.consumerKey,
+    };
+  }
+
   async raw(path, options = {}) {
     let response;
     try {
@@ -339,15 +350,83 @@ export class DataPlatformClient {
     });
   }
 
-  discover({ connector, query, cursor = null, limit = 10 }) {
+  createConnectorCredential({
+    connector,
+    secrets,
+    label = null,
+    metadata = {},
+  }) {
+    return this.json("/v1/connectors/credentials", {
+      method: "POST",
+      headers: this.consumerHeadersRequired({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        connector,
+        secrets,
+        label,
+        metadata,
+      }),
+    });
+  }
+
+  listConnectorCredentials({ connector = null } = {}) {
+    const suffix = connector
+      ? "?connector=" + encodeURIComponent(connector)
+      : "";
+    return this.json("/v1/connectors/credentials" + suffix, {
+      headers: this.consumerHeadersRequired(),
+    });
+  }
+
+  rotateConnectorCredential(
+    credentialId,
+    { secrets, label = null, metadata = null },
+  ) {
+    const payload = { secrets, label };
+    if (metadata !== null) payload.metadata = metadata;
+    return this.json(
+      "/v1/connectors/credentials/" +
+        encodeURIComponent(credentialId) +
+        "/rotate",
+      {
+        method: "POST",
+        headers: this.consumerHeadersRequired({ "Content-Type": "application/json" }),
+        body: JSON.stringify(payload),
+      },
+    );
+  }
+
+  revokeConnectorCredential(credentialId) {
+    return this.json(
+      "/v1/connectors/credentials/" +
+        encodeURIComponent(credentialId) +
+        "/revoke",
+      {
+        method: "POST",
+        headers: this.consumerHeadersRequired(),
+      },
+    );
+  }
+
+  discover({
+    connector,
+    query,
+    cursor = null,
+    limit = 10,
+    credentialId = null,
+  }) {
+    const headers = { "Content-Type": "application/json" };
+    if (this.consumer || this.consumerKey) {
+      Object.assign(headers, this.consumerHeadersRequired());
+    }
     return this.json("/v1/discover", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         connector,
         query,
         limit,
         ...(cursor ? { cursor } : {}),
+        ...(credentialId ? { credential_id: credentialId } : {}),
       }),
     });
   }
