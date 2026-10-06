@@ -106,3 +106,20 @@ adversarial queries themselves use PostgreSQL lexical retrieval. This isolates
 the security/data-lifecycle invariants from embedding-model variance.
 
 First isolated PostgreSQL acceptance on the Mac mini (2026-10-06) passed 5/5. The isolation case returned one requested-collection hit and zero forbidden hits; the tenant case denied the unauthorized consumer and returned one hit for the authorized consumer; federated duplicate content collapsed to one canonical URI; both conflicting source URIs and their evidence survived retrieval; and the stale case transitioned refresh_error -> stale while preserving the original content hash and searchable last-known evidence. The temporary benchmark database was dropped after the run.
+
+## Exact fact preservation
+
+benchmarks/fact_preservation_v1.json binds exact facts to real frozen public
+PDF/DOCX/XLSX artifacts. Cases currently cover an OKUD identifier, dates, an
+OKPD2 code and monetary values.
+
+The benchmark has two independent gates. First, default deterministic chunking
+must retain the exact fact and its local context in at least one chunk. Second,
+the exact fact is issued as a PostgreSQL lexical query against a collection
+containing all benchmark source documents; the expected source must rank first.
+
+This catches two different failure classes: a parser/chunker can damage a fact
+before indexing, or retrieval can fail even though the fact survived in the
+indexed text.
+
+First isolated PostgreSQL acceptance on the Mac mini (2026-10-06) passed all six cases. Chunk preservation = 1.0, same-chunk context preservation = 1.0 and exact PostgreSQL lexical top-1 retrieval = 1.0. The accepted cases cover PDF/DOCX/XLSX facts across identifiers, dates, classification numbers and monetary values. The temporary benchmark database was dropped after the run.

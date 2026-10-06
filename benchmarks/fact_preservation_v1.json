@@ -1,0 +1,52 @@
+{
+  "name": "fact-preservation-v1",
+  "description": "Exact fact preservation and retrieval over frozen real public procurement fixtures.",
+  "metadata": {
+    "created_at": "2026-10-06",
+    "corpus_manifest": "corpora/public_v1/manifest.json"
+  },
+  "cases": [
+    {
+      "id": "pdf-okud-identifier",
+      "artifact_id": "procurement-control-notice-pdf",
+      "kind": "identifier",
+      "fact": "0506135",
+      "context": "Форма по ОКУД"
+    },
+    {
+      "id": "pdf-control-date",
+      "artifact_id": "procurement-control-notice-pdf",
+      "kind": "date",
+      "fact": "13.07.2026",
+      "context": "Форма по ОКУД"
+    },
+    {
+      "id": "docx-okpd-number",
+      "artifact_id": "procurement-nmck-docx",
+      "kind": "identifier",
+      "fact": "58.11.19.000",
+      "context": "Книгоиздательская продукция"
+    },
+    {
+      "id": "docx-nmck-amount",
+      "artifact_id": "procurement-nmck-docx",
+      "kind": "amount",
+      "fact": "299 967,00",
+      "context": "НМЦК"
+    },
+    {
+      "id": "xlsx-provider-date",
+      "artifact_id": "procurement-nmck-xlsx",
+      "kind": "date",
+      "fact": "04.08.2026",
+      "context": "КП №1"
+    },
+    {
+      "id": "xlsx-line-amount",
+      "artifact_id": "procurement-nmck-xlsx",
+      "kind": "amount",
+      "fact": "282171.58",
+      "context": "Произвести монтаж новой системы АПС"
+    }
+  ]
+}
