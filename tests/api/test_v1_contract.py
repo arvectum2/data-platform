@@ -31,6 +31,7 @@ class FakePlatformService:
         name,
         default_language,
         access_policy=None,
+        retention_policy=None,
     ):
         return {
             "collection_id": collection_id,
@@ -42,6 +43,7 @@ class FakePlatformService:
             "embedding_dimension": 16,
             "active_index_revision": None,
             "access_policy": dict(access_policy or {}),
+            "retention_policy": dict(retention_policy or {}),
         }
 
     def get_collection(self, collection_id):
@@ -51,6 +53,47 @@ class FakePlatformService:
             name="Test",
             default_language="simple",
         )
+
+    def export_collection(
+        self,
+        collection_id,
+        *,
+        include_content=False,
+        offset=0,
+        limit=100,
+    ):
+        return {
+            "collection": self.get_collection(collection_id),
+            "include_content": include_content,
+            "offset": offset,
+            "limit": limit,
+            "total_resources": 1,
+            "has_more": False,
+            "resources": [],
+        }
+
+    def prune_collection_retention(self, collection_id, *, dry_run=True):
+        return {
+            "collection_id": collection_id,
+            "dry_run": dry_run,
+            "max_age_days": 30,
+            "cutoff_at": "2026-09-06T00:00:00Z",
+            "matched_resources": 0,
+            "deleted_resources": 0,
+        }
+
+    def delete_collection(self, collection_id, *, confirm=False):
+        return {
+            "collection_id": collection_id,
+            "confirmed": confirm,
+            "deleted": confirm,
+            "counts": {
+                "resources": 1,
+                "documents": 1,
+                "chunks": 1,
+                "embeddings": 1,
+            },
+        }
 
     def collection_stats(self, collection_id):
         return {

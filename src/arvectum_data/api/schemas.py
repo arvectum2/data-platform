@@ -30,12 +30,17 @@ class CollectionAccessPolicy(BaseModel):
         self.allowed_consumers = normalized
         return self
 
+class CollectionRetentionPolicy(BaseModel):
+    max_age_days: int | None = Field(default=None, ge=1, le=36500)
+
+
 class CollectionCreateRequest(BaseModel):
     collection_id: str = Field(min_length=1, max_length=128)
     owner: str = Field(min_length=1, max_length=128)
     name: str = Field(min_length=1, max_length=256)
     default_language: str = Field(default="simple", max_length=32)
     access_policy: CollectionAccessPolicy | None = None
+    retention_policy: CollectionRetentionPolicy | None = None
 
 
 CollectionCreate = CollectionCreateRequest
@@ -51,6 +56,33 @@ class CollectionResponse(BaseModel):
     embedding_dimension: int | None = None
     active_index_revision: str | None = None
     access_policy: dict[str, Any] = Field(default_factory=dict)
+    retention_policy: dict[str, Any] = Field(default_factory=dict)
+
+
+class CollectionExportResponse(BaseModel):
+    collection: dict[str, Any]
+    include_content: bool
+    offset: int
+    limit: int
+    total_resources: int
+    has_more: bool
+    resources: list[dict[str, Any]]
+
+
+class CollectionRetentionPruneResponse(BaseModel):
+    collection_id: str
+    dry_run: bool
+    max_age_days: int
+    cutoff_at: datetime
+    matched_resources: int
+    deleted_resources: int
+
+
+class CollectionDeleteResponse(BaseModel):
+    collection_id: str
+    confirmed: bool
+    deleted: bool
+    counts: dict[str, int]
 
 
 class CollectionStatsResponse(BaseModel):
