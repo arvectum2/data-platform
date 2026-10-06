@@ -1,0 +1,31 @@
+{
+  "measured_at": "2026-10-06",
+  "suite": "growth_search_console_v1",
+  "embedding_provider": "llama_cpp",
+  "embedding_model": "Qwen3-Embedding-4B",
+  "dimension": 2560,
+  "points": 159,
+  "qdrant": {
+    "version": "1.19.2",
+    "image_digest": "sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad",
+    "top1_accuracy": 0.4166666666666667,
+    "mrr": 0.625,
+    "recall_at_5": 0.8333333333333334,
+    "ndcg_at_5": 0.6795540639881074,
+    "search_only_p95_ms": 5.392798077082261,
+    "end_to_end_p95_ms": 95.8582625084091
+  },
+  "data_platform_vector_only": {
+    "top1_accuracy": 0.4166666666666667,
+    "mrr": 0.625,
+    "recall_at_5": 0.8333333333333334,
+    "ndcg_at_5": 0.6795540639881072,
+    "end_to_end_p95_ms": 126.6011023282772
+  },
+  "existing_direct_pgvector_reference": {
+    "corpus_vectors": 697,
+    "exact_vector_p95_ms": 3.321,
+    "recall_at_10": 1.0
+  },
+  "decision": "Keep exact pgvector. Qdrant reproduces dense quality but does not show an engine-level reason to migrate; the end-to-end gap points to API/embedding orchestration overhead instead."
+}
