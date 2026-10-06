@@ -1,0 +1,43 @@
+{
+  "scope": "core ingestion/OCR/indexing/retrieval/reasoning pipeline; external discovery/acquisition connectors excluded",
+  "coverage": 1.0,
+  "fully_private": true,
+  "components": [
+    {
+      "component": "api",
+      "private": true,
+      "mode": "loopback",
+      "detail": "service bind address"
+    },
+    {
+      "component": "database",
+      "private": true,
+      "mode": "local",
+      "detail": "database hostname is loopback/local"
+    },
+    {
+      "component": "embeddings",
+      "private": true,
+      "mode": "loopback",
+      "detail": "embedding provider executes locally"
+    },
+    {
+      "component": "ocr",
+      "private": true,
+      "mode": "tesseract",
+      "detail": "OCR is disabled or uses local Tesseract"
+    },
+    {
+      "component": "reasoning",
+      "private": true,
+      "mode": "local-only",
+      "detail": "local-only policy with loopback endpoint"
+    },
+    {
+      "component": "vision",
+      "private": true,
+      "mode": "disabled",
+      "detail": "capability disabled"
+    }
+  ]
+}

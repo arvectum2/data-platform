@@ -618,6 +618,8 @@ Multi-hop increment (2026-10-06): multi_hop_v1 exercises provenance-backed entit
 
 Latency increment (2026-10-06): a unified Mac mini stage snapshot now records p50/p95/max from the frozen real corpus, production retrieval and local faithfulness suites. Native ingestion measured ~48.7/83.2/89.6 ms, OCR ~2.13/2.70/2.76 s, retrieval ~107.4/128.5/133.3 ms, and local Gemma synthesis ~10.62/15.13/15.80 s. The result is frozen at benchmarks/results/pipeline_latency_2026-10-06.json.
 
+Private-runtime increment (2026-10-06): the production Mac mini core path passes 6/6 local/private checks: API and PostgreSQL are loopback-local, embeddings run on the loopback llama.cpp server, OCR uses local Tesseract, reasoning is enforced as local-only on a loopback endpoint, and vision is disabled. Core coverage is therefore 1.0. External discovery/acquisition remains explicitly networked and is outside this offline-core claim.
+
 ### Benchmark-driven adoption gates
 
 - [ ] BM25 backend only if frozen corpora show a repeatable lexical-quality gap over PostgreSQL FTS;

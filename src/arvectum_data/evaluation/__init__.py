@@ -54,6 +54,11 @@ from .pipeline_latency import (
     StageLatency,
     build_pipeline_latency_report,
 )
+from .private_runtime import (
+    PrivateComponent,
+    PrivateRuntimeReport,
+    evaluate_private_runtime,
+)
 from .query_expansion_gate import QueryExpansionGate
 from .rerank_compare import RerankComparison, compare_reranking
 from .rerank_gate import RerankGate
@@ -95,6 +100,8 @@ __all__ = [
     "PipelineLatencyReport",
     "MultiHopSuite",
     "MultiHopSummary",
+    "PrivateComponent",
+    "PrivateRuntimeReport",
     "QueryExpansionGate",
     "RerankComparison",
     "RerankGate",
@@ -109,6 +116,7 @@ __all__ = [
     "evaluate_case",
     "evaluate_corpus",
     "evaluate_fact_chunking",
+    "evaluate_private_runtime",
     "build_local_provider",
     "evaluate_faithfulness_suite",
     "evaluate_suite",
