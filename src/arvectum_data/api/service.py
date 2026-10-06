@@ -111,6 +111,10 @@ class ConsumerKeyNotFound(LookupError):
     pass
 
 
+class ConnectorCredentialNotFound(LookupError):
+    pass
+
+
 class MemoryNotFound(LookupError):
     pass
 
@@ -741,7 +745,7 @@ class DataPlatformService:
         with self._require_factory()() as session:
             row = session.get(ConnectorCredentialRow, credential_id)
             if row is None:
-                raise LookupError("connector credential not found")
+                raise ConnectorCredentialNotFound(credential_id)
             tenant_id = self._consumer_tenant(consumer_id, session=session)
             if (
                 row.status != "active"
