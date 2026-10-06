@@ -67,3 +67,11 @@ On 2026-10-06 the hard `growth_search_console_v1` suite was rerun on the Mac min
 - latency multiplier: 2.18x, inside the existing <=3x promotion gate.
 
 The learned/cross-encoder candidate therefore passes the benchmark promotion gate. A separate warm-process measurement put physical footprint at about 3.74 GB with a ~3.87 GB peak on the 24 GiB Apple Silicon host. This does not make reranking automatic yet: API integration, lifecycle/memory accounting and model packaging remain separate implementation work. The frozen result is `benchmarks/results/cross_encoder_rerank_2026-10-06.json`.
+
+## BGE live acceptance — 2026-10-06
+
+The first concrete learned candidate, `BAAI/bge-reranker-v2-m3` (Apache-2.0), was measured on the 12-case `growth_search_console_v1` hard suite on the Mac mini in a separate benchmark virtual environment. After three warm-up passes and with 5 candidates capped at 800 characters, baseline hybrid scored top-1 0.500, MRR 0.5833, nDCG@5 0.6468 and p95 134.6 ms. The cross-encoder scored top-1 0.5833, MRR 0.6667, nDCG@5 0.6885 and p95 334.2 ms.
+
+That is +0.0833 top-1, +0.0833 MRR, +0.0417 nDCG@5 and a 2.48x p95 multiplier. It passes the frozen rerank promotion gate: MRR gain >= 0.03, top-1 gain >= 0.05 and p95 <= 3x baseline.
+
+Decision: accept BGE as the preferred optional learned reranker. Keep it disabled by default until runtime packaging is isolated from the core API service; the model cache is about 2.1 GB and sentence-transformers/torch should not become mandatory dependencies for FAST/local-core deployments.
