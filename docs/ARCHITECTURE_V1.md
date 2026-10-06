@@ -329,3 +329,23 @@ Data Platform is the owner of reusable data/search infrastructure: acquisition, 
 Consumer products depend on Data Platform. Data Platform must not import or encode consumer-domain logic. In particular, Tender Agent keeps EIS/44-FZ/223-FZ semantics, procurement requirements, application composition, Decision Core, Commercial Core, GO/NO-GO, supplier/tender compatibility, procurement rules/evidence mapping, and tender reporting. SEO/research agents and Arvectum OS RAG follow the same consumer direction.
 
 The dependency direction is therefore Tender Agent / SEO / Arvectum OS -> Data Platform, never the reverse. The /v1/process/document endpoint exists specifically so consumers can reuse platform-owned extraction and chunking without copying those implementations into their own repositories; consumers may keep domain-local projections of the resulting chunks when their business logic requires stable local references.
+
+## 14. API/service composition after core stabilization
+
+The public compatibility surface remains arvectum_data.api.service.DataPlatformService and arvectum_data.api.app:create_app, but implementation ownership is split by bounded context.
+
+DataPlatformService is a thin composition root. Domain-neutral orchestration lives in api/service_mixins/:
+
+- access/model/connector and credential lifecycle;
+- billing and usage metering;
+- collection/document lifecycle;
+- evidence-backed memory and refresh/sync;
+- retrieval, answer/research and index lifecycle;
+- entity graph and relevance feedback;
+- structured extraction.
+
+Shared service exceptions and compatibility helpers live in api/service_support.py. Existing imports from api.service remain supported.
+
+HTTP application setup, middleware, authentication and error mapping stay in api/app.py. Versioned endpoint implementations are registered from thematic modules under api/routes/. This keeps route wiring independent from service internals while preserving the exact /v1 contract.
+
+Refactoring changes in these composition layers are required to preserve the normalized OpenAPI schema and the callable method/signature surface of DataPlatformService, unless an explicit versioned contract change is intended.
