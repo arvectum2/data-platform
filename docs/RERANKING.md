@@ -55,7 +55,7 @@ A provider-neutral `CrossEncoderReranker` is available as a benchmark candidate.
 
 The optional `SentenceTransformersCrossEncoderScorer` uses a lazy import, so sentence-transformers/torch are not mandatory runtime dependencies and default deployments are unchanged. No cross-encoder is enabled automatically.
 
-The first intended local benchmark candidate is `BAAI/bge-reranker-v2-m3`: multilingual and commercially usable under Apache-2.0. Promotion still requires measurable nDCG/MRR uplift on the hard frozen suite while staying inside the accepted latency/resource envelope. Until that live benchmark exists, the learned/cross-encoder roadmap gate remains open.
+The accepted local candidate is `BAAI/bge-reranker-v2-m3`: multilingual and commercially usable under Apache-2.0. It passed the hard frozen-suite nDCG/MRR and latency gate and is the preferred strategy when reranking is explicitly enabled.
 
 ## Cross-encoder live promotion result
 
@@ -66,7 +66,7 @@ On 2026-10-06 the hard `growth_search_console_v1` suite was rerun on the Mac min
 - gain: +0.0833 MRR, +0.0833 top-1, +0.0417 mean nDCG@5;
 - latency multiplier: 2.18x, inside the existing <=3x promotion gate.
 
-The learned/cross-encoder candidate therefore passes the benchmark promotion gate. A separate warm-process measurement put physical footprint at about 3.74 GB with a ~3.87 GB peak on the 24 GiB Apple Silicon host. This does not make reranking automatic yet: API integration, lifecycle/memory accounting and model packaging remain separate implementation work. The frozen result is `benchmarks/results/cross_encoder_rerank_2026-10-06.json`.
+The learned/cross-encoder candidate therefore passes the benchmark promotion gate. A separate warm-process measurement put physical footprint at about 3.74 GB with a ~3.87 GB peak on the 24 GiB Apple Silicon host. API integration and isolated localhost sidecar packaging are now deployed; invocation still remains opt-in through `rerank=true`. The frozen result is `benchmarks/results/cross_encoder_rerank_2026-10-06.json`.
 
 ## BGE live acceptance — 2026-10-06
 
@@ -74,7 +74,7 @@ The first concrete learned candidate, `BAAI/bge-reranker-v2-m3` (Apache-2.0), wa
 
 That is +0.0833 top-1, +0.0833 MRR, +0.0417 nDCG@5 and a 2.48x p95 multiplier. It passes the frozen rerank promotion gate: MRR gain >= 0.03, top-1 gain >= 0.05 and p95 <= 3x baseline.
 
-Decision: accept BGE as the preferred optional learned reranker. Keep it disabled by default until runtime packaging is isolated from the core API service; the model cache is about 2.1 GB and sentence-transformers/torch should not become mandatory dependencies for FAST/local-core deployments.
+Decision: accept BGE as the preferred optional learned reranker. Runtime packaging is isolated from the core API service through the localhost sidecar, so sentence-transformers/torch remain outside FAST/local-core dependencies. `rerank=false` stays the request default; `cross_encoder` is the default strategy once reranking is enabled.
 
 ## Production sidecar activation
 
@@ -85,3 +85,12 @@ Core Data Platform uses the lightweight `HttpCrossEncoderScorer` and therefore k
 `rerank=false` remains the API default, so FAST/core behavior is unchanged. When reranking is explicitly enabled and no strategy is supplied, `cross_encoder` is now preferred. The previous reasoning/LLM path remains available with `rerank_strategy=reasoning`.
 
 Sidecar failure is fail-open: timeout, connection failure, malformed scoring output or an unavailable model leaves the original deterministic hybrid ordering intact and reports the rerank stage as `failed-open`/unavailable in diagnostics. LOCAL_PRIVATE additionally rejects a non-loopback cross-encoder endpoint.
+
+
+## Production runtime acceptance — 2026-10-06
+
+The Mac mini production deployment runs `com.arvectum.reranker` on `127.0.0.1:8091` and Data Platform on `127.0.0.1:8094`. The sidecar performs three production-shape warm-up passes before opening the socket, so torch/Metal compilation cost is paid at startup rather than on the first search.
+
+A live STANDARD search for the frozen `gsc-supplier-selection` case, with `rerank=true`, `rerank_candidates=3` and no explicit strategy, selected the cross-encoder automatically. The base hybrid order placed the procurement page third; BGE promoted it to first. Observed rerank stage latency was 242 ms on the initial acceptance run and 219 ms on the post-restart re-check; total search was 287 ms and 285 ms respectively, both inside the 1500 ms STANDARD budget.
+
+Fail-open was tested by fully booting out the reranker launch agent. The same API request still returned HTTP 200, reported `rerank_status=failed-open` in ~0.9 ms, preserved null rerank scores and completed in ~55 ms using deterministic hybrid ordering. The launch agent was then restored, health returned `ok`, and a second live request again reported `rerank_status=executed` with the accepted top-1.
