@@ -590,7 +590,7 @@ Required benchmark dimensions:
 - [x] multi-hop evidence retrieval;
 - [x] zero cross-collection / cross-tenant leakage;
 - [x] incremental-sync efficiency: changed resources versus total reprocessed resources;
-- [ ] latency p50/p95/max by pipeline stage;
+- [x] latency p50/p95/max by pipeline stage;
 - [ ] CPU/RAM/GPU footprint and throughput;
 - [ ] fully local/private execution coverage.
 
@@ -615,6 +615,8 @@ Rerank comparison increment (2026-10-06): growth_search_console_v1 provides an u
 Incremental-sync increment (2026-10-06): sync_efficiency_v1 exercises no-change, single-change and all-change refresh cycles over three URL resources on an isolated PostgreSQL database. Acceptance passed 3/3: unchanged resources caused zero index/embedding work, one changed resource caused exactly one index plus one embedding write, and three changes caused exactly three. Aggregate indexing amplification is 1.0 with zero unnecessary indexed resources.
 
 Multi-hop increment (2026-10-06): multi_hop_v1 exercises provenance-backed entity-graph traversal over two- and three-hop paths. Isolated PostgreSQL acceptance passed 3/3 with target recall 1.0 and provenance completeness 1.0: contract -> supplier -> INN, supplier -> product -> manufacturer, and supplier -> product -> manufacturer -> country all reached the expected depth while every required edge retained collection/resource/document/chunk evidence.
+
+Latency increment (2026-10-06): a unified Mac mini stage snapshot now records p50/p95/max from the frozen real corpus, production retrieval and local faithfulness suites. Native ingestion measured ~48.7/83.2/89.6 ms, OCR ~2.13/2.70/2.76 s, retrieval ~107.4/128.5/133.3 ms, and local Gemma synthesis ~10.62/15.13/15.80 s. The result is frozen at benchmarks/results/pipeline_latency_2026-10-06.json.
 
 ### Benchmark-driven adoption gates
 

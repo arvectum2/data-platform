@@ -206,3 +206,18 @@ was 1.0 and provenance completeness was 1.0. The faithfulness suite separately
 checks that the reasoning model can synthesize across multiple supplied
 sources; this benchmark proves that evidence can actually be retrieved through
 multiple graph hops first.
+
+## Pipeline stage latency
+
+arvectum-data-latency-report aggregates raw benchmark latency into comparable
+p50/p95/max stages. The 2026-10-06 Mac mini snapshot combines the real public
+corpus, production_acceptance_v3 and faithfulness_v1:
+
+- native ingestion/extraction (5 samples): p50 48.7 ms, p95 83.2 ms, max 89.6 ms;
+- local OCR ingestion (2 scans): p50 2.13 s, p95 2.70 s, max 2.76 s;
+- production retrieval (20 cases): p50 107.4 ms, p95 128.5 ms, max 133.3 ms;
+- local Gemma answer synthesis (4 cases): p50 10.62 s, p95 15.13 s, max 15.80 s.
+
+The result is frozen in benchmarks/results/pipeline_latency_2026-10-06.json.
+This makes the optimization target explicit: deterministic retrieval is already
+sub-second, while OCR and especially local generative synthesis dominate latency.
