@@ -221,3 +221,17 @@ corpus, production_acceptance_v3 and faithfulness_v1:
 The result is frozen in benchmarks/results/pipeline_latency_2026-10-06.json.
 This makes the optimization target explicit: deterministic retrieval is already
 sub-second, while OCR and especially local generative synthesis dominate latency.
+
+## Fully local/private core coverage
+
+arvectum-data-private-eval audits the configured core execution path without
+printing credentials or endpoint secrets. The scope is ingestion/OCR, local
+indexing/database access, retrieval and optional reasoning/vision roles.
+External web discovery/acquisition is deliberately excluded because fetching a
+public URL is inherently networked and should not be mislabeled as offline.
+
+The 2026-10-06 production Mac mini audit passed 6/6 components (coverage 1.0):
+API binds to loopback, PostgreSQL is reached through loopback, the embedding
+server is loopback-local, OCR uses local Tesseract, reasoning is local-only on
+a loopback endpoint, and vision is disabled. The sanitized result is frozen in
+benchmarks/results/private_runtime_2026-10-06.json.
