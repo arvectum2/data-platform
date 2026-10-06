@@ -1,0 +1,64 @@
+{
+  "host_memory_bytes": 25769803776,
+  "gpu_memory_model": "Apple Silicon unified memory",
+  "dedicated_gpu_memory_bytes": null,
+  "process_physical_footprint_bytes": 11942448568,
+  "process_physical_footprint_peak_sum_bytes": 22576736896,
+  "processes": [
+    {
+      "role": "data-platform",
+      "port": 8094,
+      "pid": 19028,
+      "cpu_percent": 0.1,
+      "rss_bytes": 7241728,
+      "physical_footprint_bytes": 83509872,
+      "physical_footprint_peak_bytes": 84230768
+    },
+    {
+      "role": "embedding",
+      "port": 8090,
+      "pid": 1685,
+      "cpu_percent": 60.4,
+      "rss_bytes": 5734400,
+      "physical_footprint_bytes": 1810961640,
+      "physical_footprint_peak_bytes": 1923519720
+    },
+    {
+      "role": "reasoning",
+      "port": 8081,
+      "pid": 18558,
+      "cpu_percent": 50.8,
+      "rss_bytes": 35192832,
+      "physical_footprint_bytes": 10047977056,
+      "physical_footprint_peak_bytes": 20568986408
+    }
+  ],
+  "throughput": [
+    {
+      "workers": 1,
+      "queries": 20,
+      "elapsed_seconds": 2.167548249999527,
+      "queries_per_second": 9.227014900362363,
+      "top1_accuracy": 1.0
+    },
+    {
+      "workers": 4,
+      "queries": 20,
+      "elapsed_seconds": 1.5402184589765966,
+      "queries_per_second": 12.985170956390867,
+      "top1_accuracy": 1.0
+    },
+    {
+      "workers": 8,
+      "queries": 20,
+      "elapsed_seconds": 1.4962192919920199,
+      "queries_per_second": 13.367024544492152,
+      "top1_accuracy": 1.0
+    }
+  ],
+  "power": {
+    "cpu_power_mw": 6509.0,
+    "gpu_power_mw": 662.0,
+    "gpu_active_residency_percent": 85.56
+  }
+}

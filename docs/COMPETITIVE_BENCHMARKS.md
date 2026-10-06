@@ -235,3 +235,28 @@ API binds to loopback, PostgreSQL is reached through loopback, the embedding
 server is loopback-local, OCR uses local Tesseract, reasoning is local-only on
 a loopback endpoint, and vision is disabled. The sanitized result is frozen in
 benchmarks/results/private_runtime_2026-10-06.json.
+
+## Runtime footprint and throughput
+
+arvectum-data-resource-eval measures macOS physical footprint for the API,
+embedding server and reasoning server, then runs the frozen production-v3
+retrieval suite directly through DataPlatformService at configurable worker
+counts. Search quality is checked at the same time so throughput cannot be
+improved by returning empty or incorrectly ranked results.
+
+The 2026-10-06 Mac mini snapshot (24 GiB unified memory) measured about 11.94 GB
+of current combined physical footprint: Data Platform API 83.5 MB, Qwen3
+Embedding server 1.81 GB, and local Gemma reasoning server 10.05 GB. The sum of
+per-process historical peaks is about 22.58 GB; that is not a simultaneous peak
+measurement and must not be interpreted as one. Apple Silicon has unified
+memory, so there is no honest separate VRAM byte count; the report leaves the
+dedicated GPU-memory byte field empty instead of inventing one.
+
+Production-v3 retrieval retained top-1 accuracy 1.0 at every measured worker
+count. Sequential throughput was 9.23 queries/s, 4 workers reached 12.99
+queries/s, and 8 workers reached 13.37 queries/s, showing that scaling is
+already close to saturation after four concurrent queries with the current
+single-parallel embedding server. A post-throughput powermetrics sample showed
+CPU power about 6.51 W, GPU power about 0.66 W and GPU active residency about
+85.6%. The sanitized snapshot is frozen in
+benchmarks/results/runtime_resources_2026-10-06.json.
