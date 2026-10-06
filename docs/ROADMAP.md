@@ -289,6 +289,7 @@ Collection stats expose first/last source observation, latest embedding time, la
 
 ## Immediate next priorities
 
+- [x] Product-first sequencing fixed: current pilot/product completion takes priority; model cosmetics/refresh/optimization are deferred to Phase 2 and must be benchmark-driven.
 - [x] DP-VEC-001: formalize the VectorIndex protocol boundary.
 - [x] DP-VEC-001: benchmark HNSW versus IVFFlat and keep exact pgvector search until ANN passes the relevance gate.
 - [x] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
@@ -776,6 +777,106 @@ The first production consumer is Arvectum Site. Its product-entity sync resolves
 Entity graph relations are now explicit, evidence-aware and idempotent: relation IDs are deterministic over source/target/type plus evidence identity; inbound/outbound traversal is supported; provenance mismatches fail closed; the platform does not infer relations automatically.
 
 Federated cross-collection search now requires a consumer-scoped key. Collections can restrict access with allowed_consumers; protected single-collection search uses the same verified consumer identity. Authorization is fail-closed: an unauthorized collection returns 403 and is never silently omitted from a federated result set.
+
+## Phase 2 — model refresh and RU-market optimization
+
+Principle: **do not replace a working production model merely because a newer model exists.** The current stack remains the production baseline until a challenger demonstrates a measurable advantage on Arvectum's own Russian-market benchmarks.
+
+This phase begins only after the current product/pilot scope is complete. Model refresh, cosmetic modernization and marginal optimization are explicitly deferred so they do not distract from finishing the product.
+
+### Current production baselines
+
+- [x] Embeddings: `Qwen3-Embedding-4B` via local llama.cpp.
+- [x] OCR: local Tesseract, `rus+eng`, 220 DPI.
+- [x] Document/VLM escalation benchmark baseline: `Qwen2.5-VL-3B-Instruct-4bit` through MLX-VLM; production vision remains disabled unless explicitly enabled.
+- [x] Learned reranker: `BAAI/bge-reranker-v2-m3` via localhost sidecar.
+- [x] Reasoning/synthesis: local Gemma 4 12B through the OpenAI-compatible ReasoningProvider.
+
+### DP-MODEL-REFRESH-001 — periodic challenger bake-off
+
+Status: DEFERRED TO PHASE 2.
+
+Evaluate newer models by role against frozen Arvectum benchmarks, with Russian-language quality as a first-class acceptance dimension.
+
+#### Embedding challengers
+
+- [ ] benchmark `Qwen3-Embedding-8B` against the current 4B baseline;
+- [ ] benchmark `Giga-Embeddings-instruct-3B-0826`;
+- [ ] benchmark `Giga-Embeddings-instruct-480M-0826`;
+- [ ] keep the current embedding model unless a challenger improves Russian retrieval quality enough to justify latency/memory/reindexing cost.
+
+Required RU cases:
+- Russian morphology and inflection;
+- paraphrases with weak lexical overlap;
+- procurement/legal terminology;
+- organization names and abbreviations;
+- exact INN/KPP/OGRN/OKPD2/GOST/date/amount retrieval;
+- mixed Russian/English technical terminology.
+
+#### Reranker challengers
+
+- [ ] benchmark `Qwen3-Reranker-0.6B`;
+- [ ] benchmark `Qwen3-Reranker-4B`;
+- [ ] compare against production `BAAI/bge-reranker-v2-m3`;
+- [ ] require measurable MRR/nDCG/top-1 uplift inside the accepted latency and memory envelope before promotion.
+
+#### OCR / document-VLM challengers
+
+- [ ] benchmark `PaddleOCR-VL-1.6` as a specialized document-understanding escalation layer;
+- [ ] benchmark `Qwen3-VL-2B-Instruct`;
+- [ ] benchmark `Qwen3-VL-4B-Instruct`;
+- [ ] compare all candidates against the current Tesseract-first routing policy and existing Qwen2.5-VL reference;
+- [ ] keep Tesseract as the ordinary OCR path unless a challenger justifies replacing it on cost/latency as well as quality.
+
+Required Russian document cases:
+- native and scanned procurement PDFs;
+- forms and tables;
+- INN/KPP/OGRN and banking details;
+- ruble amounts and dates;
+- GOST / OKPD2 / legal references;
+- stamps/seals where visible;
+- small text, skew, blur and low-quality scans;
+- mixed Russian/English technical documents.
+
+#### Reasoning/synthesis challengers
+
+- [ ] benchmark `GigaChat 3 / 3.1 10B-A1.8B` against the current Gemma 4 12B baseline;
+- [ ] keep newer compact Qwen-family instruct models on the challenger list where local Apple-Silicon runtimes are practical;
+- [ ] track Yandex open Russian-first base/pretrain families for future instruct-ready releases rather than forcing base models into the ReasoningProvider.
+
+Required RU faithfulness cases:
+- Russian legal/procurement clauses;
+- negation and exception handling;
+- deadlines and payment terms;
+- conflicting document revisions;
+- multi-document synthesis;
+- exact sums and identifiers;
+- correct abstention when evidence is insufficient;
+- claim-level citation completeness and contradiction surfacing.
+
+### Promotion rule
+
+A challenger is promoted only when it wins on the frozen Arvectum benchmark under a documented quality/latency/memory trade-off.
+
+At minimum evaluate:
+- retrieval or extraction quality;
+- Russian-language quality;
+- latency p50/p95;
+- physical memory footprint;
+- throughput/concurrency;
+- local/private compatibility;
+- model license/commercial suitability;
+- migration/reindexing cost where applicable.
+
+No production replacement is justified by release date, leaderboard position or parameter count alone.
+
+### Model refresh cadence
+
+- [ ] review major model releases periodically after the product reaches the intended pilot milestone;
+- [ ] batch challengers into controlled bake-offs rather than swapping models continuously;
+- [ ] preserve the previous production model and benchmark result for rollback/comparison;
+- [ ] record every promotion/rejection decision with frozen benchmark evidence.
+
 
 ## Definition of done
 
