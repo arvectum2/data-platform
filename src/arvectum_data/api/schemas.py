@@ -285,6 +285,9 @@ class ExecutionModeProfileResponse(BaseModel):
     max_rerank_candidates: int
     max_discovery_sources: int
     max_evidence_items: int
+    p95_latency_budget_ms: int
+    max_model_calls: int
+    max_physical_footprint_bytes: int
     degradation: str
 
 
