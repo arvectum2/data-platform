@@ -9,6 +9,29 @@ from ..modes import ExecutionMode, validate_research_envelope, validate_search_e
 from ..search import RerankStrategy, SearchMode
 
 
+class ConsumerKeyCreateRequest(BaseModel):
+    consumer_id: str = Field(min_length=1, max_length=128)
+    tenant_id: str | None = Field(default=None, min_length=1, max_length=128)
+    label: str | None = Field(default=None, max_length=128)
+    expires_at: datetime | None = None
+
+
+class ConsumerKeyResponse(BaseModel):
+    key_id: str
+    consumer_id: str
+    tenant_id: str | None = None
+    key_prefix: str
+    label: str | None = None
+    status: str
+    created_at: datetime
+    expires_at: datetime | None = None
+    revoked_at: datetime | None = None
+
+
+class ConsumerKeyIssuedResponse(ConsumerKeyResponse):
+    secret: str
+
+
 class ConsumerContractResponse(BaseModel):
     name: str
     version: str

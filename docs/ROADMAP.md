@@ -542,7 +542,7 @@ Before externalization:
 - [x] tenant isolation and quotas;
 - [ ] customer-managed connectors/credentials;
 - [ ] billing/usage metering;
-- [ ] external auth and key lifecycle;
+- [x] external auth and key lifecycle;
 - [x] retention/deletion/export controls;
 - [x] deployment/privacy modes including a local/private mode in which documents and model requests never leave customer-controlled infrastructure;
 - [x] explicit per-capability policy for whether remote LLM/VLM providers are permitted;
@@ -555,6 +555,8 @@ Collection-lifecycle increment (2026-10-06): collection creation now accepts a b
 Privacy-mode increment (2026-10-06): Settings now supports deployment_mode=local-private as a startup invariant. The service fails closed if the API bind, database or embedding endpoint is non-local, OCR is not local/disabled, or reasoning/vision use anything other than disabled/local-only loopback policies; stale remote allowlists are rejected too. Standard mode keeps the existing explicit per-role disabled/local-only/remote-allowlist controls. /v1/status exposes the active deployment_mode. See docs/PRIVACY_MODES.md.
 
 Tenancy increment (2026-10-06): authenticated consumer identity is now separate from tenant identity through consumer_tenants. Collection access_policy can bind a collection to tenant_id and optionally narrow it further with allowed_consumers. Tenant search quotas bound collections/request, result count, rerank candidates and query variants and fail with HTTP 429; enforcement lives in DataPlatformService so direct callers cannot bypass it. The isolated PostgreSQL adversarial suite remains 5/5 with a real cross-tenant denial and authorized tenant retrieval. See docs/TENANCY.md.
+
+External-auth increment (2026-10-06): migration 0009 adds hash-only managed consumer API keys with create/list/rotate/revoke lifecycle. Plaintext secrets are generated server-side and returned only once on issue/rotation; database rows store only SHA-256 plus a display prefix. Valid managed keys can authenticate search/answer/research/memory data-plane routes without the internal control-plane key, while admin endpoints remain internal-key-only. Tenant identity resolves from managed key metadata and rotation/revocation take effect immediately. Isolated PostgreSQL acceptance covers issue, tenant search, admin denial, rotation and revocation. See docs/EXTERNAL_AUTH.md.
 
 ## DP-BENCH-002 — competitive benchmark suite
 

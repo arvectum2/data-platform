@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import secrets
 import tempfile
 import threading
 import time
@@ -58,6 +59,7 @@ from ..storage.postgres import (
     ChunkEmbeddingRow,
     ChunkRow,
     CollectionRow,
+    ConsumerApiKeyRow,
     DataRepository,
     DataRecordRow,
     DocumentRow,
@@ -98,6 +100,10 @@ class CollectionAccessDenied(PermissionError):
 
 
 class TenantQuotaExceeded(RuntimeError):
+    pass
+
+
+class ConsumerKeyNotFound(LookupError):
     pass
 
 
@@ -202,20 +208,56 @@ class DataPlatformService:
             max_candidate_chars=self.settings.cross_encoder_max_candidate_chars,
         )
 
+    def _consumer_tenant(
+        self,
+        consumer: str | None,
+        *,
+        session: Session | None = None,
+    ) -> str:
+        if consumer is None:
+            return ""
+        configured = self.settings.consumer_tenants.get(consumer, "")
+        if configured:
+            return configured
+        if self.session_factory is None:
+            return ""
+
+        def resolve(active_session: Session) -> str:
+            now = datetime.now(UTC)
+            tenants = {
+                str(value)
+                for value in active_session.scalars(
+                    select(ConsumerApiKeyRow.tenant_id).where(
+                        ConsumerApiKeyRow.consumer_id == consumer,
+                        ConsumerApiKeyRow.status == "active",
+                        or_(
+                            ConsumerApiKeyRow.expires_at.is_(None),
+                            ConsumerApiKeyRow.expires_at > now,
+                        ),
+                    )
+                )
+                if value
+            }
+            if len(tenants) > 1:
+                raise ValueError("consumer is associated with multiple active tenants")
+            return next(iter(tenants), "")
+
+        if session is not None:
+            return resolve(session)
+        with self._require_factory()() as active_session:
+            return resolve(active_session)
+
     def _authorize_collection_consumer(
         self,
         collection: CollectionRow,
         consumer: str | None,
+        *,
+        session: Session | None = None,
     ) -> None:
         policy = dict(collection.access_policy or {})
         tenant_id = str(policy.get("tenant_id") or "").strip()
         if tenant_id:
-            consumer_tenant = (
-                self.settings.consumer_tenants.get(consumer, "")
-                if consumer is not None
-                else ""
-            )
-            if consumer_tenant != tenant_id:
+            if self._consumer_tenant(consumer, session=session) != tenant_id:
                 raise CollectionAccessDenied(collection.collection_id)
         allowed_consumers = tuple(
             str(item)
@@ -232,7 +274,7 @@ class DataPlatformService:
     ) -> None:
         if consumer is None:
             return
-        tenant_id = self.settings.consumer_tenants.get(consumer)
+        tenant_id = self._consumer_tenant(consumer)
         if not tenant_id:
             return
         quota = dict(self.settings.tenant_quotas.get(tenant_id) or {})
@@ -401,6 +443,151 @@ class DataPlatformService:
             "model_roles": self.model_status(probe=False),
             "metrics": metrics,
         }
+
+    @staticmethod
+    def _consumer_key_payload(row: ConsumerApiKeyRow) -> dict[str, Any]:
+        return {
+            "key_id": row.key_id,
+            "consumer_id": row.consumer_id,
+            "tenant_id": row.tenant_id,
+            "key_prefix": row.key_prefix,
+            "label": row.label,
+            "status": row.status,
+            "created_at": row.created_at,
+            "expires_at": row.expires_at,
+            "revoked_at": row.revoked_at,
+        }
+
+    def create_consumer_key(
+        self,
+        *,
+        consumer_id: str,
+        tenant_id: str | None = None,
+        label: str | None = None,
+        expires_at: datetime | None = None,
+    ) -> dict[str, Any]:
+        consumer_id = consumer_id.strip()
+        if not consumer_id:
+            raise ValueError("consumer_id must not be blank")
+        tenant_id = tenant_id.strip() if tenant_id else None
+        if expires_at is not None:
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=UTC)
+            if expires_at <= datetime.now(UTC):
+                raise ValueError("expires_at must be in the future")
+        with self._require_factory()() as session:
+            existing_tenants = {
+                str(value)
+                for value in session.scalars(
+                    select(ConsumerApiKeyRow.tenant_id).where(
+                        ConsumerApiKeyRow.consumer_id == consumer_id,
+                        ConsumerApiKeyRow.status == "active",
+                        or_(
+                            ConsumerApiKeyRow.expires_at.is_(None),
+                            ConsumerApiKeyRow.expires_at > datetime.now(UTC),
+                        ),
+                    )
+                )
+                if value
+            }
+            if existing_tenants and tenant_id not in existing_tenants:
+                raise ValueError("consumer already belongs to another active tenant")
+
+            secret = "avk_" + secrets.token_urlsafe(32)
+            digest = hashlib.sha256(secret.encode("utf-8")).hexdigest()
+            row = ConsumerApiKeyRow(
+                consumer_id=consumer_id,
+                tenant_id=tenant_id,
+                key_hash=digest,
+                key_prefix=secret[:12],
+                label=label.strip() if label else None,
+                status="active",
+                expires_at=expires_at,
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return {**self._consumer_key_payload(row), "secret": secret}
+
+    def list_consumer_keys(
+        self,
+        *,
+        consumer_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        with self._require_factory()() as session:
+            query = select(ConsumerApiKeyRow).order_by(
+                ConsumerApiKeyRow.created_at.desc(),
+                ConsumerApiKeyRow.key_id.desc(),
+            )
+            if consumer_id:
+                query = query.where(ConsumerApiKeyRow.consumer_id == consumer_id)
+            return [
+                self._consumer_key_payload(row)
+                for row in session.scalars(query)
+            ]
+
+    def authenticate_consumer_key(self, consumer_id: str, secret: str) -> bool:
+        if not consumer_id or not secret or self.session_factory is None:
+            return False
+        digest = hashlib.sha256(secret.encode("utf-8")).hexdigest()
+        now = datetime.now(UTC)
+        with self._require_factory()() as session:
+            row = session.scalar(
+                select(ConsumerApiKeyRow).where(
+                    ConsumerApiKeyRow.consumer_id == consumer_id,
+                    ConsumerApiKeyRow.key_hash == digest,
+                    ConsumerApiKeyRow.status == "active",
+                    or_(
+                        ConsumerApiKeyRow.expires_at.is_(None),
+                        ConsumerApiKeyRow.expires_at > now,
+                    ),
+                )
+            )
+            return row is not None
+
+    def revoke_consumer_key(self, key_id: str) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            row = session.get(ConsumerApiKeyRow, key_id)
+            if row is None:
+                raise ConsumerKeyNotFound(key_id)
+            if row.status != "revoked":
+                row.status = "revoked"
+                row.revoked_at = datetime.now(UTC)
+                session.add(row)
+                session.commit()
+                session.refresh(row)
+            return self._consumer_key_payload(row)
+
+    def rotate_consumer_key(self, key_id: str) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            row = session.get(ConsumerApiKeyRow, key_id)
+            if row is None:
+                raise ConsumerKeyNotFound(key_id)
+            if row.status != "active":
+                raise ValueError("only active consumer keys can be rotated")
+            if row.expires_at is not None and row.expires_at <= datetime.now(UTC):
+                raise ValueError("expired consumer key cannot be rotated")
+            consumer_id = row.consumer_id
+            tenant_id = row.tenant_id
+            label = row.label
+            expires_at = row.expires_at
+            row.status = "revoked"
+            row.revoked_at = datetime.now(UTC)
+            secret = "avk_" + secrets.token_urlsafe(32)
+            replacement = ConsumerApiKeyRow(
+                consumer_id=consumer_id,
+                tenant_id=tenant_id,
+                key_hash=hashlib.sha256(secret.encode("utf-8")).hexdigest(),
+                key_prefix=secret[:12],
+                label=label,
+                status="active",
+                expires_at=expires_at,
+            )
+            session.add(row)
+            session.add(replacement)
+            session.commit()
+            session.refresh(replacement)
+            return {**self._consumer_key_payload(replacement), "secret": secret}
 
     def create_collection(
         self,
@@ -874,7 +1061,7 @@ class DataPlatformService:
             collection = session.get(CollectionRow, collection_id)
             if collection is None:
                 raise CollectionNotFound(collection_id)
-            self._authorize_collection_consumer(collection, consumer)
+            self._authorize_collection_consumer(collection, consumer, session=session)
             policy = dict(collection.access_policy or {})
             writers = tuple(str(x) for x in policy.get("memory_writers", []) if str(x))
             user_writers = tuple(str(x) for x in policy.get("user_memory_writers", []) if str(x))
@@ -901,7 +1088,7 @@ class DataPlatformService:
                         .where(DocumentRow.document_id == chunk.document_id)
                     )
                     source = session.get(CollectionRow, source_collection)
-                    self._authorize_collection_consumer(source, consumer)
+                    self._authorize_collection_consumer(source, consumer, session=session)
 
             if resolved_kind in {MemoryKind.SOURCE_EVIDENCE, MemoryKind.AGENT_OBSERVATION} and not source_ids:
                 raise ValueError("evidence and agent observations require source_chunk_ids")
@@ -1004,7 +1191,7 @@ class DataPlatformService:
                 raise MemoryNotFound(record_id)
             resource = session.get(ResourceRow, record.resource_id)
             collection = session.get(CollectionRow, resource.collection_id)
-            self._authorize_collection_consumer(collection, consumer)
+            self._authorize_collection_consumer(collection, consumer, session=session)
             policy = dict(collection.access_policy or {})
             writers = {
                 str(x) for x in (
@@ -1420,7 +1607,7 @@ class DataPlatformService:
                 collection = session.get(CollectionRow, collection_id)
                 if collection is None:
                     raise CollectionNotFound(collection_id)
-                self._authorize_collection_consumer(collection, consumer)
+                self._authorize_collection_consumer(collection, consumer, session=session)
                 self._validate_embedding_contract(collection)
 
             backend = PostgresSearchBackend(DataRepository(session))
