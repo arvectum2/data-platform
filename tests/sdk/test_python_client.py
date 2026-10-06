@@ -164,6 +164,7 @@ def test_search_with_profile_forwards_consumer_owned_weights() -> None:
         assert payload["vector_weight"] == 4.0
         assert payload["query_variant_weight"] == 0.7
         assert payload["collapse_by_canonical_uri"] is True
+        assert payload["rerank_strategy"] == "cross_encoder"
         return httpx.Response(200, json={"query": "q", "hits": []})
 
     client = _client(handler)
