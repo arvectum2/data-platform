@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     model_max_concurrency: int = Field(default=2, ge=1, le=128)
 
     cross_encoder_model: str = ""
+    cross_encoder_max_candidates: int = Field(default=3, ge=1, le=20)
     cross_encoder_max_candidate_chars: int = Field(default=1000, ge=128, le=8000)
 
     ocr_provider: str = "disabled"
