@@ -3,6 +3,7 @@ from __future__ import annotations
 import hmac
 import time
 import uuid
+from datetime import datetime
 from collections import deque
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
@@ -84,6 +85,7 @@ from .schemas import (
     SearchResponse,
     StatusResponse,
     UrlIngestRequest,
+    UsageSummaryResponse,
 )
 from .service import (
     CollectionAccessDenied,
@@ -122,6 +124,7 @@ def create_app(
         platform_service if platform_service is not None else DataPlatformService(resolved)
     )
     service.state.request_count = 0
+    service.state.usage_metering_errors = 0
     operation_names = (
         "process",
         "ingest",
@@ -160,6 +163,19 @@ def create_app(
             return "reindex"
         return None
 
+    def usage_operation_name(method: str, path: str) -> str | None:
+        if method == "POST" and path == "/v1/search":
+            return "search"
+        if method == "POST" and path == "/v1/answer":
+            return "answer"
+        if method == "POST" and path == "/v1/research":
+            return "research"
+        if method == "POST" and path == "/v1/memory":
+            return "memory_write"
+        if method == "DELETE" and path.startswith("/v1/memory/"):
+            return "memory_delete"
+        return None
+
     @service.middleware("http")
     async def request_context(request, call_next):
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
@@ -173,8 +189,8 @@ def create_app(
             response.headers["X-Request-ID"] = request_id
             return response
         finally:
+            duration_ms = max(0, int(round((time.perf_counter() - started) * 1000)))
             if operation is not None:
-                duration_ms = max(0, int(round((time.perf_counter() - started) * 1000)))
                 metric = service.state.operation_metrics[operation]
                 metric["requests"] += 1
                 if status_code >= 400:
@@ -182,6 +198,36 @@ def create_app(
                 metric["total_ms"] += duration_ms
                 metric["max_ms"] = max(metric["max_ms"], duration_ms)
                 service.state.operation_latency_samples[operation].append(duration_ms)
+
+            usage_operation = usage_operation_name(request.method, request.url.path)
+            consumer_id = request.headers.get("X-Arvectum-Consumer", "").strip()
+            consumer_key = request.headers.get("X-Arvectum-Consumer-Key", "").strip()
+            if (
+                usage_operation is not None
+                and consumer_id
+                and consumer_key
+                and status_code not in {401, 403}
+            ):
+                platform = service.state.platform_service
+                if hasattr(platform, "record_usage_event"):
+                    raw_length = request.headers.get("content-length", "").strip()
+                    request_bytes = None
+                    if raw_length:
+                        try:
+                            request_bytes = max(0, int(raw_length))
+                        except ValueError:
+                            request_bytes = None
+                    try:
+                        platform.record_usage_event(
+                            consumer_id=consumer_id,
+                            operation=usage_operation,
+                            request_id=request_id,
+                            status_code=status_code,
+                            duration_ms=duration_ms,
+                            request_bytes=request_bytes,
+                        )
+                    except Exception:
+                        service.state.usage_metering_errors += 1
 
     @service.get("/health", tags=["system"])
     def health() -> dict[str, str]:
@@ -379,6 +425,7 @@ def create_app(
                 "embedding_dimension": None,
             }
         payload["requests"] = int(service.state.request_count)
+        payload.setdefault("metrics", {})["usage_metering_errors"] = int(service.state.usage_metering_errors)
         payload["operations"] = {}
         for name, values in service.state.operation_metrics.items():
             samples = tuple(service.state.operation_latency_samples[name])
@@ -413,6 +460,28 @@ def create_app(
         if not hasattr(runtime_service, "model_status"):
             return {}
         return runtime_service.model_status(probe=probe)
+
+    @router.get(
+        "/usage/summary",
+        response_model=UsageSummaryResponse,
+        tags=["usage"],
+    )
+    def usage_summary_endpoint(
+        tenant_id: str | None = None,
+        consumer_id: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.usage_summary(
+                tenant_id=tenant_id,
+                consumer_id=consumer_id,
+                since=since,
+                until=until,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
 
     @router.get(
         "/collections",
