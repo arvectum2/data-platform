@@ -633,11 +633,13 @@ Resource increment (2026-10-06): Mac mini runtime footprint/throughput is now fr
 
 Adoption-gate sync (2026-10-06): the existing frozen benchmarks now resolve six promotion decisions. BM25 remains deferred because current hybrid/FTS quality shows no repeatable lexical gap; tested ANN indexes remain rejected because exact pgvector is already fast and the ANN variants lose recall; the current local LLM reranker fails the accepted latency gate; VLM escalation is restricted to OCR/layout cases that cross the frozen routing threshold; model query expansion fails the hard-suite quality/latency gate and remains off by default; grounded answer synthesis passes the citation/faithfulness/abstention thresholds. The learned/cross-encoder reranker gate remains open because no lighter learned candidate has been benchmarked yet.
 
+Cross-encoder promotion increment (2026-10-06): `BAAI/bge-reranker-v2-m3` was benchmarked locally on the hard `growth_search_console_v1` suite after warm-up. With top-3 reranking and 1000-character candidate truncation it improved top-1 from 0.50 to 0.5833, MRR from 0.5833 to 0.6667 and mean nDCG@5 from 0.6468 to 0.6885 while p95 rose from ~126.8 ms to ~276.6 ms (2.18x, within the <=3x rerank gate). The learned/cross-encoder promotion gate therefore passes. API/runtime integration remains backlog work; the current LLM reranker remains rejected on latency.
+
 ### Benchmark-driven adoption gates
 
 - [x] BM25 backend only if frozen corpora show a repeatable lexical-quality gap over PostgreSQL FTS;
 - [x] ANN indexes only if latency/throughput gain justifies measured recall loss at production scale;
-- [ ] learned/cross-encoder reranker only if it improves nDCG/MRR enough to justify added latency/resources;
+- [x] learned/cross-encoder reranker only if it improves nDCG/MRR enough to justify added latency/resources;
 - [x] LLM reranking only if it beats lighter reranking on accepted relevance/cost gates;
 - [x] VLM escalation only where OCR/layout benchmarks justify it;
 - [x] query expansion only if recall improves without unacceptable precision/latency regression;

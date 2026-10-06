@@ -1,0 +1,38 @@
+{
+  "benchmark": "growth_search_console_v1",
+  "date": "2026-10-06",
+  "model": "BAAI/bge-reranker-v2-m3",
+  "license": "Apache-2.0",
+  "candidate_count": 3,
+  "max_candidate_chars": 1000,
+  "warmup_ms": 210.8,
+  "baseline": {
+    "top1_accuracy": 0.5,
+    "mrr": 0.5833333333333334,
+    "mean_ndcg_at_5": 0.6468216255952429,
+    "p95_ms": 126.75442501786165
+  },
+  "cross_encoder": {
+    "top1_accuracy": 0.5833333333333334,
+    "mrr": 0.6666666666666666,
+    "mean_ndcg_at_5": 0.6884882922619097,
+    "p95_ms": 276.63688138418365
+  },
+  "deltas": {
+    "top1_accuracy": 0.08333333333333337,
+    "mrr": 0.08333333333333326,
+    "mean_ndcg_at_5": 0.04166666666666674,
+    "p95_multiplier": 2.182461
+  },
+  "gate": {
+    "min_mrr_gain": 0.01,
+    "min_top1_gain": 0,
+    "max_p95_latency_multiplier": 3,
+    "passed": true
+  },
+  "notes": [
+    "Warm steady-state benchmark after one explicit model warmup.",
+    "Top-3 candidate reranking preserves all measured quality uplift while staying within the existing <=3x p95 gate.",
+    "The model is benchmarked out-of-process and is not yet enabled by default in the API."
+  ]
+}
