@@ -4,6 +4,8 @@ from collections.abc import Callable, Sequence
 from statistics import mean, median
 from typing import Any
 
+from .metrics import ndcg_at_k
+
 from .models import (
     CaseEvaluation,
     EvaluationCase,
@@ -52,6 +54,8 @@ def evaluate_case(
     reciprocal_rank = 0.0 if first_rank is None else 1.0 / first_rank
     top5 = returned_ids[:5]
     recall_at_5 = len(expected.intersection(top5)) / len(expected)
+    relevance = case.relevance or {result_id: 1.0 for result_id in case.expected_ids}
+    ndcg = ndcg_at_k(relevance, returned_ids, k=5)
 
     return CaseEvaluation(
         case_id=case.case_id,
@@ -61,6 +65,7 @@ def evaluate_case(
         hit_at_3=first_rank is not None and first_rank <= 3,
         hit_at_5=first_rank is not None and first_rank <= 5,
         recall_at_5=recall_at_5,
+        ndcg_at_5=ndcg,
         latency_ms=float(latency_ms),
         returned_ids=returned_ids,
     )
@@ -91,6 +96,7 @@ def evaluate_suite(
         hit_rate_at_3=mean(1.0 if item.hit_at_3 else 0.0 for item in results),
         hit_rate_at_5=mean(1.0 if item.hit_at_5 else 0.0 for item in results),
         mean_recall_at_5=mean(item.recall_at_5 for item in results),
+        mean_ndcg_at_5=mean(item.ndcg_at_5 for item in results),
         latency_p50_ms=median(latencies),
         latency_p95_ms=_percentile(latencies, 0.95),
         latency_max_ms=max(latencies, default=0.0),

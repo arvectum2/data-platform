@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "description": "Frozen DP-BENCH-002 registry. Raw private production documents are not stored here.",
+  "suites": [
+    {
+      "id": "lexical-exact-v1",
+      "file": "lexical_exact_v1.json",
+      "sha256": "c9c36aa2be967bf9808eeb7e7ad1ce09ecd19c7344e3b4517b5043d75bbb7996",
+      "case_count": 5,
+      "visibility": "public",
+      "dimensions": [
+        "lexical-retrieval",
+        "exact-identifiers",
+        "russian"
+      ],
+      "thresholds": {
+        "top1_accuracy": 1.0,
+        "mrr": 1.0
+      }
+    },
+    {
+      "id": "growth-search-console-v1",
+      "file": "growth_search_console_v1.json",
+      "sha256": "a310f69fcd58da3bf0fbd485bf9931e44f61895151a2f7db584923ab1251c976",
+      "case_count": 12,
+      "visibility": "private-derived",
+      "dimensions": [
+        "semantic-retrieval",
+        "russian",
+        "diagnostic-hard-cases"
+      ],
+      "thresholds": {
+        "hit_rate_at_5": 0.8,
+        "mean_recall_at_5": 0.8
+      }
+    },
+    {
+      "id": "production-acceptance-v1",
+      "file": "production_acceptance_v1.json",
+      "sha256": "00ae77689b96a7d0b97db34357abe4cf95ac4b93c8a779498be313620cb131d4",
+      "case_count": 9,
+      "visibility": "private-derived",
+      "dimensions": [
+        "semantic-retrieval",
+        "russian",
+        "latency"
+      ],
+      "thresholds": {
+        "top1_accuracy": 1.0,
+        "mrr": 1.0
+      }
+    },
+    {
+      "id": "production-acceptance-v2",
+      "file": "production_acceptance_v2.json",
+      "sha256": "01dd4996fdcd6f73154ff1fd2bb6f8c786c2e5828184bfca1c4bcc1feb0c4e94",
+      "case_count": 10,
+      "visibility": "private-derived",
+      "dimensions": [
+        "semantic-retrieval",
+        "federated-search",
+        "authorization",
+        "latency"
+      ],
+      "thresholds": {
+        "top1_accuracy": 1.0,
+        "mrr": 1.0
+      }
+    },
+    {
+      "id": "production-acceptance-v3",
+      "file": "production_acceptance_v3.json",
+      "sha256": "faea6551dfad1c11c7f5a302d0950a20a21759a3c33e2e0c15c4eb4a166dc460",
+      "case_count": 20,
+      "visibility": "private-derived",
+      "dimensions": [
+        "semantic-retrieval",
+        "russian",
+        "document-routing",
+        "latency"
+      ],
+      "thresholds": {
+        "top1_accuracy": 1.0,
+        "mrr": 1.0
+      }
+    }
+  ]
+}

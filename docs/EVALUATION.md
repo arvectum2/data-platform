@@ -9,7 +9,8 @@ The benchmark is JSON and contains one or more search cases. Each case defines:
 - expected result identities;
 - identity field (`canonical_uri`, `chunk_id`, `document_id`, or `resource_id`);
 - search mode and optional RRF weights;
-- result limit.
+- result limit;
+- optional graded relevance judgments for nDCG.
 
 Example:
 
@@ -46,7 +47,8 @@ Write runtime evidence and enforce minimum quality:
 arvectum-data-eval benchmarks/production_acceptance_v1.json \
   --output /path/outside/git/result.json \
   --fail-top1-below 0.85 \
-  --fail-mrr-below 0.90
+  --fail-mrr-below 0.90 \
+  --fail-ndcg-below 0.90
 ~~~
 
 The runner reports:
@@ -55,6 +57,7 @@ The runner reports:
 - mean reciprocal rank;
 - hit rate at 3 and 5;
 - mean recall at 5;
+- mean nDCG at 5, using binary expected IDs by default or graded relevance when supplied;
 - latency p50, p95 and max;
 - per-case ranks, latency and returned identifiers.
 

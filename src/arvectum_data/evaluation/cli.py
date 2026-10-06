@@ -39,6 +39,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--fail-top1-below", type=float)
     parser.add_argument("--fail-mrr-below", type=float)
+    parser.add_argument("--fail-ndcg-below", type=float)
     return parser
 
 
@@ -69,6 +70,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.fail_mrr_below is not None and summary.mrr < args.fail_mrr_below:
         return 3
+    if args.fail_ndcg_below is not None and summary.mean_ndcg_at_5 < args.fail_ndcg_below:
+        return 4
     return 0
 
 
