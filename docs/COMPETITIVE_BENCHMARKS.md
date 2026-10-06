@@ -269,3 +269,22 @@ expansion (maximum three variants) changed no quality metric: top-1 remained
 0.50, MRR 0.5833, recall@5 0.75 and mean nDCG@5 0.6468. p95 latency increased
 from about 263 ms to 2.74 s (10.42x), so the existing <=2x activation gate
 fails. No default promotion is claimed.
+
+## Private-derived real corpus
+
+benchmarks/corpora/private_v1 extends the frozen source corpus without mixing
+private-derived material into the public/shareable slice. It adds:
+
+- a real legacy BIFF/OLE2 procurement XLS workbook;
+- Arvectum-owned competitive product-research material with mixed Russian and
+  English terminology;
+- an Arvectum business market-validation document, predominantly English with
+  Russian organization/context terms;
+- a deliberately truncated derivative of a real DOCX, whose accepted behavior
+  is fail-safe empty extraction rather than partial garbage.
+
+Legacy XLS extraction is cross-platform through xlrd and preserves sheet,
+row/cell order and date/number values deterministically. The first private-v1
+acceptance passes 4/4 artifacts, including 100% selected row-structure
+preservation on the legacy workbook and expected empty handling for malformed
+OOXML.

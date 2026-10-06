@@ -1,0 +1,131 @@
+{
+  "name": "private-derived-real-corpus-v1",
+  "version": 1,
+  "description": "Private-derived DP-BENCH-002 corpus covering legacy XLS, business/product research, mixed RU/EN material and malformed OOXML fail-safe handling.",
+  "metadata": {
+    "created_at": "2026-10-06",
+    "visibility": "private-derived",
+    "coverage": [
+      "xls",
+      "md",
+      "malformed-docx",
+      "procurement",
+      "business",
+      "product-research",
+      "mixed-ru-en"
+    ]
+  },
+  "artifacts": [
+    {
+      "id": "legacy-procurement-xls",
+      "file": "fixtures/procurement_legacy.xls",
+      "format": "xls",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "private-derived",
+      "source_ref": "Tender Agent runtime procurement attachment, legacy BIFF workbook",
+      "required_text": [
+        "Буферный разбавитель образцов ИВД",
+        "21.20.23.111",
+        "EU-5600 Pro"
+      ],
+      "required_rows": [
+        [
+          "1",
+          "Буферный разбавитель образцов ИВД",
+          "21.20.23.111",
+          "30",
+          "упак"
+        ],
+        [
+          "2",
+          "Множественные аналиты мочи ИВД",
+          "21.20.23.110-00000099",
+          "17",
+          "набор"
+        ]
+      ],
+      "min_structure_score": 1.0,
+      "min_text_chars": 6000,
+      "tags": [
+        "legacy-xls",
+        "real-source",
+        "table",
+        "procurement"
+      ],
+      "metadata": {
+        "legacy_format": "BIFF/OLE2",
+        "source_privacy": "production-derived"
+      },
+      "sha256": "b655447d74086d1eebbced74345549354af6049f1b8582efad2e73f2fab15cad"
+    },
+    {
+      "id": "product-research-competitive-mixed",
+      "file": "fixtures/product_research_competitive.md",
+      "format": "md",
+      "source_kind": "product-research",
+      "language": "ru+en",
+      "visibility": "private-derived",
+      "source_ref": "Tender Agent ARV-072 competitive benchmark research note",
+      "required_text": [
+        "Сравнить Arvectum",
+        "Public-surface snapshot",
+        "Controlled live-output benchmark",
+        "Automatic fail"
+      ],
+      "min_text_chars": 3500,
+      "tags": [
+        "markdown",
+        "product-research",
+        "mixed-language",
+        "real-source"
+      ],
+      "sha256": "71ad59b315ed3bc98e1d2c79a879fa29729a4708aa73baf8a54318995e4efac1"
+    },
+    {
+      "id": "business-market-validation-en",
+      "file": "fixtures/business_market_validation.md",
+      "format": "md",
+      "source_kind": "business",
+      "language": "en+ru",
+      "visibility": "private-derived",
+      "source_ref": "Arvectum Company AC-108 market-validation plan",
+      "required_text": [
+        "First Design-Partner Criteria",
+        "market-validation plan and evidence instrument",
+        "ООО «Арвектум»",
+        "High-information candidate"
+      ],
+      "min_text_chars": 30000,
+      "tags": [
+        "markdown",
+        "business",
+        "mixed-language",
+        "real-source"
+      ],
+      "sha256": "805d5df322dd2cfc55eb687751989165ed2448e05ba1b5213c52a970037560ee"
+    },
+    {
+      "id": "malformed-procurement-docx",
+      "file": "fixtures/procurement_malformed.docx",
+      "format": "malformed-docx",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "private-derived",
+      "source_ref": "truncated derivative of public procurement NMCK DOCX",
+      "required_text": [],
+      "min_text_chars": 0,
+      "expected_status": "empty",
+      "tags": [
+        "malformed",
+        "docx",
+        "fail-safe",
+        "real-source-derived"
+      ],
+      "metadata": {
+        "derivation": "first 512 bytes of frozen real DOCX; intentionally invalid OOXML"
+      },
+      "sha256": "2eb089c2d89eaee0ea92c5976750f9719788680b69d956db9d264b45d53089bb"
+    }
+  ]
+}

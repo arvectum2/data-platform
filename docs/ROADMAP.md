@@ -566,9 +566,9 @@ Reference set:
 
 Benchmark corpus strategy:
 
-- [ ] build a frozen corpus from real procurement, business, website and product-research materials;
-- [ ] include native PDFs, scanned PDFs, DOCX, XLSX, HTML, malformed/legacy files and mixed Russian/English content;
-- [ ] maintain gold answers, relevant-document/chunk judgments and source/evidence identities;
+- [x] build a frozen corpus from real procurement, business, website and product-research materials;
+- [x] include native PDFs, scanned PDFs, DOCX, XLSX, HTML, malformed/legacy files and mixed Russian/English content;
+- [x] maintain gold answers, relevant-document/chunk judgments and source/evidence identities;
 - [x] version benchmark data and acceptance thresholds;
 - [x] separate public/shareable fixtures from private production-derived fixtures;
 - [x] add adversarial cases for collection isolation, stale sources, duplicate content and conflicting evidence.
@@ -615,6 +615,9 @@ Rerank comparison increment (2026-10-06): growth_search_console_v1 provides an u
 Incremental-sync increment (2026-10-06): sync_efficiency_v1 exercises no-change, single-change and all-change refresh cycles over three URL resources on an isolated PostgreSQL database. Acceptance passed 3/3: unchanged resources caused zero index/embedding work, one changed resource caused exactly one index plus one embedding write, and three changes caused exactly three. Aggregate indexing amplification is 1.0 with zero unnecessary indexed resources.
 
 Query-expansion gate increment (2026-10-06): growth_search_console_v1 provides a hard real-intent baseline at top-1=0.50, MRR=0.5833, recall@5=0.75 and mean nDCG@5=0.6468. Automatic local-model expansion with up to three variants produced zero quality gain while p95 latency increased from about 263 ms to 2.74 s (10.42x), far above the <=2x gate. Default expansion therefore remains off; a deterministic domain dictionary is the next lower-cost candidate if expansion is revisited.
+
+Corpus-v2 increment (2026-10-06): private_v1 completes the first stated corpus coverage strategy without mixing private-derived material into public_v1. It adds a real legacy BIFF XLS procurement workbook, Arvectum-owned product-research and business documents with mixed RU/EN content, and malformed OOXML fail-safe coverage. Legacy XLS is now extracted cross-platform through xlrd with preserved row/cell order. Acceptance passes 4/4, including structure score 1.0 on selected legacy rows and expected empty handling for the truncated DOCX. Across public_v1/private_v1 plus retrieval/faithfulness suites, gold/reference text, relevant document/chunk judgments and evidence identities are now all frozen and versioned.
+
 
 
 Multi-hop increment (2026-10-06): multi_hop_v1 exercises provenance-backed entity-graph traversal over two- and three-hop paths. Isolated PostgreSQL acceptance passed 3/3 with target recall 1.0 and provenance completeness 1.0: contract -> supplier -> INN, supplier -> product -> manufacturer, and supplier -> product -> manufacturer -> country all reached the expected depth while every required edge retained collection/resource/document/chunk evidence.
