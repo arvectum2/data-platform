@@ -86,7 +86,7 @@ class SearchQuery:
     collapse_by_canonical_uri: bool = False
     rerank: bool = False
     rerank_candidates: int = 20
-    rerank_strategy: RerankStrategy = RerankStrategy.REASONING
+    rerank_strategy: RerankStrategy = RerankStrategy.CROSS_ENCODER
     execution_mode: ExecutionMode | None = None
 
     def __post_init__(self) -> None:
