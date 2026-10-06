@@ -199,6 +199,21 @@
         "target_recall": 1.0,
         "provenance_completeness": 1.0
       }
+    },
+    {
+      "id": "vlm-routing-v1",
+      "file": "vlm_routing_v1.json",
+      "sha256": "4c73db012351edc71ab14398beaa9675bf4fdb092aeb132a69b9f15c1581ff71",
+      "case_count": 2,
+      "visibility": "public",
+      "dimensions": [
+        "ocr-vlm-routing",
+        "layout-stress",
+        "local-ocr"
+      ],
+      "thresholds": {
+        "routing_accuracy": 1.0
+      }
     }
   ]
 }

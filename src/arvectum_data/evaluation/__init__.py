@@ -148,4 +148,15 @@ __all__ = [
     "validate_benchmark_catalog",
     "validate_corpus_manifest",
     "word_error_rate",
+    "VLMRoutingCase",
+    "VLMRoutingSuite",
+    "evaluate_vlm_routing_suite",
+    "load_vlm_routing_suite",
 ]
+
+from .vlm_routing import (
+    VLMRoutingCase,
+    VLMRoutingSuite,
+    evaluate_vlm_routing_suite,
+    load_vlm_routing_suite,
+)

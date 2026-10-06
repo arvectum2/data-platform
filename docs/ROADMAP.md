@@ -618,6 +618,9 @@ Query-expansion gate increment (2026-10-06): growth_search_console_v1 provides a
 
 Corpus-v2 increment (2026-10-06): private_v1 completes the first stated corpus coverage strategy without mixing private-derived material into public_v1. It adds a real legacy BIFF XLS procurement workbook, Arvectum-owned product-research and business documents with mixed RU/EN content, and malformed OOXML fail-safe coverage. Legacy XLS is now extracted cross-platform through xlrd with preserved row/cell order. Acceptance passes 4/4, including structure score 1.0 on selected legacy rows and expected empty handling for the truncated DOCX. Across public_v1/private_v1 plus retrieval/faithfulness suites, gold/reference text, relevant document/chunk judgments and evidence identities are now all frozen and versioned.
 
+VLM-routing increment (2026-10-06): the frozen scan profiles showed that the old 70-confidence escalation threshold misses a real layout failure: the form scan scores 86.89 confidence but CER 35.78% / WER 74.47%, while the linear scan scores 94.41 confidence with CER 3.61% / WER 5.86%. The default threshold is now 90, so vision-enabled deployments escalate the layout-stress case but keep the linear case on OCR. vlm_routing_v1 fixes this routing gate at 1.0; vision remains disabled unless explicitly configured, so no remote path is introduced.
+
+
 
 
 Multi-hop increment (2026-10-06): multi_hop_v1 exercises provenance-backed entity-graph traversal over two- and three-hop paths. Isolated PostgreSQL acceptance passed 3/3 with target recall 1.0 and provenance completeness 1.0: contract -> supplier -> INN, supplier -> product -> manufacturer, and supplier -> product -> manufacturer -> country all reached the expected depth while every required edge retained collection/resource/document/chunk evidence.

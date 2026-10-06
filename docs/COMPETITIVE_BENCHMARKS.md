@@ -288,3 +288,10 @@ row/cell order and date/number values deterministically. The first private-v1
 acceptance passes 4/4 artifacts, including 100% selected row-structure
 preservation on the legacy workbook and expected empty handling for malformed
 OOXML.
+
+## OCR-to-VLM routing
+
+vlm_routing_v1 freezes the two real local-Tesseract scan profiles already in
+public_v1. The layout-stress form (confidence 86.89%, CER 35.78%, WER 74.47%)
+must escalate when vision is available; the linear scan (confidence 94.41%,
+CER 3.61%, WER 5.86%) must not. The routing gate is fixed at 1.0.
