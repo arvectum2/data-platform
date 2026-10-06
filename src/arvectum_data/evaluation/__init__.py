@@ -37,6 +37,12 @@ from .faithfulness import (
     load_faithfulness_suite,
 )
 from .http_runner import EvaluationRequestError, HttpSearchRunner
+from .multi_hop import (
+    MultiHopSuite,
+    MultiHopSummary,
+    PostgresMultiHopRunner,
+    load_multi_hop_suite,
+)
 from .models import (
     CaseEvaluation,
     EvaluationCase,
@@ -80,6 +86,9 @@ __all__ = [
     "HttpSearchRunner",
     "PostgresAdversarialRunner",
     "PostgresFactRunner",
+    "PostgresMultiHopRunner",
+    "MultiHopSuite",
+    "MultiHopSummary",
     "QueryExpansionGate",
     "RerankComparison",
     "RerankGate",
@@ -97,6 +106,7 @@ __all__ = [
     "evaluate_suite",
     "load_adversarial_suite",
     "load_fact_suite",
+    "load_multi_hop_suite",
     "load_sync_efficiency_suite",
     "load_faithfulness_suite",
     "ndcg_at_k",

@@ -181,6 +181,24 @@
         "unnecessary_indexed_resources_max": 0
       },
       "items_key": "scenarios"
+    },
+    {
+      "id": "multi-hop-v1",
+      "file": "multi_hop_v1.json",
+      "sha256": "9f5d0c63327b8867d467bb0d403f3e85656a340f592b483ab52cc1d16dfe6003",
+      "case_count": 3,
+      "items_key": "scenarios",
+      "visibility": "public",
+      "dimensions": [
+        "multi-hop-retrieval",
+        "entity-graph",
+        "provenance"
+      ],
+      "thresholds": {
+        "pass_rate": 1.0,
+        "target_recall": 1.0,
+        "provenance_completeness": 1.0
+      }
     }
   ]
 }
