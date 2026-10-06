@@ -563,6 +563,20 @@ Status: COMPLETE (platform vault/binding, 2026-10-06).
 Implementation: `docs/CONNECTOR_CREDENTIALS.md`. The platform deliberately does not provide a generic arbitrary Authorization-header forwarder: each authenticated connector must define its own credential schema/application so secrets cannot be leaked through redirects or unrelated hosts.
 
 Connector-vault production acceptance (2026-10-06): migration `0011_connector_credentials` is live in `arvectum_data`; the production runtime has the cryptography dependency and a mode-0600, runtime-only master key at key version `v1`. A live encryption/decryption smoke confirmed ciphertext contains no plaintext secret and round-trips correctly. The API restarted healthy on the merged build. No real customer credential row was created for the acceptance.\n\nGitHub connector increment (2026-10-06): `github_repository` is the first concrete credential-aware connector package. Its token is resolved only from the encrypted vault; repository/ref scope is separate safe metadata; Authorization is restricted to fixed `api.github.com` HTTPS requests and credentialed redirects are rejected. The connector supports repository-scoped code discovery, raw text-file acquisition and credential-aware RESEARCH ingestion. Python/JavaScript SDKs now expose connector credential lifecycle, discovery and research. Live private-repository acceptance remains pending until a tenant-owned GitHub token is deliberately supplied; Data Platform does not scrape tokens from local Git tooling.
+### DP-BILL-001 — pricing and invoicing core
+
+Status: COMPLETE (core/provider boundary, 2026-10-06).
+
+- [x] immutable versioned price catalogs with integer minor-unit pricing;
+- [x] time-versioned tenant plan assignments so historical periods do not reprice;
+- [x] usage-to-invoice preview with included quantities and base fee;
+- [x] fail-closed finalization when billable usage has no pricing rule;
+- [x] immutable finalized price/usage snapshot and idempotent tenant-period invoice;
+- [x] provider-neutral payment handoff and manual/offline provider;
+- [x] explicit paid-state administration;
+- [ ] concrete online acquiring / SBP payment provider adapter.
+
+Implementation: `docs/BILLING.md`. Pricing never mutates DP-METER-001 events; finalized invoices snapshot both the exact price catalog and a deterministic hash of the billable usage set. Provider-specific online payment credentials, webhook validation, fiscalization and settlement remain separate adapters.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: FUTURE.
@@ -574,7 +588,8 @@ Before externalization:
 - [x] customer-managed encrypted credential vault + connector binding;
 - [x] first authenticated third-party connector package (`github_repository`);\n- [ ] live private GitHub repository acceptance with a customer-owned credential;
 - [x] billing-grade usage metering;
-- [ ] product pricing / invoicing / payment-provider integration;
+- [x] product pricing + invoicing core and provider-neutral payment boundary;
+- [ ] concrete online acquiring / SBP payment-provider adapter;
 - [x] external auth and key lifecycle;
 - [x] retention/deletion/export controls;
 - [x] deployment/privacy modes including a local/private mode in which documents and model requests never leave customer-controlled infrastructure;
