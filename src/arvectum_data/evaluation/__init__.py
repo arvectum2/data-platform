@@ -1,3 +1,12 @@
+from .adversarial import (
+    AdversarialCase,
+    AdversarialObservation,
+    AdversarialSuite,
+    AdversarialSummary,
+    PostgresAdversarialRunner,
+    evaluate_adversarial_suite,
+    load_adversarial_suite,
+)
 from .catalog import BenchmarkCatalog, BenchmarkSuiteSpec, validate_benchmark_catalog
 from .core import evaluate_case, evaluate_suite
 from .corpus import (
@@ -20,6 +29,10 @@ from .query_expansion_gate import QueryExpansionGate
 from .rerank_gate import RerankGate
 
 __all__ = [
+    "AdversarialCase",
+    "AdversarialObservation",
+    "AdversarialSuite",
+    "AdversarialSummary",
     "BenchmarkCatalog",
     "BenchmarkSuiteSpec",
     "CaseEvaluation",
@@ -32,12 +45,15 @@ __all__ = [
     "EvaluationSuite",
     "EvaluationSummary",
     "HttpSearchRunner",
+    "PostgresAdversarialRunner",
     "QueryExpansionGate",
     "RerankGate",
     "character_error_rate",
+    "evaluate_adversarial_suite",
     "evaluate_case",
     "evaluate_corpus",
     "evaluate_suite",
+    "load_adversarial_suite",
     "ndcg_at_k",
     "set_precision_recall",
     "validate_benchmark_catalog",

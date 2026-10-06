@@ -83,6 +83,23 @@
         "top1_accuracy": 1.0,
         "mrr": 1.0
       }
+    },
+    {
+      "id": "adversarial-v1",
+      "file": "adversarial_v1.json",
+      "sha256": "48ad02993ea9a0fcb1bae0fa155b5ebf8afdec966848b3a7508d0246ebd79f9e",
+      "case_count": 5,
+      "visibility": "public",
+      "dimensions": [
+        "collection-isolation",
+        "tenant-isolation",
+        "duplicate-content",
+        "conflicting-evidence",
+        "stale-source"
+      ],
+      "thresholds": {
+        "pass_rate": 1.0
+      }
     }
   ]
 }
