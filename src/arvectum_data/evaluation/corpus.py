@@ -36,6 +36,9 @@ class CorpusArtifact:
     gold_sha256: str | None = None
     max_cer: float | None = None
     max_wer: float | None = None
+    required_rows: tuple[tuple[str, ...], ...] = ()
+    required_fields: tuple[tuple[str, str], ...] = ()
+    min_structure_score: float | None = None
     tags: tuple[str, ...] = ()
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
@@ -69,6 +72,12 @@ class CorpusArtifact:
             raise ValueError("max_cer must be non-negative")
         if self.max_wer is not None and self.max_wer < 0:
             raise ValueError("max_wer must be non-negative")
+        if self.min_structure_score is not None and not 0 <= self.min_structure_score <= 1:
+            raise ValueError("min_structure_score must be between 0 and 1")
+        if any(not row for row in self.required_rows):
+            raise ValueError("required_rows must not contain empty rows")
+        if any(not label.strip() or not value.strip() for label, value in self.required_fields):
+            raise ValueError("required_fields labels and values must not be blank")
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> "CorpusArtifact":
@@ -91,6 +100,19 @@ class CorpusArtifact:
             gold_sha256=str(payload["gold_sha256"]) if payload.get("gold_sha256") else None,
             max_cer=float(payload["max_cer"]) if payload.get("max_cer") is not None else None,
             max_wer=float(payload["max_wer"]) if payload.get("max_wer") is not None else None,
+            required_rows=tuple(
+                tuple(str(cell) for cell in row)
+                for row in payload.get("required_rows") or ()
+            ),
+            required_fields=tuple(
+                (str(item["label"]), str(item["value"]))
+                for item in payload.get("required_fields") or ()
+            ),
+            min_structure_score=(
+                float(payload["min_structure_score"])
+                if payload.get("min_structure_score") is not None
+                else None
+            ),
             tags=tuple(str(item) for item in payload.get("tags") or ()),
             metadata=dict(payload.get("metadata") or {}),
         )
@@ -147,6 +169,10 @@ class CorpusArtifactEvaluation:
     ocr_confidence: float | None = None
     max_cer: float | None = None
     max_wer: float | None = None
+    structure_score: float | None = None
+    min_structure_score: float | None = None
+    matched_structure_checks: int = 0
+    total_structure_checks: int = 0
     skip_reason: str = ""
 
 
@@ -161,6 +187,7 @@ class CorpusEvaluationSummary:
     success_by_format: Mapping[str, float]
     mean_cer: float | None
     mean_wer: float | None
+    mean_structure_score: float | None
     latency_p50_ms: float
     latency_p95_ms: float
     latency_max_ms: float
@@ -177,6 +204,7 @@ class CorpusEvaluationSummary:
             "success_by_format": dict(self.success_by_format),
             "mean_cer": self.mean_cer,
             "mean_wer": self.mean_wer,
+            "mean_structure_score": self.mean_structure_score,
             "latency_p50_ms": self.latency_p50_ms,
             "latency_p95_ms": self.latency_p95_ms,
             "latency_max_ms": self.latency_max_ms,
@@ -196,6 +224,10 @@ class CorpusEvaluationSummary:
                     "ocr_confidence": item.ocr_confidence,
                     "max_cer": item.max_cer,
                     "max_wer": item.max_wer,
+                    "structure_score": item.structure_score,
+                    "min_structure_score": item.min_structure_score,
+                    "matched_structure_checks": item.matched_structure_checks,
+                    "total_structure_checks": item.total_structure_checks,
                     "skip_reason": item.skip_reason,
                 }
                 for item in self.results
@@ -259,6 +291,63 @@ def _normalize_text(text: str) -> str:
 
 def _normalize_for_ocr(text: str) -> str:
     return _normalize_text(_PAGE_MARKER.sub(" ", text))
+
+
+def _normalized_lines(text: str) -> tuple[str, ...]:
+    return tuple(
+        _normalize_text(line)
+        for line in text.splitlines()
+        if _normalize_text(line)
+    )
+
+
+def _row_cells(line: str) -> tuple[str, ...]:
+    return tuple(_normalize_text(cell) for cell in line.split("\t") if _normalize_text(cell))
+
+
+def _contains_ordered_cells(actual: tuple[str, ...], expected: tuple[str, ...]) -> bool:
+    position = 0
+    for expected_cell in expected:
+        normalized_expected = _normalize_text(expected_cell)
+        while position < len(actual):
+            if normalized_expected in actual[position]:
+                position += 1
+                break
+            position += 1
+        else:
+            return False
+    return True
+
+
+def _structure_score(
+    text: str,
+    *,
+    required_rows: tuple[tuple[str, ...], ...],
+    required_fields: tuple[tuple[str, str], ...],
+) -> tuple[float | None, int, int]:
+    checks: list[bool] = []
+    tabular_rows = tuple(_row_cells(line) for line in text.splitlines() if "\t" in line)
+
+    for expected_row in required_rows:
+        checks.append(
+            any(
+                _contains_ordered_cells(actual_row, expected_row)
+                for actual_row in tabular_rows
+            )
+        )
+
+    normalized_text = _normalize_text(text)
+    for label, value in required_fields:
+        normalized_label = _normalize_text(label)
+        normalized_value = _normalize_text(value)
+        label_index = normalized_text.find(normalized_label)
+        value_index = normalized_text.find(normalized_value, max(0, label_index))
+        checks.append(label_index >= 0 and value_index >= label_index)
+
+    if not checks:
+        return None, 0, 0
+    matched = sum(1 for item in checks if item)
+    return matched / len(checks), matched, len(checks)
 
 
 def _percentile(values: Sequence[float], percentile: float) -> float:
@@ -342,6 +431,12 @@ def evaluate_corpus(
                 if raw_confidence is not None:
                     ocr_confidence = float(raw_confidence)
 
+        structure_score, matched_structure, total_structure = _structure_score(
+            text,
+            required_rows=artifact.required_rows,
+            required_fields=artifact.required_fields,
+        )
+
         ocr_thresholds_passed = True
         if artifact.max_cer is not None:
             ocr_thresholds_passed = cer is not None and cer <= artifact.max_cer
@@ -351,7 +446,13 @@ def evaluate_corpus(
                 and wer is not None
                 and wer <= artifact.max_wer
             )
-        benchmark_passed = passed and ocr_thresholds_passed
+        structure_threshold_passed = True
+        if artifact.min_structure_score is not None:
+            structure_threshold_passed = (
+                structure_score is not None
+                and structure_score >= artifact.min_structure_score
+            )
+        benchmark_passed = passed and ocr_thresholds_passed and structure_threshold_passed
 
         results.append(
             CorpusArtifactEvaluation(
@@ -369,6 +470,10 @@ def evaluate_corpus(
                 ocr_confidence=ocr_confidence,
                 max_cer=artifact.max_cer,
                 max_wer=artifact.max_wer,
+                structure_score=structure_score,
+                min_structure_score=artifact.min_structure_score,
+                matched_structure_checks=matched_structure,
+                total_structure_checks=total_structure,
             )
         )
 
@@ -386,6 +491,11 @@ def evaluate_corpus(
     }
     cer_values = [item.cer for item in executed if item.cer is not None]
     wer_values = [item.wer for item in executed if item.wer is not None]
+    structure_values = [
+        item.structure_score
+        for item in executed
+        if item.structure_score is not None
+    ]
     latencies = [item.latency_ms for item in executed]
 
     return CorpusEvaluationSummary(
@@ -402,6 +512,7 @@ def evaluate_corpus(
         success_by_format=success_by_format,
         mean_cer=mean(cer_values) if cer_values else None,
         mean_wer=mean(wer_values) if wer_values else None,
+        mean_structure_score=mean(structure_values) if structure_values else None,
         latency_p50_ms=median(latencies) if latencies else 0.0,
         latency_p95_ms=_percentile(latencies, 0.95),
         latency_max_ms=max(latencies, default=0.0),

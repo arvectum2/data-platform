@@ -67,3 +67,17 @@ measured CER 35.78%, WER 74.47% and mean confidence 86.89%. Per-artifact
 regression gates are intentionally different: the linear baseline is capped at
 CER 5% / WER 10%, while the layout-stress case is capped at CER 40% / WER 80%.
 These are regression ceilings, not final product-quality targets.
+
+## Table and form structure
+
+The corpus runner now scores structural checks separately from plain-text
+presence. Native DOCX/XLSX fixtures use ordered row/cell expectations, while
+form-like PDFs use ordered label/value expectations. A per-artifact
+min_structure_score can act as a regression gate.
+
+The first native structure baseline requires 100% preservation for selected
+rows in the procurement DOCX/XLSX and selected key/value fields in the
+procurement control form. The OCR layout-stress scan reports the same form
+field score as an observation, while CER/WER continues to expose reading-order
+damage that simple field presence alone cannot reveal. This keeps OCR text
+accuracy and layout preservation as distinct benchmark signals.
