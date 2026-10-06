@@ -32,7 +32,11 @@ Turns one public HTTP(S) URL into a discovered resource and fetches it through t
 
 Uses `/sitemap.xml` first, supports sitemap indexes, and falls back to the existing bounded `URLDiscoveryCrawler` when no usable sitemap is available.
 
-The fallback is same-origin and bounded by the Data Platform crawl policy.
+The fallback is same-origin and bounded by the Data Platform crawl policy. Its production default uses four local workers with at most two in-flight requests to the same host. Fetch completion order never changes discovery order: pages are processed in deterministic BFS queue order after each bounded batch completes.
+
+The direct `URLDiscoveryCrawler` keeps sequential defaults for backward compatibility; consumers must opt into concurrency through `CrawlPolicy.max_workers` and `max_in_flight_per_host`. The per-host cap may never exceed the worker count.
+
+A live `arvectum.com` acceptance on 2026-10-06 measured 25.305 s for five pages sequentially versus 15.271 s with the sitemap-fallback 4/2 policy, with identical page/link output and zero failures. This is the current scaling strategy before any distributed crawl queue.
 
 ### duckduckgo_html
 

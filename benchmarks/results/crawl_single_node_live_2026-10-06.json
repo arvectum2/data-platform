@@ -1,0 +1,33 @@
+{
+  "benchmark": "crawl_single_node_live_v1",
+  "date": "2026-10-06",
+  "target": "https://arvectum.com/",
+  "policy": {
+    "max_pages": 5,
+    "max_depth": 1,
+    "max_discovered_urls": 50,
+    "max_links_per_page": 100,
+    "timeout_s": 5
+  },
+  "sequential": {
+    "max_workers": 1,
+    "max_in_flight_per_host": 1,
+    "elapsed_s": 25.305,
+    "pages": 5,
+    "links": 22,
+    "failures": 0,
+    "pages_per_s": 0.198
+  },
+  "concurrent": {
+    "max_workers": 4,
+    "max_in_flight_per_host": 2,
+    "elapsed_s": 15.271,
+    "pages": 5,
+    "links": 22,
+    "failures": 0,
+    "pages_per_s": 0.327
+  },
+  "speedup": 1.66,
+  "same_page_order": true,
+  "decision": "Keep distributed crawling deferred. Adopt bounded single-node concurrency for sitemap fallback; open DP-CRAWL-002 only when a real consumer still misses its crawl/refresh SLO after this optimization."
+}
