@@ -152,7 +152,7 @@ class PublicHTTPTransport:
             target,
             timeout_seconds=timeout_seconds,
         )
-        connection: http.client.HTTPConnection
+        connection: http.client.HTTPConnection | None = None
         try:
             if target.scheme == "https":
                 context = ssl.create_default_context()
@@ -187,11 +187,13 @@ class PublicHTTPTransport:
                 or "application/octet-stream"
             )
             location = response.getheader("Location")
-            body = response.read(max_bytes + 1)
-            if len(body) > max_bytes:
-                raise AcquisitionError(
-                    f"HTTP response exceeds max_bytes={max_bytes} for {url}"
-                )
+            body = b""
+            if status not in _REDIRECT_STATUSES:
+                body = response.read(max_bytes + 1)
+                if len(body) > max_bytes:
+                    raise AcquisitionError(
+                        f"HTTP response exceeds max_bytes={max_bytes} for {url}"
+                    )
             return _FetchResult(
                 status=status,
                 final_url=url,
@@ -201,7 +203,7 @@ class PublicHTTPTransport:
                 location=location,
             )
         finally:
-            try:
+            if connection is not None:
                 connection.close()
-            except UnboundLocalError:
+            else:
                 sock.close()
