@@ -32,3 +32,18 @@ before or after the fence, nested fences are rejected, and all existing
 claim/citation validation still runs after unwrapping. This accommodates local
 models that format otherwise-valid strict JSON as a JSON code block without
 weakening the evidence boundary.
+
+## First frozen faithfulness acceptance
+
+benchmarks/faithfulness_v1.json exercises four local reasoning cases:
+supported factual answer, insufficient-evidence abstention, conflicting-source
+surfacing and a two-hop contract-to-supplier answer. The local Gemma 4 12B
+provider passed all first-version gates on 2026-10-06 with citation
+precision/recall, exact claim support, abstention accuracy, contradiction
+recall and required answer-term recall all equal to 1.0.
+
+The stronger synthesis instruction makes abstention semantics explicit:
+insufficient evidence must produce answer=null, no claims, an uncertainty
+reason and abstained=true. Multi-source answers must include grounded claims
+for every evidence hop used in the conclusion. The parser still rejects any
+claim citing evidence outside the bounded supplied context.

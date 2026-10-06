@@ -1,0 +1,122 @@
+{
+  "name": "faithfulness-v1",
+  "description": "Frozen answer-synthesis faithfulness cases for citation validity/completeness, exact factual support, abstention and contradiction surfacing.",
+  "metadata": {
+    "created_at": "2026-10-06",
+    "scope": "local reasoning provider",
+    "synthetic": true
+  },
+  "cases": [
+    {
+      "id": "supported-price",
+      "query": "Какова цена товара?",
+      "evidence": [
+        {
+          "chunk_id": "price-1",
+          "text": "Цена товара составляет 1999 рублей. Валюта расчета — российские рубли."
+        }
+      ],
+      "expected_abstained": false,
+      "required_claims": [
+        {
+          "terms": [
+            "1999"
+          ],
+          "expected_chunk_ids": [
+            "price-1"
+          ]
+        }
+      ],
+      "required_answer_terms": [
+        "1999"
+      ]
+    },
+    {
+      "id": "insufficient-price",
+      "query": "Какова цена товара?",
+      "evidence": [
+        {
+          "chunk_id": "color-1",
+          "text": "Цвет интерфейса приложения — синий. Других характеристик источник не содержит."
+        }
+      ],
+      "expected_abstained": true,
+      "max_claims": 0
+    },
+    {
+      "id": "conflicting-deadline",
+      "query": "Какой срок поставки установлен документами?",
+      "evidence": [
+        {
+          "chunk_id": "deadline-10",
+          "text": "Версия документа A устанавливает срок поставки: 10 календарных дней."
+        },
+        {
+          "chunk_id": "deadline-15",
+          "text": "Версия документа B устанавливает срок поставки: 15 календарных дней."
+        }
+      ],
+      "expected_abstained": false,
+      "required_claims": [
+        {
+          "terms": [
+            "10"
+          ],
+          "expected_chunk_ids": [
+            "deadline-10"
+          ]
+        },
+        {
+          "terms": [
+            "15"
+          ],
+          "expected_chunk_ids": [
+            "deadline-15"
+          ]
+        }
+      ],
+      "required_contradiction_terms": [
+        "10",
+        "15"
+      ]
+    },
+    {
+      "id": "multi-source-contract-supplier",
+      "query": "Какой ИНН у поставщика по контракту ABC-42?",
+      "evidence": [
+        {
+          "chunk_id": "contract-1",
+          "text": "Контракт ABC-42 заключен с поставщиком Альфа."
+        },
+        {
+          "chunk_id": "supplier-1",
+          "text": "Поставщик Альфа имеет ИНН 7701234567."
+        }
+      ],
+      "expected_abstained": false,
+      "required_claims": [
+        {
+          "terms": [
+            "ABC-42",
+            "Альфа"
+          ],
+          "expected_chunk_ids": [
+            "contract-1"
+          ]
+        },
+        {
+          "terms": [
+            "Альфа",
+            "7701234567"
+          ],
+          "expected_chunk_ids": [
+            "supplier-1"
+          ]
+        }
+      ],
+      "required_answer_terms": [
+        "7701234567"
+      ]
+    }
+  ]
+}

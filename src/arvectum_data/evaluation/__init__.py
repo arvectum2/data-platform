@@ -27,6 +27,15 @@ from .facts import (
     evaluate_fact_chunking,
     load_fact_suite,
 )
+from .faithfulness import (
+    FaithfulnessCase,
+    FaithfulnessCaseResult,
+    FaithfulnessSuite,
+    FaithfulnessSummary,
+    build_local_provider,
+    evaluate_faithfulness_suite,
+    load_faithfulness_suite,
+)
 from .http_runner import EvaluationRequestError, HttpSearchRunner
 from .models import (
     CaseEvaluation,
@@ -53,6 +62,10 @@ __all__ = [
     "EvaluationRequestError",
     "EvaluationSuite",
     "EvaluationSummary",
+    "FaithfulnessCase",
+    "FaithfulnessCaseResult",
+    "FaithfulnessSuite",
+    "FaithfulnessSummary",
     "FactCase",
     "FactCaseResult",
     "FactSuite",
@@ -67,9 +80,12 @@ __all__ = [
     "evaluate_case",
     "evaluate_corpus",
     "evaluate_fact_chunking",
+    "build_local_provider",
+    "evaluate_faithfulness_suite",
     "evaluate_suite",
     "load_adversarial_suite",
     "load_fact_suite",
+    "load_faithfulness_suite",
     "ndcg_at_k",
     "set_precision_recall",
     "validate_benchmark_catalog",

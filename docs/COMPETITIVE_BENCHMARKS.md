@@ -148,3 +148,19 @@ Acceptance gates are top-1 1.0, MRR 1.0, recall@5 1.0 and mean nDCG@5 at least
 0.99.
 
 Live production acceptance on 2026-10-06 passed all 19 cases: top-1=1.0, MRR=1.0, recall@5=1.0 and mean nDCG@5=0.9951. Observed latency was about 114 ms p50, 142 ms p95 and 200 ms max.
+
+## Answer faithfulness suite
+
+benchmarks/faithfulness_v1.json separates answer-synthesis safety dimensions
+from retrieval relevance. The first frozen local-model cases cover a supported
+exact price fact, insufficient evidence that should trigger abstention,
+contradictory deadlines that must be surfaced, and a multi-source contract to
+supplier inference that requires complete citations across both evidence
+chunks.
+
+The evaluator reports citation precision, citation recall, exact frozen-fact
+support in cited evidence, abstention accuracy, contradiction-term recall and
+synthesis latency. All safety-quality thresholds start at 1.0; a local model
+must pass rather than lowering the gate to its observed behavior.
+
+First local Gemma 4 12B acceptance on 2026-10-06 passed all four cases at the original 1.0 safety thresholds: pass rate 1.0, citation precision 1.0, citation recall 1.0, exact claim-support rate 1.0, abstention accuracy 1.0, contradiction recall 1.0 and required-answer-term recall 1.0. Mean synthesis latency was about 7.4 s and max about 9.8 s. The suite is deliberately small and synthetic; real-source faithfulness expansion remains benchmark backlog.

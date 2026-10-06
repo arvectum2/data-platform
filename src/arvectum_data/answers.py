@@ -69,8 +69,12 @@ class ReasoningAnswerSynthesizer:
             GenerationRequest(
                 system_prompt=(
                     "Answer using ONLY the supplied EVIDENCE. Every material factual claim "
-                    "must cite one or more supplied chunk_id values. Surface contradictions. "
-                    "If evidence is insufficient, abstain. Return strict JSON only."
+                    "must cite one or more supplied chunk_id values. If an answer depends on "
+                    "multiple evidence chunks, include grounded claims for every evidence hop "
+                    "used to reach the answer. Surface contradictions. If the question cannot "
+                    "be answered from the supplied evidence, set answer=null, claims=[], "
+                    "uncertainty to a short reason, and abstained=true. Never describe missing "
+                    "information as a normal non-abstained answer. Return strict JSON only."
                 ),
                 prompt=(
                     f"QUESTION: {query}\nEVIDENCE:\n"

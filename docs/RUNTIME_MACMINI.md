@@ -169,3 +169,24 @@ hits returned from both requested collections
 
 Federated authorization is fail-closed. The service never silently removes an unauthorized collection from the request.
 
+## 2026-10-06 runtime refresh
+
+The runtime checkout was refreshed from the historical detached v0.6.0 state to
+current Data Platform main after a custom-format production database backup.
+Production schema advanced from migration 0006 to 0008. The launch wrapper now
+loads the protected production runtime.env before deriving dynamic database
+credentials and consumer keys, preventing runtime settings from diverging from
+manual smoke-test settings.
+
+Local OCR is enabled with Tesseract (rus+eng, 220 DPI). An image-only
+procurement PDF processed through /v1/process/document recovered 2539
+characters in about 3.1 seconds and preserved the expected technical-
+specification headings. Vision remains disabled.
+
+The local Gemma 4 12B OpenAI-compatible endpoint on loopback is enabled only as
+the ReasoningProvider under local-only policy. Vision remains disabled and
+there is no remote fallback. A production /v1/answer smoke test over the
+Photo Size product evidence returned two grounded claims whose citations were
+both members of the supplied evidence set. Production retrieval acceptance
+remained 20/20 top-1 with MRR/recall@5 1.0 and nDCG@5 about 0.9953 after the
+runtime changes.
