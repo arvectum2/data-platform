@@ -23,6 +23,7 @@ from ..billing import (
     PaymentRequest,
     PriceRule,
     UsageQuantity,
+    YooKassaPaymentProvider,
     calculate_invoice,
     normalize_rules,
 )
@@ -194,10 +195,21 @@ class DataPlatformService:
         self.acquisition = acquisition
         self.connector_registry = connector_registry or self._default_connector_registry()
         self.model_router = model_router or self._build_model_router(settings)
-        self.payment_providers: dict[str, PaymentProvider] = {
+        configured_payment_providers: dict[str, PaymentProvider] = {
             ManualPaymentProvider.name: ManualPaymentProvider(),
-            **dict(payment_providers or {}),
         }
+        if settings.yookassa_enabled:
+            configured_payment_providers[YooKassaPaymentProvider.name] = (
+                YooKassaPaymentProvider(
+                    shop_id=settings.yookassa_shop_id,
+                    secret_key=settings.yookassa_secret_key.get_secret_value(),
+                    return_url=settings.yookassa_return_url,
+                    payment_method=settings.yookassa_payment_method,
+                    timeout_seconds=settings.yookassa_timeout_seconds,
+                )
+            )
+        configured_payment_providers.update(dict(payment_providers or {}))
+        self.payment_providers = configured_payment_providers
         self._cross_encoder_scorer = None
         self._cross_encoder_lock = threading.Lock()
         if settings.ocr_provider == "disabled":
@@ -581,6 +593,7 @@ class DataPlatformService:
             "embedding_provider": self.embedding_provider.provider_name,
             "embedding_model": self.embedding_provider.model_name,
             "embedding_dimension": self.embedding_provider.dimension,
+            "payment_providers": sorted(self.payment_providers),
             "ocr_provider": (
                 self.ocr_provider.provider_name if self.ocr_provider is not None else None
             ),
