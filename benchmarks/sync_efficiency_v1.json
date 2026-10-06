@@ -1,0 +1,30 @@
+{
+  "name": "sync-efficiency-v1",
+  "description": "Incremental refresh benchmark proving that unchanged URL resources do not trigger indexing/embedding work and changed resources are reprocessed exactly once.",
+  "metadata": {
+    "created_at": "2026-10-06",
+    "resource_count": 3,
+    "storage": "isolated PostgreSQL",
+    "embedding_provider": "hashing"
+  },
+  "scenarios": [
+    {
+      "id": "no-change",
+      "changed_resources": [],
+      "expected_changed": 0,
+      "expected_indexed": 0
+    },
+    {
+      "id": "single-change",
+      "changed_resources": ["resource-b"],
+      "expected_changed": 1,
+      "expected_indexed": 1
+    },
+    {
+      "id": "all-change",
+      "changed_resources": ["resource-a", "resource-b", "resource-c"],
+      "expected_changed": 3,
+      "expected_indexed": 3
+    }
+  ]
+}

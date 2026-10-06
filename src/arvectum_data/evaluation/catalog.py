@@ -19,6 +19,7 @@ class BenchmarkSuiteSpec:
     visibility: BenchmarkVisibility
     dimensions: tuple[str, ...]
     thresholds: Mapping[str, float] = field(default_factory=dict)
+    items_key: str = "cases"
 
     def __post_init__(self) -> None:
         if not self.suite_id.strip():
@@ -33,6 +34,8 @@ class BenchmarkSuiteSpec:
             raise ValueError(f"unsupported visibility: {self.visibility}")
         if not self.dimensions:
             raise ValueError("dimensions must not be empty")
+        if not self.items_key.strip():
+            raise ValueError("items_key must not be blank")
         for metric, threshold in self.thresholds.items():
             if not metric.strip():
                 raise ValueError("threshold metric must not be blank")
@@ -52,6 +55,7 @@ class BenchmarkSuiteSpec:
                 str(key): float(value)
                 for key, value in dict(payload.get("thresholds") or {}).items()
             },
+            items_key=str(payload.get("items_key") or "cases"),
         )
 
 
@@ -111,12 +115,14 @@ def validate_benchmark_catalog(path: Path) -> BenchmarkCatalog:
                 f"expected {spec.sha256}, got {actual_hash}"
             )
         payload = json.loads(suite_path.read_text(encoding="utf-8"))
-        cases = payload.get("cases")
-        if not isinstance(cases, list):
-            raise ValueError(f"benchmark cases must be a list: {spec.file}")
-        if len(cases) != spec.case_count:
+        items = payload.get(spec.items_key)
+        if not isinstance(items, list):
             raise ValueError(
-                f"benchmark case count mismatch for {spec.suite_id}: "
-                f"expected {spec.case_count}, got {len(cases)}"
+                f"benchmark {spec.items_key} must be a list: {spec.file}"
+            )
+        if len(items) != spec.case_count:
+            raise ValueError(
+                f"benchmark item count mismatch for {spec.suite_id}: "
+                f"expected {spec.case_count}, got {len(items)}"
             )
     return catalog

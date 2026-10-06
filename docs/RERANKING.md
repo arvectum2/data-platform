@@ -26,3 +26,25 @@ Initial gate:
 - p95 latency must stay <= 3x baseline.
 
 The current production acceptance v3 baseline is already 20/20 top-1 with MRR 1.0, so an LLM reranker cannot demonstrate a positive MRR gain on that suite. It therefore remains opt-in. A harder frozen relevance suite is required before any default activation decision.
+
+## Hard-suite acceptance — 2026-10-06
+
+The real Search Console/Yandex suite growth_search_console_v1 is suitable for
+a reranking decision because base hybrid retrieval is not saturated:
+
+- top-1 accuracy: 0.50;
+- MRR: 0.5833;
+- mean nDCG@5: 0.6468;
+- p95 search latency: about 251 ms on the measured run.
+
+The local Gemma reasoning reranker was then tested with only 5 candidates,
+rather than the normal upper bound of 20. The rerank request still exceeded a
+5-second client timeout before the suite could complete. Under the existing
+gate, reranked p95 must stay <=3x the baseline, which is about 752 ms for this
+run. Therefore the current local LLM reranker fails the latency gate by a wide
+margin before quality uplift even becomes relevant.
+
+This is a benchmark result, not a removal of the feature. rerank=true remains
+available as an explicit opt-in, but default activation is rejected. A lighter
+learned/cross-encoder reranker can be evaluated later against the same frozen
+suite and gate.

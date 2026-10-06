@@ -66,6 +66,10 @@ def test_repository_benchmark_catalog_is_frozen_and_valid() -> None:
     assert all(item.thresholds for item in catalog.suites)
 
 
+    sync = next(item for item in catalog.suites if item.suite_id == "sync-efficiency-v1")
+    assert sync.items_key == "scenarios"
+
+
 def test_catalog_rejects_tampered_suite(tmp_path: Path) -> None:
     suite = tmp_path / "suite.json"
     suite.write_text(
