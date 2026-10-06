@@ -18,6 +18,15 @@ from .corpus import (
     validate_corpus_manifest,
 )
 from .metrics import character_error_rate, ndcg_at_k, set_precision_recall, word_error_rate
+from .facts import (
+    FactCase,
+    FactCaseResult,
+    FactSuite,
+    FactSummary,
+    PostgresFactRunner,
+    evaluate_fact_chunking,
+    load_fact_suite,
+)
 from .http_runner import EvaluationRequestError, HttpSearchRunner
 from .models import (
     CaseEvaluation,
@@ -44,16 +53,23 @@ __all__ = [
     "EvaluationRequestError",
     "EvaluationSuite",
     "EvaluationSummary",
+    "FactCase",
+    "FactCaseResult",
+    "FactSuite",
+    "FactSummary",
     "HttpSearchRunner",
     "PostgresAdversarialRunner",
+    "PostgresFactRunner",
     "QueryExpansionGate",
     "RerankGate",
     "character_error_rate",
     "evaluate_adversarial_suite",
     "evaluate_case",
     "evaluate_corpus",
+    "evaluate_fact_chunking",
     "evaluate_suite",
     "load_adversarial_suite",
+    "load_fact_suite",
     "ndcg_at_k",
     "set_precision_recall",
     "validate_benchmark_catalog",

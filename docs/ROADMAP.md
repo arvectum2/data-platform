@@ -578,8 +578,8 @@ Required benchmark dimensions:
 - [x] ingestion success rate by format;
 - [x] OCR word/character accuracy on scanned material;
 - [x] table/form structure preservation;
-- [ ] fact-preserving chunking quality;
-- [ ] exact identifier/number/date/amount retrieval;
+- [x] fact-preserving chunking quality;
+- [x] exact identifier/number/date/amount retrieval;
 - [ ] semantic retrieval quality using Recall@k, MRR and nDCG;
 - [ ] Russian-language retrieval quality;
 - [ ] reranking uplift over base hybrid retrieval;
@@ -601,6 +601,8 @@ Foundation increment (2026-10-06): benchmark suites are now registered in benchm
 Corpus increment (2026-10-06): benchmarks/corpora/public_v1 now pins real public procurement and Arvectum website fixtures across native PDF, DOCX, XLSX and HTML, plus two image-only scans derived from real procurement pages. The executable corpus runner reports extraction success by format, latency and OCR CER/WER against pinned reference text. Live local Tesseract acceptance passed 7/7 artifacts: the linear scan measured CER 3.61% / WER 5.86% at 94.41% confidence, while the table/form layout-stress scan measured CER 35.78% / WER 74.47% at 86.89% confidence. Separate per-case regression ceilings prevent aggregate averages from hiding one degraded OCR profile. Product-research material, malformed/legacy inputs, mixed-language coverage and human-reviewed OCR gold remain open. Native DOCX/XLSX row-cell preservation and PDF form label/value preservation are now scored independently from text accuracy; the OCR layout-stress profile keeps structure and reading-order quality as separate signals.
 
 Adversarial increment (2026-10-06): benchmarks/adversarial_v1.json now executes five invariants against the real PostgreSQL platform path: collection isolation, consumer/tenant fail-closed isolation, federated duplicate canonical-URI suppression, preservation of distinct conflicting evidence, and stale-source last-known-evidence retention. Isolated Mac mini PostgreSQL acceptance passed 5/5: zero forbidden collection hits, unauthorized consumer denied, duplicate canonical URI collapsed to one winner, both conflicting evidence sources preserved, and refresh_error -> stale retained the original content hash plus searchable last-known evidence. The required pass rate is 1.0; contradiction detection itself remains a separate benchmark dimension rather than being inferred from source preservation alone.
+
+Exact-fact increment (2026-10-06): benchmarks/fact_preservation_v1.json binds six real PDF/DOCX/XLSX facts to their expected source and local context. Default chunking preserved every exact fact together with its context (6/6), and isolated PostgreSQL lexical acceptance returned the expected document top-1 for all six exact queries. Coverage includes an identifier, dates, an OKPD2/classification number and monetary amounts; both chunk/context preservation and retrieval top-1 gates are fixed at 1.0.
 
 ### Benchmark-driven adoption gates
 

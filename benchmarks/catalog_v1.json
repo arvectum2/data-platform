@@ -100,6 +100,25 @@
       "thresholds": {
         "pass_rate": 1.0
       }
+    },
+    {
+      "id": "fact-preservation-v1",
+      "file": "fact_preservation_v1.json",
+      "sha256": "2033de4987a4985186b16073adb4991c03a019c43b2c9b786df107b039e3baab",
+      "case_count": 6,
+      "visibility": "public",
+      "dimensions": [
+        "fact-preserving-chunking",
+        "exact-identifiers",
+        "exact-dates",
+        "exact-amounts",
+        "lexical-retrieval"
+      ],
+      "thresholds": {
+        "chunk_preservation_rate": 1.0,
+        "context_preservation_rate": 1.0,
+        "retrieval_top1_rate": 1.0
+      }
     }
   ]
 }
