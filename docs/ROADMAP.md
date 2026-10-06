@@ -583,10 +583,10 @@ Required benchmark dimensions:
 - [x] semantic retrieval quality using Recall@k, MRR and nDCG;
 - [x] Russian-language retrieval quality;
 - [ ] reranking uplift over base hybrid retrieval;
-- [ ] citation correctness and citation completeness;
-- [ ] evidence entailment / groundedness of generated claims;
-- [ ] abstention quality when evidence is insufficient;
-- [ ] contradiction surfacing across sources;
+- [x] citation correctness and citation completeness;
+- [x] evidence entailment / groundedness of generated claims;
+- [x] abstention quality when evidence is insufficient;
+- [x] contradiction surfacing across sources;
 - [ ] multi-hop evidence retrieval;
 - [x] zero cross-collection / cross-tenant leakage;
 - [ ] incremental-sync efficiency: changed resources versus total reprocessed resources;
@@ -607,6 +607,8 @@ Exact-fact increment (2026-10-06): benchmarks/fact_preservation_v1.json binds si
 Semantic retrieval increment (2026-10-06): nDCG now deduplicates repeated result identities before scoring, preventing multiple chunks from the same canonical URI from creating impossible relevance gain above 1.0. Re-run of production_acceptance_v3 scored top-1=1.0, MRR=1.0, recall@5=1.0 and mean nDCG@5=0.9953 against a fixed 0.99 gate. The remaining growth-photo-pixels ordering gap stays visible as benchmark debt instead of being relabeled or hidden.
 
 Russian retrieval increment (2026-10-06): russian_retrieval_v1 freezes the 19 production-accepted cases with Cyrillic queries from production_acceptance_v3. Live production acceptance passed top-1=1.0, MRR=1.0, recall@5=1.0 and mean nDCG@5=0.9951 against the same 0.99 gate, with about 114 ms p50 / 142 ms p95 latency. Russian quality is therefore measured independently from the mixed-language aggregate.
+
+Faithfulness increment (2026-10-06): faithfulness_v1 adds four frozen local-model cases covering supported exact facts, insufficient-evidence abstention, conflicting deadlines and a two-source contract-to-supplier inference. Gemma 4 12B passed the unchanged 1.0 gates for citation precision/recall, exact cited-evidence support, abstention accuracy, contradiction recall and required answer terms. Mean synthesis latency was about 7.4 s and max about 9.8 s. This closes the first deterministic faithfulness dimensions while a larger real-source suite remains future benchmark work.
 
 ### Benchmark-driven adoption gates
 

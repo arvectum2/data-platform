@@ -140,6 +140,29 @@
         "mean_recall_at_5": 1.0,
         "mean_ndcg_at_5": 0.99
       }
+    },
+    {
+      "id": "faithfulness-v1",
+      "file": "faithfulness_v1.json",
+      "sha256": "cfa1275dba54257a26eecd77a76d2c156ff09e41c2fef2fe8d3e0f4740a9086b",
+      "case_count": 4,
+      "visibility": "public",
+      "dimensions": [
+        "citation-correctness",
+        "citation-completeness",
+        "claim-support",
+        "abstention",
+        "contradiction-surfacing"
+      ],
+      "thresholds": {
+        "pass_rate": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "claim_support_rate": 1.0,
+        "abstention_accuracy": 1.0,
+        "contradiction_recall": 1.0,
+        "answer_term_recall": 1.0
+      }
     }
   ]
 }

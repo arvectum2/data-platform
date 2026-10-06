@@ -123,3 +123,29 @@ def test_answer_rejects_fenced_json_with_extra_prose_or_wrong_language():
     for raw in raws:
         with pytest.raises(ValueError, match="invalid JSON"):
             ReasoningAnswerSynthesizer._parse(raw, allowed=set())
+
+def test_answer_prompt_requires_explicit_abstention_contract():
+    captured = {}
+
+    class CapturingProvider(FakeProvider):
+        def generate(self, request):
+            captured["system_prompt"] = request.system_prompt
+            return super().generate(request)
+
+    synth = ReasoningAnswerSynthesizer(
+        CapturingProvider(
+            {
+                "answer": None,
+                "claims": [],
+                "contradictions": [],
+                "uncertainty": "Нет данных.",
+                "abstained": True,
+            }
+        )
+    )
+    synth.synthesize("Какая цена?", [hit("c1", "Только цвет: синий.")])
+
+    prompt = captured["system_prompt"]
+    assert "answer=null" in prompt
+    assert "abstained=true" in prompt
+    assert "every evidence hop" in prompt
