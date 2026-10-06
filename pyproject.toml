@@ -43,6 +43,7 @@ arvectum-data-sync-eval = "arvectum_data.evaluation.sync_efficiency_cli:main"
 arvectum-data-multihop-eval = "arvectum_data.evaluation.multi_hop_cli:main"
 arvectum-data-latency-report = "arvectum_data.evaluation.pipeline_latency_cli:main"
 arvectum-data-private-eval = "arvectum_data.evaluation.private_runtime_cli:main"
+arvectum-data-resource-eval = "arvectum_data.evaluation.runtime_resources_cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

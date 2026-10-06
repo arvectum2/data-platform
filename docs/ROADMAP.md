@@ -591,7 +591,7 @@ Required benchmark dimensions:
 - [x] zero cross-collection / cross-tenant leakage;
 - [x] incremental-sync efficiency: changed resources versus total reprocessed resources;
 - [x] latency p50/p95/max by pipeline stage;
-- [ ] CPU/RAM/GPU footprint and throughput;
+- [x] CPU/RAM/GPU footprint and throughput;
 - [ ] fully local/private execution coverage.
 
 Competitive acceptance rule: no external system needs to be beaten on every dimension. Data Platform must meet its own product gates and document where a reference product is materially better, so the gap can be either intentionally accepted or added to the roadmap.
@@ -619,6 +619,8 @@ Multi-hop increment (2026-10-06): multi_hop_v1 exercises provenance-backed entit
 Latency increment (2026-10-06): a unified Mac mini stage snapshot now records p50/p95/max from the frozen real corpus, production retrieval and local faithfulness suites. Native ingestion measured ~48.7/83.2/89.6 ms, OCR ~2.13/2.70/2.76 s, retrieval ~107.4/128.5/133.3 ms, and local Gemma synthesis ~10.62/15.13/15.80 s. The result is frozen at benchmarks/results/pipeline_latency_2026-10-06.json.
 
 Private-runtime increment (2026-10-06): the production Mac mini core path passes 6/6 local/private checks: API and PostgreSQL are loopback-local, embeddings run on the loopback llama.cpp server, OCR uses local Tesseract, reasoning is enforced as local-only on a loopback endpoint, and vision is disabled. Core coverage is therefore 1.0. External discovery/acquisition remains explicitly networked and is outside this offline-core claim.
+
+Resource increment (2026-10-06): Mac mini runtime footprint/throughput is now frozen in benchmarks/results/runtime_resources_2026-10-06.json. Current combined physical footprint is ~11.94 GB on 24 GiB unified memory (API ~83.5 MB, embeddings ~1.81 GB, reasoning ~10.05 GB); the ~22.58 GB sum of per-process historical peaks is explicitly not a simultaneous peak. Apple Silicon has no separate dedicated VRAM figure, so GPU memory is reported as unified rather than fabricated. Production-v3 retrieval preserved top-1=1.0 while throughput measured 9.23 QPS sequential, 12.99 QPS at 4 workers and 13.37 QPS at 8 workers. Post-run power telemetry sampled ~6.51 W CPU, ~0.66 W GPU and ~85.6% GPU active residency.
 
 ### Benchmark-driven adoption gates
 

@@ -62,6 +62,13 @@ from .private_runtime import (
 from .query_expansion_gate import QueryExpansionGate
 from .rerank_compare import RerankComparison, compare_reranking
 from .rerank_gate import RerankGate
+from .runtime_resources import (
+    PowerSnapshot,
+    ProcessFootprint,
+    RuntimeResourceReport,
+    ThroughputResult,
+    collect_runtime_resources,
+)
 from .sync_efficiency import (
     PostgresSyncEfficiencyRunner,
     SyncEfficiencySuite,
@@ -105,12 +112,17 @@ __all__ = [
     "QueryExpansionGate",
     "RerankComparison",
     "RerankGate",
+    "RuntimeResourceReport",
+    "PowerSnapshot",
+    "ProcessFootprint",
     "PostgresSyncEfficiencyRunner",
     "SyncEfficiencySuite",
     "StageLatency",
     "SyncEfficiencySummary",
+    "ThroughputResult",
     "build_pipeline_latency_report",
     "character_error_rate",
+    "collect_runtime_resources",
     "compare_reranking",
     "evaluate_adversarial_suite",
     "evaluate_case",
