@@ -512,13 +512,18 @@ Implementation: `docs/CONTINUOUS_INDEXING.md`. Scheduling is intentionally exter
 
 ### DP-CRAWL-002 — distributed crawling
 
-Status: FUTURE.
+Status: FUTURE; distributed fleet remains deferred after measured single-node optimization.
 
+- [x] measure the current sequential single-node crawl bottleneck on a live bounded target;
+- [x] add deterministic bounded single-node concurrency before introducing distributed infrastructure;
+- [x] enforce per-host in-flight caps while preserving BFS discovery order;
 - [ ] durable crawl queue;
-- [ ] multiple workers with host-level rate limits;
-- [ ] deduplication and leases;
-- [ ] resumable crawl jobs;
-- [ ] only introduce when single-node throughput becomes a measured bottleneck.
+- [ ] distributed workers with host-level rate limits;
+- [ ] deduplication and leases across workers;
+- [ ] resumable distributed crawl jobs;
+- [ ] activate the distributed phase only when a real consumer still misses its crawl/refresh SLO after bounded single-node concurrency.
+
+Single-node crawl acceptance (2026-10-06): a live 5-page direct crawl of `https://arvectum.com/` with identical depth/page/link limits measured 25.305 s sequential (0.198 pages/s) versus 15.271 s with 4 workers and a 2-request per-host cap (0.327 pages/s), a 1.66x speedup. Both modes returned the same five pages in the same deterministic BFS order, the same 22 discovered links and zero failures. A separate direct-fetch probe over the same five URLs measured 2.53x speedup with four local workers, confirming remote I/O latency rather than CPU as the dominant constraint. The accepted response is therefore bounded single-node concurrency in sitemap fallback, not a distributed crawler fleet. Frozen result: `benchmarks/results/crawl_single_node_live_2026-10-06.json`.
 
 ### DP-MEM-001 — shared evidence-backed agent memory
 
@@ -733,7 +738,7 @@ Only after three real consumers are integrated:
 - [x] learned reranker;
 - [x] optional bounded LLM reranking path implemented; not promoted because it fails the accepted latency gate;
 - [x] query expansion implemented; default activation rejected by the hard-suite quality/latency gate;
-- [ ] distributed crawling — deliberately deferred until measured single-node throughput becomes a bottleneck;
+- [ ] distributed crawling — deliberately deferred; bounded single-node concurrency now provides a measured 1.66x live crawl speedup, and distributed activation requires a real consumer still missing its crawl/refresh SLO;
 - [x] authorized federated cross-collection search;
 - [x] relevance evaluation pipeline;
 - [x] relevance feedback capture loop.
