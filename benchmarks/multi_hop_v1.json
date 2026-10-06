@@ -1,0 +1,10 @@
+{
+  "name": "multi-hop-v1",
+  "description": "Evidence-backed entity-graph traversal across two- and three-hop paths.",
+  "metadata": {"created_at": "2026-10-06", "storage": "isolated PostgreSQL", "max_depth": 3},
+  "scenarios": [
+    {"id":"contract-to-inn","start":"contract","target":"tax-id","max_depth":2,"expected_target_depth":2,"required_relation_types":["awarded_to","has_inn"],"expected_evidence_edges":2},
+    {"id":"supplier-to-manufacturer","start":"supplier","target":"manufacturer","max_depth":2,"expected_target_depth":2,"required_relation_types":["supplies","manufactured_by"],"expected_evidence_edges":2},
+    {"id":"supplier-to-country","start":"supplier","target":"country","max_depth":3,"expected_target_depth":3,"required_relation_types":["supplies","manufactured_by","registered_in"],"expected_evidence_edges":3}
+  ]
+}

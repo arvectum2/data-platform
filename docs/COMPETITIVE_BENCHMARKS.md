@@ -191,3 +191,18 @@ candidates exceeded a 5-second request timeout, while the accepted 3x latency
 ceiling was about 752 ms. The current LLM reranker therefore fails competitive
 acceptance and remains opt-in. The recorded result is
 benchmarks/results/rerank_growth_search_console_2026-10-06.json.
+
+## Multi-hop evidence retrieval
+
+benchmarks/multi_hop_v1.json exercises the existing provenance-aware entity
+graph on an isolated PostgreSQL database. The benchmark separates retrieval
+from synthesis: the platform must traverse two- and three-hop paths and every
+required edge must retain its collection/resource/document/chunk evidence.
+
+The first acceptance run on 2026-10-06 passed 3/3 scenarios: contract ->
+supplier -> INN at depth 2, supplier -> product -> manufacturer at depth 2,
+and supplier -> product -> manufacturer -> country at depth 3. Target recall
+was 1.0 and provenance completeness was 1.0. The faithfulness suite separately
+checks that the reasoning model can synthesize across multiple supplied
+sources; this benchmark proves that evidence can actually be retrieved through
+multiple graph hops first.

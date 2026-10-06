@@ -40,6 +40,7 @@ arvectum-data-fact-eval = "arvectum_data.evaluation.facts_cli:main"
 arvectum-data-rerank-eval = "arvectum_data.evaluation.rerank_compare_cli:main"
 arvectum-data-faithfulness-eval = "arvectum_data.evaluation.faithfulness_cli:main"
 arvectum-data-sync-eval = "arvectum_data.evaluation.sync_efficiency_cli:main"
+arvectum-data-multihop-eval = "arvectum_data.evaluation.multi_hop_cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
