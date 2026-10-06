@@ -485,6 +485,7 @@ class StatusResponse(BaseModel):
     embedding_provider: str
     embedding_model: str
     embedding_dimension: int | None
+    payment_providers: list[str] = Field(default_factory=list)
     ocr_provider: str | None = None
     model_roles: dict[str, dict[str, Any]] = Field(default_factory=dict)
     metrics: dict[str, int] = Field(default_factory=dict)
