@@ -72,3 +72,18 @@ Provider/model identity is included where available. Metadata is deliberately
 limited to safe counters such as call count, candidate limit, variant count and
 returned-hit count. Query text, document text, URLs, API keys and exception
 messages are not copied into diagnostics.
+
+## Operational budgets
+
+The mode envelopes expose explicit operational budgets through GET /v1/modes:
+
+| Mode | p95 latency budget | Model-call budget | Physical-footprint ceiling |
+| --- | ---: | ---: | ---: |
+| FAST | 250 ms | 0 | 4 GiB |
+| STANDARD | 750 ms | 1 | 14 GiB |
+| DEEP | 5 s | 2 | 14 GiB |
+| RESEARCH | 20 s | 3 | 16 GiB |
+
+These are promotion/SLO ceilings, not claims that every optional stage currently meets them. FAST is grounded in the measured production-v3 retrieval p95 of about 128.5 ms and the API+embedding runtime footprint of about 1.9 GB. STANDARD reuses the rerank promotion ceiling of at most 3x deterministic hybrid p95. The current local Gemma reranker exceeds that latency budget, so it remains opt-in and fails promotion. DEEP allows a wider bounded envelope for query expansion plus reranking, while RESEARCH accommodates local grounded synthesis (about 15.1 s measured p95) and governed discovery.
+
+Model-call count is the provider-neutral cost budget. Monetary price is not hard-coded because local models have no per-call API charge and remote provider pricing varies by deployment policy. Remote/local provider selection remains governed separately by DP-MODEL-001.
