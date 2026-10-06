@@ -6,6 +6,8 @@ from typing import Any
 
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import (
+    BigInteger,
+    Boolean,
     Computed,
     DateTime,
     ForeignKey,
@@ -483,6 +485,44 @@ class ConsumerApiKeyRow(Base):
     __table_args__ = (
         Index("ix_dp_consumer_api_keys_consumer_status", "consumer_id", "status"),
         Index("ix_dp_consumer_api_keys_tenant_status", "tenant_id", "status"),
+    )
+
+
+class UsageEventRow(Base):
+    __tablename__ = "dp_usage_events"
+
+    usage_event_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    consumer_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    operation: Mapped[str] = mapped_column(String(64), nullable=False)
+    unit: Mapped[str] = mapped_column(String(32), nullable=False)
+    quantity: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    billable: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    status_code: Mapped[int] = mapped_column(Integer, nullable=False)
+    request_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(
+        "metadata", JSON_TYPE, default=dict, nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "consumer_id",
+            "request_id",
+            "operation",
+            "unit",
+            name="uq_dp_usage_consumer_request_operation_unit",
+        ),
+        Index("ix_dp_usage_tenant_created", "tenant_id", "created_at"),
+        Index(
+            "ix_dp_usage_tenant_operation_created",
+            "tenant_id",
+            "operation",
+            "created_at",
+        ),
+        Index("ix_dp_usage_consumer_created", "consumer_id", "created_at"),
     )
 
 
