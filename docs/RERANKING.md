@@ -66,4 +66,4 @@ On 2026-10-06 the hard `growth_search_console_v1` suite was rerun on the Mac min
 - gain: +0.0833 MRR, +0.0833 top-1, +0.0417 mean nDCG@5;
 - latency multiplier: 2.18x, inside the existing <=3x promotion gate.
 
-The learned/cross-encoder candidate therefore passes the benchmark promotion gate. This does not make reranking automatic yet: API integration, lifecycle/memory accounting and model packaging remain separate implementation work. The frozen result is `benchmarks/results/cross_encoder_rerank_2026-10-06.json`.
+The learned/cross-encoder candidate therefore passes the benchmark promotion gate. A separate warm-process measurement put physical footprint at about 3.74 GB with a ~3.87 GB peak on the 24 GiB Apple Silicon host. This does not make reranking automatic yet: API integration, lifecycle/memory accounting and model packaging remain separate implementation work. The frozen result is `benchmarks/results/cross_encoder_rerank_2026-10-06.json`.
