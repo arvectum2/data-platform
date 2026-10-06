@@ -89,9 +89,27 @@ class ReasoningAnswerSynthesizer:
         )
 
     @staticmethod
+    def _strict_json_text(text: str) -> str:
+        stripped = text.strip()
+        fence = chr(96) * 3
+        if not stripped.startswith(fence):
+            return stripped
+
+        lines = stripped.splitlines()
+        if len(lines) < 3:
+            raise ValueError("answer synthesizer returned invalid JSON")
+        opening = lines[0].strip().lower()
+        if opening not in {fence, fence + "json"} or lines[-1].strip() != fence:
+            raise ValueError("answer synthesizer returned invalid JSON")
+        inner = "\n".join(lines[1:-1]).strip()
+        if not inner or fence in inner:
+            raise ValueError("answer synthesizer returned invalid JSON")
+        return inner
+
+    @staticmethod
     def _parse(text: str, *, allowed: set[str]) -> GroundedAnswer:
         try:
-            payload = json.loads(text)
+            payload = json.loads(ReasoningAnswerSynthesizer._strict_json_text(text))
         except json.JSONDecodeError as exc:
             raise ValueError("answer synthesizer returned invalid JSON") from exc
         if not isinstance(payload, dict):

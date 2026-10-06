@@ -78,3 +78,48 @@ def test_answer_abstains_without_evidence_without_calling_model():
     assert result.abstained is True
     assert result.answer is None
     assert result.uncertainty
+
+def test_answer_accepts_single_json_code_fence_without_prose():
+    payload = {
+        "answer": "Цена составляет 1999 рублей.",
+        "claims": [{"text": "Цена — 1999 рублей.", "chunk_ids": ["c1"]}],
+        "contradictions": [],
+        "uncertainty": None,
+        "abstained": False,
+    }
+
+    class FencedProvider(FakeProvider):
+        def generate(self, request):
+            fence = chr(96) * 3
+            return ModelResponse(
+                fence + "json\n"
+                + json.dumps(self.payload, ensure_ascii=False)
+                + "\n" + fence,
+                "fake",
+                "answer",
+                "1",
+                ModelLocality.LOCAL,
+                1.0,
+            )
+
+    result = ReasoningAnswerSynthesizer(FencedProvider(payload)).synthesize(
+        "Какая цена?",
+        [hit("c1", "Цена: 1999 рублей.")],
+    )
+
+    assert result.answer == "Цена составляет 1999 рублей."
+    assert result.claims[0].chunk_ids == ("c1",)
+
+
+def test_answer_rejects_fenced_json_with_extra_prose_or_wrong_language():
+    fence = chr(96) * 3
+    raws = [
+        "Вот ответ:\n" + fence + "json\n"
+        + '{"answer": null, "claims": [], "contradictions": [], "uncertainty": null, "abstained": true}'
+        + "\n" + fence,
+        fence + "json\n" + '{"answer": null}' + "\n" + fence + "\nлишний текст",
+        fence + "python\n" + '{"answer": null}' + "\n" + fence,
+    ]
+    for raw in raws:
+        with pytest.raises(ValueError, match="invalid JSON"):
+            ReasoningAnswerSynthesizer._parse(raw, allowed=set())

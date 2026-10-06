@@ -23,3 +23,12 @@ Retrieval relevance and answer faithfulness are separate concerns. Production ac
 - contradiction recall on frozen conflicting-source cases;
 - abstention correctness on insufficient-evidence cases;
 - synthesis latency separately from retrieval latency.
+
+## Local model JSON compatibility
+
+The strict response validator accepts either a bare JSON object or exactly one
+Markdown code fence whose language is empty or json. No prose may appear
+before or after the fence, nested fences are rejected, and all existing
+claim/citation validation still runs after unwrapping. This accommodates local
+models that format otherwise-valid strict JSON as a JSON code block without
+weakening the evidence boundary.
