@@ -2205,9 +2205,24 @@ class DataPlatformService:
         source_limit: int = 8,
         evidence_limit: int = 8,
         consumer: str | None = None,
+        credential_id: str | None = None,
         rerank: bool = False,
         expand_query: bool = False,
     ) -> ResearchResult:
+        if consumer is not None:
+            with self._require_factory()() as session:
+                collection = session.get(CollectionRow, collection_id)
+                if collection is None:
+                    raise CollectionNotFound(collection_id)
+                self._authorize_collection_consumer(
+                    collection,
+                    consumer,
+                    session=session,
+                )
+        if credential_id is not None and consumer is None:
+            raise CollectionAccessDenied(
+                "research connector credential requires consumer identity"
+            )
         return ResearchWorkflow(self).run(
             query=query,
             collection_id=collection_id,
@@ -2215,6 +2230,7 @@ class DataPlatformService:
             source_limit=source_limit,
             evidence_limit=evidence_limit,
             consumer=consumer,
+            credential_id=credential_id,
             rerank=rerank,
             expand_query=expand_query,
         )
