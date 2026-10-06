@@ -53,6 +53,8 @@ class SitemapConnector:
             max_pages=20,
             max_discovered_urls=200,
             render_mode=RenderMode.NEVER,
+            max_workers=4,
+            max_in_flight_per_host=2,
         )
         self.max_sitemaps = max_sitemaps
 

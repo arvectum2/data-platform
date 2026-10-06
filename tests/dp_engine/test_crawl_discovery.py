@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import threading
+import time
 
 import pytest
 
@@ -56,6 +58,38 @@ class FakeAcquisition:
                 ),
             ),
         )
+
+
+class DelayedAcquisition(FakeAcquisition):
+    def __init__(
+        self,
+        pages: dict[str, FakePage],
+        *,
+        delays: dict[str, float] | None = None,
+    ):
+        super().__init__(pages)
+        self.delays = delays or {}
+        self._lock = threading.Lock()
+        self._active_by_host: dict[str, int] = {}
+        self.max_active_by_host: dict[str, int] = {}
+
+    def acquire(self, request: AcquisitionRequest) -> AcquisitionResult:
+        from urllib.parse import urlsplit
+
+        host = urlsplit(request.url).hostname or ""
+        with self._lock:
+            active = self._active_by_host.get(host, 0) + 1
+            self._active_by_host[host] = active
+            self.max_active_by_host[host] = max(
+                self.max_active_by_host.get(host, 0),
+                active,
+            )
+        try:
+            time.sleep(self.delays.get(request.url, 0.0))
+            return super().acquire(request)
+        finally:
+            with self._lock:
+                self._active_by_host[host] -= 1
 
 
 def test_canonicalize_normalizes_host_default_port_and_fragment():
@@ -385,3 +419,91 @@ def test_multiple_seed_origins_are_each_in_scope_without_cross_expansion():
         "https://one.test/a",
         "https://two.test/b",
     )
+
+
+def test_concurrent_crawl_preserves_deterministic_bfs_order():
+    pages = {
+        "https://example.com/": FakePage(
+            '<a href="/a">A</a><a href="/b">B</a><a href="/c">C</a>'
+        ),
+        "https://example.com/a": FakePage('<a href="/a1">A1</a>'),
+        "https://example.com/b": FakePage('<a href="/b1">B1</a>'),
+        "https://example.com/c": FakePage('<a href="/c1">C1</a>'),
+        "https://example.com/a1": FakePage(""),
+        "https://example.com/b1": FakePage(""),
+        "https://example.com/c1": FakePage(""),
+    }
+    acquisition = DelayedAcquisition(
+        pages,
+        delays={
+            "https://example.com/a": 0.04,
+            "https://example.com/b": 0.01,
+            "https://example.com/c": 0.02,
+        },
+    )
+    result = URLDiscoveryCrawler(
+        acquisition=acquisition,
+        policy=CrawlPolicy(
+            max_depth=2,
+            max_pages=7,
+            max_workers=3,
+            max_in_flight_per_host=3,
+        ),
+    ).discover(["https://example.com/"])
+
+    assert [page.final_url for page in result.pages] == [
+        "https://example.com/",
+        "https://example.com/a",
+        "https://example.com/b",
+        "https://example.com/c",
+        "https://example.com/a1",
+        "https://example.com/b1",
+        "https://example.com/c1",
+    ]
+    assert result.urls() == (
+        "https://example.com/a",
+        "https://example.com/b",
+        "https://example.com/c",
+        "https://example.com/a1",
+        "https://example.com/b1",
+        "https://example.com/c1",
+    )
+
+
+def test_concurrent_crawl_enforces_per_host_in_flight_limit():
+    pages = {
+        "https://example.com/": FakePage(
+            '<a href="/a">A</a><a href="/b">B</a><a href="/c">C</a><a href="/d">D</a>'
+        ),
+        "https://example.com/a": FakePage(""),
+        "https://example.com/b": FakePage(""),
+        "https://example.com/c": FakePage(""),
+        "https://example.com/d": FakePage(""),
+    }
+    acquisition = DelayedAcquisition(
+        pages,
+        delays={
+            "https://example.com/a": 0.03,
+            "https://example.com/b": 0.03,
+            "https://example.com/c": 0.03,
+            "https://example.com/d": 0.03,
+        },
+    )
+    URLDiscoveryCrawler(
+        acquisition=acquisition,
+        policy=CrawlPolicy(
+            max_depth=1,
+            max_pages=5,
+            max_workers=4,
+            max_in_flight_per_host=2,
+        ),
+    ).discover(["https://example.com/"])
+
+    assert acquisition.max_active_by_host["example.com"] == 2
+
+
+def test_crawl_policy_rejects_invalid_worker_bounds():
+    with pytest.raises(ValueError, match="max_workers"):
+        CrawlPolicy(max_workers=0)
+    with pytest.raises(ValueError, match="max_in_flight_per_host"):
+        CrawlPolicy(max_workers=2, max_in_flight_per_host=3)
