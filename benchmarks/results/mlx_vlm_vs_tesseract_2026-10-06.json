@@ -1,0 +1,56 @@
+{
+  "measured_at": "2026-10-06",
+  "model": "mlx-community/Qwen2.5-VL-3B-Instruct-4bit",
+  "mlx_vlm_version": "0.7.6",
+  "mlx_version": "0.32.3",
+  "cached_load_ms": 4841.395583003759,
+  "warmup_ms": 7268.349334015511,
+  "required_text_pass_rate": 1.0,
+  "tesseract_mean_cer": 0.19698371110644344,
+  "tesseract_mean_wer": 0.401656386443967,
+  "vlm_mean_cer": 0.13950689277778391,
+  "vlm_mean_wer": 0.23498971977730032,
+  "vlm_mean_latency_ms": 15071.801208512625,
+  "vlm_max_peak_memory_gb": 4.132494382,
+  "cases": [
+    {
+      "artifact_id": "procurement-control-notice-scan",
+      "tesseract": {
+        "cer": 0.35782747603833864,
+        "wer": 0.7446808510638298,
+        "latency_ms": 1250.9714579791762,
+        "structure_score": 1.0
+      },
+      "vlm": {
+        "cer": 0.2547923322683706,
+        "wer": 0.41134751773049644,
+        "latency_ms": 13191.837374994066,
+        "peak_memory_gb": 4.132183086,
+        "required_text_passed": true
+      },
+      "cer_delta": -0.10303514376996803,
+      "wer_delta": -0.3333333333333333,
+      "latency_multiplier": 10.54527446717626
+    },
+    {
+      "artifact_id": "procurement-technical-spec-scan",
+      "tesseract": {
+        "cer": 0.03613994617454825,
+        "wer": 0.05863192182410423,
+        "latency_ms": 2771.283791982569,
+        "structure_score": null
+      },
+      "vlm": {
+        "cer": 0.02422145328719723,
+        "wer": 0.05863192182410423,
+        "latency_ms": 16951.765042031184,
+        "peak_memory_gb": 4.132494382,
+        "required_text_passed": true
+      },
+      "cer_delta": -0.011918492887351018,
+      "wer_delta": 0.0,
+      "latency_multiplier": 6.116935801044013
+    }
+  ],
+  "decision": "Keep Tesseract as default OCR. Escalate only low-confidence/layout-stress pages to a local VLM. The live benchmark validates the existing confidence-90 routing rule: the layout-stress scan improves materially, while the linear scan has negligible WER gain at much higher latency and memory cost. Production vision remains disabled until an explicit vision runtime is configured."
+}

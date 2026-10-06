@@ -335,3 +335,17 @@ OCR path. Unstructured remains a useful layout/document-understanding reference,
 but the measured current version does not justify making its much larger
 dependency stack mandatory. Re-run future versions if they offer table/layout
 quality gains without regressing the Russian scanned-PDF path.
+
+## Live VLM quality reference
+
+The OCR routing gate now has a real local VLM quality run rather than only a
+confidence proxy. A cached MLX benchmark using
+mlx-community/Qwen2.5-VL-3B-Instruct-4bit processed the two frozen image-only
+PDF profiles. Required text passed 2/2; mean CER improved from 19.70% with
+Tesseract to 13.95%, and mean WER from 40.17% to 23.50%.
+
+The layout-stress form is the useful escalation case: CER 35.78% -> 25.48% and
+WER 74.47% -> 41.13%. The linear scan gains almost nothing in WER (5.86% ->
+5.86%) while VLM inference costs roughly 13-17 s/page and about 4.13 GB peak
+MLX memory. This validates the frozen confidence-90 routing policy and argues
+against a universal VLM ingestion path.

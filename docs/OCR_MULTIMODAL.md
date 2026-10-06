@@ -77,6 +77,30 @@ larger real private-derived sample.
 
 The frozen suite is benchmarks/private_runtime_ocr_scale_v1.json and the
 privacy-safe run output is
-benchmarks/results/private_runtime_ocr_scale_2026-10-06.json. A live VLM
-content-quality comparison is still separate benchmark work because the
-production vision role is currently disabled.
+benchmarks/results/private_runtime_ocr_scale_2026-10-06.json.
+
+## Live local VLM quality benchmark
+
+A separate local benchmark environment now provides the missing content-quality
+comparison without enabling vision in production. Using mlx-vlm 0.7.6 with
+mlx-community/Qwen2.5-VL-3B-Instruct-4bit on the two frozen public scan
+profiles, required-text recall was 100%. Mean CER improved from 19.70% with
+Tesseract to 13.95% with the VLM, and mean WER improved from 40.17% to 23.50%.
+
+The gain is concentrated exactly where the routing gate predicts it should be.
+The layout-stress form improved from CER 35.78% / WER 74.47% to CER 25.48% /
+WER 41.13%. The linear technical-specification scan improved only from CER
+3.61% / WER 5.86% to CER 2.42% / WER 5.86%.
+
+The cost difference is large: cached model load was about 4.84 s, warm-up about
+7.27 s, page inference about 13.19-16.95 s, and MLX reported about 4.13 GB peak
+memory. Tesseract took about 1.25 s on the layout-stress page and 2.77 s on the
+linear page. Therefore the benchmark confirms the current design: keep
+Tesseract as the ordinary OCR path and invoke a local VLM only for pages that
+fail the OCR-quality/routing threshold. Production vision remains disabled
+unless explicitly configured through DP-MODEL-001.
+
+Reproduce the local VLM comparison with
+`scripts/benchmark_mlx_vlm_reference.py`; the frozen outputs are
+`benchmarks/results/mlx_vlm_public_scans_2026-10-06.json` and
+`benchmarks/results/mlx_vlm_vs_tesseract_2026-10-06.json`.
