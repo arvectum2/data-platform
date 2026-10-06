@@ -263,6 +263,9 @@ class SearchStageDiagnosticResponse(BaseModel):
 class SearchExecutionDiagnosticsResponse(BaseModel):
     execution_mode: ExecutionMode | None = None
     total_ms: float | None = None
+    latency_budget_ms: int | None = None
+    within_latency_budget: bool | None = None
+    max_model_calls: int | None = None
     stages: list[SearchStageDiagnosticResponse] = Field(default_factory=list)
 
 
@@ -285,6 +288,8 @@ class ExecutionModeProfileResponse(BaseModel):
     max_rerank_candidates: int
     max_discovery_sources: int
     max_evidence_items: int
+    latency_budget_ms: int
+    max_model_calls: int
     degradation: str
 
 
@@ -528,6 +533,24 @@ class ResearchSourceResponse(BaseModel):
     error: str | None = None
 
 
+class ResearchStageDiagnosticResponse(BaseModel):
+    stage: str
+    status: str
+    duration_ms: float
+    provider: str | None = None
+    model: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResearchExecutionDiagnosticsResponse(BaseModel):
+    execution_mode: ExecutionMode | None = None
+    total_ms: float | None = None
+    latency_budget_ms: int | None = None
+    within_latency_budget: bool | None = None
+    max_model_calls: int | None = None
+    stages: list[ResearchStageDiagnosticResponse] = Field(default_factory=list)
+
+
 class ResearchResponse(BaseModel):
     query: str
     execution_mode: ExecutionMode | None = None
@@ -539,6 +562,7 @@ class ResearchResponse(BaseModel):
     sources: list[ResearchSourceResponse] = Field(default_factory=list)
     evidence: list[SearchHitResponse] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    diagnostics: ResearchExecutionDiagnosticsResponse | None = None
 
 
 class EntityRelationReviewRequest(BaseModel):
