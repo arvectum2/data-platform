@@ -48,3 +48,11 @@ If a connector does not implement the credential-aware contract, passing a `cred
 The vault is provider-neutral infrastructure. It does not invent authentication conventions for arbitrary websites and it does not forward generic Authorization headers to arbitrary redirect targets. Each authenticated third-party connector must explicitly define how its secret fields are applied and remains subject to the existing SSRF/redirect/rate-limit policies.
 
 Therefore the credential vault and connector binding are complete platform capabilities, while shipping the first concrete customer-authenticated third-party connector remains a separate product backlog item.
+
+## Production acceptance — 2026-10-06
+
+Migration `0011_connector_credentials` is applied to the production `arvectum_data` database. The production Data Platform runtime now includes `cryptography`, and a versioned connector-credential master key is present only in the mode-0600 runtime environment file.
+
+A live runtime encryption smoke created a temporary in-memory credential payload, encrypted it with key version `v1`, verified that the plaintext secret did not occur in the ciphertext, and successfully decrypted it back to the original payload. The key value itself was never printed or written to the repository.
+
+The API restarted successfully on the merged credential-vault build and `/health` remained `ok`. No production customer credential rows were created during this acceptance; tenant-bound lifecycle behavior is covered by the PostgreSQL integration suite.
