@@ -3,7 +3,7 @@ from __future__ import annotations
 import ipaddress
 from urllib.parse import urlsplit
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     connector_credentials_master_key: str = ""
     connector_credentials_key_version: str = "v1"
 
+    yookassa_shop_id: str = ""
+    yookassa_secret_key: SecretStr = SecretStr("")
+    yookassa_return_url: str = ""
+    yookassa_payment_method: str = "smart"
+    yookassa_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
+
     embedding_provider: str = "hashing"
     embedding_model: str = "local-hash-v1"
     embedding_base_url: str = "http://127.0.0.1:8090/v1"
@@ -97,6 +103,21 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_deployment_privacy(self):
+        yookassa_shop_id = self.yookassa_shop_id.strip()
+        yookassa_secret = self.yookassa_secret_key.get_secret_value().strip()
+        yookassa_return_url = self.yookassa_return_url.strip()
+        configured_parts = (yookassa_shop_id, yookassa_secret, yookassa_return_url)
+        if any(configured_parts) and not all(configured_parts):
+            raise ValueError(
+                "YooKassa configuration must include shop_id, secret_key and return_url"
+            )
+        method = self.yookassa_payment_method.strip().lower()
+        if method not in {"smart", "sbp"}:
+            raise ValueError("yookassa_payment_method must be smart or sbp")
+        self.yookassa_shop_id = yookassa_shop_id
+        self.yookassa_return_url = yookassa_return_url
+        self.yookassa_payment_method = method
+
         cross_encoder_provider = self.cross_encoder_provider.strip().lower()
         if cross_encoder_provider not in {"disabled", "http", "sentence_transformers"}:
             raise ValueError(
@@ -112,6 +133,8 @@ class Settings(BaseSettings):
             return self
 
         violations: list[str] = []
+        if self.yookassa_enabled:
+            violations.append("YooKassa is not permitted in local-private mode")
         if not _loopback_host(self.host):
             violations.append("API host must be loopback")
         if self.database_url and not _url_is_local(self.database_url):
@@ -148,6 +171,14 @@ class Settings(BaseSettings):
                 + "; ".join(violations)
             )
         return self
+
+    @property
+    def yookassa_enabled(self) -> bool:
+        return bool(
+            self.yookassa_shop_id
+            and self.yookassa_secret_key.get_secret_value().strip()
+            and self.yookassa_return_url
+        )
 
     @property
     def embeddings_provider(self) -> str:
