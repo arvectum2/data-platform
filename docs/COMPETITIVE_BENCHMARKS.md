@@ -135,3 +135,16 @@ before indexing, or retrieval can fail even though the fact survived in the
 indexed text.
 
 First isolated PostgreSQL acceptance on the Mac mini (2026-10-06) passed all six cases. Chunk preservation = 1.0, same-chunk context preservation = 1.0 and exact PostgreSQL lexical top-1 retrieval = 1.0. The accepted cases cover PDF/DOCX/XLSX facts across identifiers, dates, classification numbers and monetary values. The temporary benchmark database was dropped after the run.
+
+## Russian retrieval slice
+
+benchmarks/russian_retrieval_v1.json freezes the 19 accepted
+production_acceptance_v3 cases whose queries contain Cyrillic text. The only
+excluded production case is the English App Store research query. Keeping this
+as a separate suite makes Russian retrieval quality independently gateable
+instead of inferring it from a mixed-language aggregate.
+
+Acceptance gates are top-1 1.0, MRR 1.0, recall@5 1.0 and mean nDCG@5 at least
+0.99.
+
+Live production acceptance on 2026-10-06 passed all 19 cases: top-1=1.0, MRR=1.0, recall@5=1.0 and mean nDCG@5=0.9951. Observed latency was about 114 ms p50, 142 ms p95 and 200 ms max.
