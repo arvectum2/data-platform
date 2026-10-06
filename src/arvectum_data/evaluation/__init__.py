@@ -44,7 +44,14 @@ from .models import (
     EvaluationSummary,
 )
 from .query_expansion_gate import QueryExpansionGate
+from .rerank_compare import RerankComparison, compare_reranking
 from .rerank_gate import RerankGate
+from .sync_efficiency import (
+    PostgresSyncEfficiencyRunner,
+    SyncEfficiencySuite,
+    SyncEfficiencySummary,
+    load_sync_efficiency_suite,
+)
 
 __all__ = [
     "AdversarialCase",
@@ -74,8 +81,13 @@ __all__ = [
     "PostgresAdversarialRunner",
     "PostgresFactRunner",
     "QueryExpansionGate",
+    "RerankComparison",
     "RerankGate",
+    "PostgresSyncEfficiencyRunner",
+    "SyncEfficiencySuite",
+    "SyncEfficiencySummary",
     "character_error_rate",
+    "compare_reranking",
     "evaluate_adversarial_suite",
     "evaluate_case",
     "evaluate_corpus",
@@ -85,6 +97,7 @@ __all__ = [
     "evaluate_suite",
     "load_adversarial_suite",
     "load_fact_suite",
+    "load_sync_efficiency_suite",
     "load_faithfulness_suite",
     "ndcg_at_k",
     "set_precision_recall",

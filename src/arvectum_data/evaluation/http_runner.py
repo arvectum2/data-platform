@@ -21,6 +21,8 @@ class HttpSearchRunner:
     consumer: str = ""
     consumer_key: str = ""
     timeout_seconds: float = 30.0
+    rerank: bool = False
+    rerank_candidates: int = 20
 
     def __call__(
         self,
@@ -36,6 +38,8 @@ class HttpSearchRunner:
             "query_variants": list(case.query_variants),
             "query_variant_weight": case.query_variant_weight,
             "collapse_by_canonical_uri": case.collapse_by_canonical_uri,
+            "rerank": self.rerank,
+            "rerank_candidates": self.rerank_candidates,
         }
         headers = {"Content-Type": "application/json"}
         if self.api_key:

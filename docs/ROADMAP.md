@@ -582,14 +582,14 @@ Required benchmark dimensions:
 - [x] exact identifier/number/date/amount retrieval;
 - [x] semantic retrieval quality using Recall@k, MRR and nDCG;
 - [x] Russian-language retrieval quality;
-- [ ] reranking uplift over base hybrid retrieval;
+- [x] reranking uplift over base hybrid retrieval;
 - [x] citation correctness and citation completeness;
 - [x] evidence entailment / groundedness of generated claims;
 - [x] abstention quality when evidence is insufficient;
 - [x] contradiction surfacing across sources;
 - [ ] multi-hop evidence retrieval;
 - [x] zero cross-collection / cross-tenant leakage;
-- [ ] incremental-sync efficiency: changed resources versus total reprocessed resources;
+- [x] incremental-sync efficiency: changed resources versus total reprocessed resources;
 - [ ] latency p50/p95/max by pipeline stage;
 - [ ] CPU/RAM/GPU footprint and throughput;
 - [ ] fully local/private execution coverage.
@@ -609,6 +609,10 @@ Semantic retrieval increment (2026-10-06): nDCG now deduplicates repeated result
 Russian retrieval increment (2026-10-06): russian_retrieval_v1 freezes the 19 production-accepted cases with Cyrillic queries from production_acceptance_v3. Live production acceptance passed top-1=1.0, MRR=1.0, recall@5=1.0 and mean nDCG@5=0.9951 against the same 0.99 gate, with about 114 ms p50 / 142 ms p95 latency. Russian quality is therefore measured independently from the mixed-language aggregate.
 
 Faithfulness increment (2026-10-06): faithfulness_v1 adds four frozen local-model cases covering supported exact facts, insufficient-evidence abstention, conflicting deadlines and a two-source contract-to-supplier inference. Gemma 4 12B passed the unchanged 1.0 gates for citation precision/recall, exact cited-evidence support, abstention accuracy, contradiction recall and required answer terms. Mean synthesis latency was about 7.4 s and max about 9.8 s. This closes the first deterministic faithfulness dimensions while a larger real-source suite remains future benchmark work.
+
+Rerank comparison increment (2026-10-06): growth_search_console_v1 provides an unsaturated real-intent baseline (top-1 0.50 / MRR 0.5833 / mean nDCG@5 0.6468, ~251 ms p95 on the measured run). The local Gemma reranker, even bounded to five candidates, exceeded a 5 s request timeout versus an accepted <=3x baseline ceiling of ~752 ms. The reranking benchmark dimension is therefore measured, but the current LLM implementation fails promotion and remains explicit opt-in. A lighter learned/cross-encoder candidate remains a future adoption experiment.
+
+Incremental-sync increment (2026-10-06): sync_efficiency_v1 exercises no-change, single-change and all-change refresh cycles over three URL resources on an isolated PostgreSQL database. Acceptance passed 3/3: unchanged resources caused zero index/embedding work, one changed resource caused exactly one index plus one embedding write, and three changes caused exactly three. Aggregate indexing amplification is 1.0 with zero unnecessary indexed resources.
 
 ### Benchmark-driven adoption gates
 

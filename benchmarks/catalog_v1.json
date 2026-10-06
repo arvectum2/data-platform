@@ -163,6 +163,24 @@
         "contradiction_recall": 1.0,
         "answer_term_recall": 1.0
       }
+    },
+    {
+      "id": "sync-efficiency-v1",
+      "file": "sync_efficiency_v1.json",
+      "sha256": "0852b4c13d9eda71612ff68aa054dec08f813e410a4664124f89087d111ba4ac",
+      "case_count": 3,
+      "visibility": "public",
+      "dimensions": [
+        "incremental-sync",
+        "change-detection",
+        "indexing-efficiency"
+      ],
+      "thresholds": {
+        "pass_rate": 1.0,
+        "indexing_amplification_max": 1.0,
+        "unnecessary_indexed_resources_max": 0
+      },
+      "items_key": "scenarios"
     }
   ]
 }

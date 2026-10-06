@@ -37,7 +37,9 @@ arvectum-data-eval = "arvectum_data.evaluation.cli:main"
 arvectum-data-corpus-eval = "arvectum_data.evaluation.corpus_cli:main"
 arvectum-data-adversarial-eval = "arvectum_data.evaluation.adversarial_cli:main"
 arvectum-data-fact-eval = "arvectum_data.evaluation.facts_cli:main"
+arvectum-data-rerank-eval = "arvectum_data.evaluation.rerank_compare_cli:main"
 arvectum-data-faithfulness-eval = "arvectum_data.evaluation.faithfulness_cli:main"
+arvectum-data-sync-eval = "arvectum_data.evaluation.sync_efficiency_cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

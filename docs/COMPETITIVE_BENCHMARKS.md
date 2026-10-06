@@ -164,3 +164,30 @@ synthesis latency. All safety-quality thresholds start at 1.0; a local model
 must pass rather than lowering the gate to its observed behavior.
 
 First local Gemma 4 12B acceptance on 2026-10-06 passed all four cases at the original 1.0 safety thresholds: pass rate 1.0, citation precision 1.0, citation recall 1.0, exact claim-support rate 1.0, abstention accuracy 1.0, contradiction recall 1.0 and required-answer-term recall 1.0. Mean synthesis latency was about 7.4 s and max about 9.8 s. The suite is deliberately small and synthetic; real-source faithfulness expansion remains benchmark backlog.
+
+## Incremental sync efficiency
+
+benchmarks/sync_efficiency_v1.json measures durable URL refresh behavior on an
+isolated PostgreSQL database with three resources. It runs sequential
+no-change, single-change and all-change scenarios and tracks changed resources,
+actual indexing calls, embedding writes and unnecessary indexing.
+
+The hard gate is indexing amplification <= 1.0 with zero indexing of unchanged
+resources. An unchanged refresh may fetch/extract to detect change, but it must
+not create new index/embedding work.
+
+First isolated PostgreSQL acceptance on 2026-10-06 passed all three scenarios. No-change produced 0 index calls and 0 embedding writes; the single-change scenario produced exactly 1 index call and 1 embedding write; all-change produced exactly 3 and 3. Across the suite, 4 resources changed and exactly 4 were indexed, with zero unnecessary indexing and amplification 1.0.
+
+## Reranking comparison
+
+arvectum-data-rerank-eval now executes the same frozen retrieval suite twice:
+base hybrid and bounded reranking. Execution failures and timeouts are reported
+as a structured failed gate rather than aborting with an unclassified
+traceback.
+
+On growth_search_console_v1, base hybrid measured top-1 0.50, MRR 0.5833,
+mean nDCG@5 0.6468 and about 251 ms p95. Local Gemma reranking with only five
+candidates exceeded a 5-second request timeout, while the accepted 3x latency
+ceiling was about 752 ms. The current LLM reranker therefore fails competitive
+acceptance and remains opt-in. The recorded result is
+benchmarks/results/rerank_growth_search_console_2026-10-06.json.
