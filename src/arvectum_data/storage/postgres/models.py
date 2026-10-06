@@ -628,6 +628,7 @@ class InvoiceRow(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     payment_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
     provider_reference: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    provider_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     payment_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
@@ -651,6 +652,11 @@ class InvoiceRow(Base):
             "tenant_id",
             "status",
             "period_end",
+        ),
+        Index(
+            "ix_dp_invoices_provider_status",
+            "payment_provider",
+            "provider_status",
         ),
     )
 
