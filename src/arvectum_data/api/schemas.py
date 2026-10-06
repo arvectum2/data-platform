@@ -20,6 +20,7 @@ class ConsumerContractResponse(BaseModel):
 
 
 class CollectionAccessPolicy(BaseModel):
+    tenant_id: str | None = Field(default=None, min_length=1, max_length=128)
     allowed_consumers: list[str] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
@@ -28,6 +29,8 @@ class CollectionAccessPolicy(BaseModel):
         if len(set(normalized)) != len(normalized):
             raise ValueError("allowed_consumers must be unique")
         self.allowed_consumers = normalized
+        if self.tenant_id is not None:
+            self.tenant_id = self.tenant_id.strip()
         return self
 
 class CollectionRetentionPolicy(BaseModel):
