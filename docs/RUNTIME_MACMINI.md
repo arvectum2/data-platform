@@ -64,7 +64,7 @@ ARVECTUM_DATA_CROSS_ENCODER_MAX_CANDIDATES=3
 ARVECTUM_DATA_CROSS_ENCODER_MAX_CANDIDATE_CHARS=1000
 ```
 
-The sidecar may use a dedicated virtual environment and Hugging Face cache on ArvectumSSD. A sidecar outage never takes search down: requests with reranking enabled fall back to the original hybrid order.
+Production uses `/Users/master/arvectum-runtime/data-platform-reranker/.venv` and `/Users/master/arvectum-runtime/data-platform-reranker/hf-cache`. These live on the internal volume because launchd on this host could start the user-local Python reliably but stalled while opening Python/model files directly from the external ArvectumSSD. A sidecar outage never takes search down: requests with reranking enabled fall back to the original hybrid order.
 
 ## Health checks
 
@@ -91,9 +91,14 @@ embedding_dimension=2560
 
 ```bash
 launchctl kickstart -k gui/$(id -u)/com.arvectum.data-platform
+launchctl kickstart -k gui/$(id -u)/com.arvectum.reranker
 ```
 
 After restart, verify `/health` before restarting or switching any consumer.
+
+### Reranker production acceptance
+
+Production reranker smoke on 2026-10-06 used the hard-suite supplier-selection query. With the sidecar healthy, the BGE stage executed in ~219-242 ms, promoted the accepted procurement page from third to first and kept total STANDARD latency at ~285-287 ms. With the sidecar intentionally stopped, the same request returned successfully with `failed-open` rerank diagnostics in ~55 ms total; after launchd restore, `/health` and executed reranking passed again.
 
 ## Migrations
 
