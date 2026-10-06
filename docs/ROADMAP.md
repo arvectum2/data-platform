@@ -591,6 +591,8 @@ YooKassa adapter increment (2026-10-06): the optional `YooKassaPaymentProvider` 
 
 YooKassa production schema increment (2026-10-06): migration `0013_invoice_provider_status` is live in production and the API restarted healthy on the merged adapter build. Provider activation remains intentionally disabled because no merchant credentials were supplied through an approved secret channel.
 
+YooKassa runtime-activation increment (2026-10-06): standard Data Platform runtime can now register the `yookassa` provider directly from explicit `ARVECTUM_DATA_YOOKASSA_*` settings. The secret key uses a secret type, partial merchant configuration fails startup, status exposes provider names only, the API destination remains fixed to the official YooKassa endpoint, and `local-private` rejects external payment activation. Therefore the remaining YooKassa gate is genuinely external: deliberately supplied merchant credentials plus live merchant/webhook acceptance.
+
 Billing-core production acceptance (2026-10-06): a dedicated production acceptance tenant exercised catalog assignment, billable usage aggregation, preview, finalize, repeat-finalize idempotence, manual payment handoff and paid-state transition. The sample invoice total was 11250 RUB minor units (10000 base + 250 search overage + 1000 research), with no unpriced usage and a 64-character usage snapshot hash. No external merchant credential was used.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
