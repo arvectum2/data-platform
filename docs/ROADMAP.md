@@ -571,7 +571,7 @@ Benchmark corpus strategy:
 - [ ] maintain gold answers, relevant-document/chunk judgments and source/evidence identities;
 - [x] version benchmark data and acceptance thresholds;
 - [x] separate public/shareable fixtures from private production-derived fixtures;
-- [ ] add adversarial cases for collection isolation, stale sources, duplicate content and conflicting evidence.
+- [x] add adversarial cases for collection isolation, stale sources, duplicate content and conflicting evidence.
 
 Required benchmark dimensions:
 
@@ -613,6 +613,9 @@ Faithfulness increment (2026-10-06): faithfulness_v1 adds four frozen local-mode
 Rerank comparison increment (2026-10-06): growth_search_console_v1 provides an unsaturated real-intent baseline (top-1 0.50 / MRR 0.5833 / mean nDCG@5 0.6468, ~251 ms p95 on the measured run). The local Gemma reranker, even bounded to five candidates, exceeded a 5 s request timeout versus an accepted <=3x baseline ceiling of ~752 ms. The reranking benchmark dimension is therefore measured, but the current LLM implementation fails promotion and remains explicit opt-in. A lighter learned/cross-encoder candidate remains a future adoption experiment.
 
 Incremental-sync increment (2026-10-06): sync_efficiency_v1 exercises no-change, single-change and all-change refresh cycles over three URL resources on an isolated PostgreSQL database. Acceptance passed 3/3: unchanged resources caused zero index/embedding work, one changed resource caused exactly one index plus one embedding write, and three changes caused exactly three. Aggregate indexing amplification is 1.0 with zero unnecessary indexed resources.
+
+Query-expansion gate increment (2026-10-06): growth_search_console_v1 provides a hard real-intent baseline at top-1=0.50, MRR=0.5833, recall@5=0.75 and mean nDCG@5=0.6468. Automatic local-model expansion with up to three variants produced zero quality gain while p95 latency increased from about 263 ms to 2.74 s (10.42x), far above the <=2x gate. Default expansion therefore remains off; a deterministic domain dictionary is the next lower-cost candidate if expansion is revisited.
+
 
 Multi-hop increment (2026-10-06): multi_hop_v1 exercises provenance-backed entity-graph traversal over two- and three-hop paths. Isolated PostgreSQL acceptance passed 3/3 with target recall 1.0 and provenance completeness 1.0: contract -> supplier -> INN, supplier -> product -> manufacturer, and supplier -> product -> manufacturer -> country all reached the expected depth while every required edge retained collection/resource/document/chunk evidence.
 

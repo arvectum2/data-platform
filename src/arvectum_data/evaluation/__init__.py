@@ -59,6 +59,10 @@ from .private_runtime import (
     PrivateRuntimeReport,
     evaluate_private_runtime,
 )
+from .query_expansion_compare import (
+    QueryExpansionComparison,
+    compare_query_expansion,
+)
 from .query_expansion_gate import QueryExpansionGate
 from .rerank_compare import RerankComparison, compare_reranking
 from .rerank_gate import RerankGate
@@ -109,6 +113,7 @@ __all__ = [
     "MultiHopSummary",
     "PrivateComponent",
     "PrivateRuntimeReport",
+    "QueryExpansionComparison",
     "QueryExpansionGate",
     "RerankComparison",
     "RerankGate",
@@ -123,6 +128,7 @@ __all__ = [
     "build_pipeline_latency_report",
     "character_error_rate",
     "collect_runtime_resources",
+    "compare_query_expansion",
     "compare_reranking",
     "evaluate_adversarial_suite",
     "evaluate_case",

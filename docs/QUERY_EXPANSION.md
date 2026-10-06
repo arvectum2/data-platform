@@ -17,3 +17,18 @@ Search responses expose every automatically generated expansion as `query_expans
 Automatic expansion remains off by default. `QueryExpansionGate` compares the same frozen suite with and without expansion and requires a measurable MRR or recall@5 gain, no top-1 regression, and p95 latency <= 2x baseline.
 
 Production acceptance v3 currently has top-1, MRR and recall@5 of 1.0, so it has no quality headroom for proving expansion value. A harder frozen suite is required before enabling expansion by default.
+
+## Hard-suite production check (2026-10-06)
+
+growth_search_console_v1 provides a real unsaturated benchmark. The measured
+base hybrid run scored top-1 0.50, MRR 0.5833, recall@5 0.75 and mean nDCG@5
+0.6468 at about 263 ms p95.
+
+Automatic local-model expansion with at most three variants produced exactly
+the same retrieval quality: no MRR, recall@5, top-1 or nDCG gain. p95 latency
+increased to about 2.74 seconds, or 10.42x baseline, well above the <=2x gate.
+
+The expansion adoption gate therefore fails. Automatic expansion remains off by
+default; consumers may still request it explicitly. A future deterministic
+domain dictionary can be tested against the same hard suite without paying the
+local reasoning-model latency.

@@ -23,6 +23,8 @@ class HttpSearchRunner:
     timeout_seconds: float = 30.0
     rerank: bool = False
     rerank_candidates: int = 20
+    expand_query: bool = False
+    query_expansion_limit: int = 4
 
     def __call__(
         self,
@@ -40,6 +42,8 @@ class HttpSearchRunner:
             "collapse_by_canonical_uri": case.collapse_by_canonical_uri,
             "rerank": self.rerank,
             "rerank_candidates": self.rerank_candidates,
+            "expand_query": self.expand_query,
+            "query_expansion_limit": self.query_expansion_limit,
         }
         headers = {"Content-Type": "application/json"}
         if self.api_key:
