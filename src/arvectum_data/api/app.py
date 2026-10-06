@@ -990,14 +990,17 @@ def create_app(
                 x_arvectum_consumer_key,
             )
         try:
-            page = runtime_service.discover(
-                connector_name=payload.connector,
-                query=payload.query,
-                cursor=payload.cursor,
-                limit=payload.limit,
-                consumer=consumer,
-                credential_id=payload.credential_id,
-            )
+            discover_kwargs = {
+                "connector_name": payload.connector,
+                "query": payload.query,
+                "cursor": payload.cursor,
+                "limit": payload.limit,
+            }
+            if consumer is not None:
+                discover_kwargs["consumer"] = consumer
+            if payload.credential_id is not None:
+                discover_kwargs["credential_id"] = payload.credential_id
+            page = runtime_service.discover(**discover_kwargs)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="connector not found") from exc
         except Exception as exc:
