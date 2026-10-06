@@ -1,0 +1,22 @@
+{
+  "reference": "Qdrant",
+  "reference_version": "1.19.2",
+  "reference_commit": "016542aa5deb6c66380bb137badf73d54f742bde",
+  "suite_name": "growth-search-console-v1",
+  "collection_id": "growth:arvectum-site:0227dfdd95e47527",
+  "collection_points": 159,
+  "embedding_provider": "llama_cpp",
+  "embedding_model": "Qwen3-Embedding-4B",
+  "dimension": 2560,
+  "cases": 12,
+  "top1_accuracy": 0.4166666666666667,
+  "mrr": 0.625,
+  "mean_recall_at_5": 0.8333333333333334,
+  "mean_ndcg_at_5": 0.6795540639881074,
+  "search_latency_p50_ms": 4.721395525848493,
+  "search_latency_p95_ms": 5.392798077082261,
+  "search_latency_max_ms": 5.429624987300485,
+  "end_to_end_latency_p50_ms": 74.8480214679148,
+  "end_to_end_latency_p95_ms": 95.8582625084091,
+  "end_to_end_latency_max_ms": 96.64462500950322
+}

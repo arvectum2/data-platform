@@ -304,3 +304,11 @@ SHA-256. It stores no source path or document/OCR text. The accepted run
 measured median CER 9.81%, median WER 11.03% and p95 2.46 s. Three poor OCR
 cases were all selected by the existing confidence<90 VLM routing rule, with
 routing precision and recall both 1.0.
+
+## External retrieval reference — Qdrant
+
+A first external reference run is now reproducible with scripts/benchmark_qdrant_reference.py. The runner exports the already-indexed production chunk vectors for one frozen collection into a temporary Qdrant collection and reuses the same embedding model and benchmark queries, so no document parsing or embedding-model differences are mixed into the comparison.
+
+On growth_search_console_v1 with 159 points and Qwen3-Embedding-4B/2560, Qdrant 1.19.2 and Data Platform vector-only produced identical quality: top-1 0.4167, MRR 0.625, Recall@5 0.8333 and nDCG@5 0.6796. Qdrant search-only p95 was about 5.4 ms. Including the shared query-embedding call, its end-to-end p95 was about 95.9 ms versus 126.6 ms through the Data Platform vector-only API.
+
+This does not justify replacing pgvector. The existing direct exact-pgvector benchmark measures about 3.3 ms p95 at 100% sampled recall on a larger 697-vector workload, so the observed end-to-end gap is primarily orchestration/API overhead rather than vector-engine weakness. Decision: keep exact pgvector and optimize the request path only if vector-only end-to-end latency becomes material.

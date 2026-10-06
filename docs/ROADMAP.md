@@ -293,7 +293,7 @@ Collection stats expose first/last source observation, latest embedding time, la
 - [x] DP-VEC-001: benchmark HNSW versus IVFFlat and keep exact pgvector search until ANN passes the relevance gate.
 - [x] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
 - [ ] DP-INT-002: close real-data production acceptance on the first non-empty KnowledgeAssetRecord set.
-- [ ] DP-BENCH-002: build the competitive frozen-corpus benchmark suite before promoting BM25, learned reranking, bounded LLM reranking, VLM escalation or query expansion. Multi-format, OCR/layout, adversarial, faithfulness, multi-hop, sync, latency/resource and private-core dimensions are now executable; external competitive-reference runs and live VLM quality comparison remain open.
+- [ ] DP-BENCH-002: build the competitive frozen-corpus benchmark suite before promoting BM25, learned reranking, bounded LLM reranking, VLM escalation or query expansion. Multi-format, OCR/layout, adversarial, faithfulness, multi-hop, sync, latency/resource and private-core dimensions are executable; Qdrant is now covered as the first external retrieval reference, while additional reference products and live VLM quality comparison remain open.
 
 ## AI/model architecture and capability roadmap
 
@@ -607,6 +607,8 @@ Required benchmark dimensions:
 - [x] fully local/private execution coverage.
 
 Competitive acceptance rule: no external system needs to be beaten on every dimension. Data Platform must meet its own product gates and document where a reference product is materially better, so the gap can be either intentionally accepted or added to the roadmap.
+
+Qdrant reference increment (2026-10-06): Qdrant 1.19.2 was run locally against the same 159 frozen production chunk vectors and Qwen3-Embedding-4B query embeddings. Dense retrieval quality matched Data Platform vector-only exactly (top-1 0.417, MRR 0.625, Recall@5 0.833, nDCG@5 0.680). Qdrant end-to-end p95 was 95.9 ms versus 126.6 ms through the Data Platform vector-only API, but Qdrant search-only p95 was 5.4 ms while the existing direct exact-pgvector benchmark is about 3.3 ms p95 on a larger workload at 100% sampled recall. Decision: retain exact pgvector; treat the remaining gap as API/embedding orchestration overhead, not a vector-backend migration trigger.
 
 Foundation increment (2026-10-06): benchmark suites are now registered in benchmarks/catalog_v1.json with frozen SHA-256 digests, case counts, visibility classification, covered dimensions and thresholds. The validator fails closed on silent suite mutation. Reusable CER/WER, nDCG@k and evidence-set precision/recall metrics were added for the OCR/retrieval/citation benchmark layers. See docs/COMPETITIVE_BENCHMARKS.md. Multi-format gold fixtures, adversarial cases and external reference adapters remain open.
 
