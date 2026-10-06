@@ -241,13 +241,13 @@ Tender Agent PR #147 was merged and deployed into the Mac mini runtime on 2026-1
 
 The Arvectum OS database contained zero KnowledgeAssetRecord rows during the 2026-10-04 rollout, so the real-data gate cannot yet be closed. A live synthetic asset passed the full path (versioned deal collection -> pre-chunked ingest -> embedding -> hybrid search -> canonical asset mapping + source refs) with a representative search latency of about 0.18 s.
 
-Rechecked on 2026-10-05 against the production Arvectum OS database:
-`knowledge_asset_sets`, `knowledge_asset_records`, `postmortem_sets`,
-`postmortem_records`, `postmortem_findings`, `archive_export_sets`,
-`dashboard_snapshot_sets` and `deal_closure_sets` all still contain zero rows.
-The remaining acceptance gate is therefore blocked by the absence of a real
-completed upstream deal/postmortem lifecycle, not by Data Platform integration.
-Synthetic data is not used to close this real-data gate.
+Rechecked again on 2026-10-06 against the production Arvectum OS database:
+`knowledge_asset_sets=0`, `knowledge_asset_records=0`,
+`postmortem_sets=0`, `postmortem_records=0` and
+`deal_closure_sets=0`. The remaining acceptance gate is therefore still
+blocked by the absence of a real completed upstream deal/postmortem lifecycle,
+not by Data Platform integration. Synthetic data is not used to close this
+real-data gate.
 
 This integration is retrieval-only. It does not authorize autonomous M-049 Agent Registry or M-050 Prompt / Schema Library execution.
 
@@ -580,6 +580,8 @@ Status: COMPLETE (core/provider boundary, 2026-10-06).
 Implementation: `docs/BILLING.md`. Pricing never mutates DP-METER-001 events; finalized invoices snapshot both the exact price catalog and a deterministic hash of the billable usage set. Provider-specific online payment credentials, webhook validation, fiscalization and settlement remain separate adapters.
 
 YooKassa adapter increment (2026-10-06): the optional `YooKassaPaymentProvider` supports RUB smart-payment and explicit SBP flows, deterministic invoice-based idempotence, redirect confirmation URLs and provider status reads. Reconciliation verifies provider reference, amount and currency and marks an invoice paid only for verified `paid=true` + `succeeded`. No merchant credentials were discovered or scraped; live activation remains pending an explicitly supplied approved runtime secret.
+
+YooKassa production schema increment (2026-10-06): migration `0013_invoice_provider_status` is live in production and the API restarted healthy on the merged adapter build. Provider activation remains intentionally disabled because no merchant credentials were supplied through an approved secret channel.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: FUTURE.
@@ -727,11 +729,11 @@ Only after three real consumers are integrated:
 
 - [x] entity resolution;
 - [x] entity graph/relations;
-- [ ] benchmark-driven BM25 backend if needed;
+- [x] benchmark-driven BM25 decision resolved: not adopted until a future corpus proves a repeatable FTS gap;
 - [x] learned reranker;
-- [ ] optional bounded LLM reranking;
-- [ ] query expansion;
-- [ ] distributed crawling;
+- [x] optional bounded LLM reranking path implemented; not promoted because it fails the accepted latency gate;
+- [x] query expansion implemented; default activation rejected by the hard-suite quality/latency gate;
+- [ ] distributed crawling — deliberately deferred until measured single-node throughput becomes a bottleneck;
 - [x] authorized federated cross-collection search;
 - [x] relevance evaluation pipeline;
 - [x] relevance feedback capture loop.

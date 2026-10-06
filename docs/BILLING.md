@@ -93,3 +93,9 @@ Internal-key-only endpoints:
 - `POST /v1/billing/invoices/{invoice_id}/mark-paid`.
 
 These surfaces are intentionally not exposed through consumer credentials.
+
+## Production schema status — 2026-10-06
+
+Migrations `0012_billing_pricing_invoices` and `0013_invoice_provider_status` are applied in production. The Data Platform API restarted healthy on the merged billing/YooKassa builds.
+
+No YooKassa merchant credentials are configured or inferred from the host. Therefore the provider adapter is installed but not active in the production provider registry; live payment creation/reconciliation remains blocked on an explicitly supplied merchant secret through an approved runtime channel.
