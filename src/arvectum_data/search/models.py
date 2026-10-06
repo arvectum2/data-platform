@@ -42,6 +42,16 @@ class SearchScores:
 
 
 @dataclass(frozen=True, slots=True)
+class SearchStageDiagnostic:
+    stage: str
+    status: str
+    duration_ms: float
+    provider: str | None = None
+    model: str | None = None
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
 class SearchHit:
     chunk_id: str
     document_id: str

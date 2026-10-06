@@ -346,10 +346,10 @@ Expose a product-neutral execution-depth abstraction so consumers can request an
 - [x] RESEARCH: discovery + acquisition + iterative retrieval + contradiction checks + evidence-grounded synthesis;
 - [ ] define latency/cost/resource budgets for every mode;
 - [x] make every mode degrade safely when optional model roles are unavailable;
-- [ ] expose executed stages, providers and timings in diagnostics without leaking sensitive content;
+- [x] expose executed stages, providers and timings in diagnostics without leaking sensitive content;
 - [x] allow consumers to override individual stages only within platform safety/resource bounds.
 
-The mode name describes pipeline depth, not a specific model. Consumers therefore remain portable across local and remote provider choices.\n\nFirst implementation (2026-10-06): execution_mode is optional and therefore backward-compatible with the existing 1.x request contract. FAST forbids automatic model-backed search stages; STANDARD permits only explicit rerank up to 20 candidates; DEEP permits explicit expansion up to four variants plus rerank up to 20 candidates; RESEARCH is route-scoped to the existing governed research workflow. /v1/modes exposes these capability ceilings and degradation semantics. Failed rerank/query-expansion promotion benchmarks remain respected: modes never auto-enable those stages. Latency/cost budgets and per-stage execution timing diagnostics remain open.
+The mode name describes pipeline depth, not a specific model. Consumers therefore remain portable across local and remote provider choices.\n\nFirst implementation (2026-10-06): execution_mode is optional and therefore backward-compatible with the existing 1.x request contract. FAST forbids automatic model-backed search stages; STANDARD permits only explicit rerank up to 20 candidates; DEEP permits explicit expansion up to four variants plus rerank up to 20 candidates; RESEARCH is route-scoped to the existing governed research workflow. /v1/modes exposes these capability ceilings and degradation semantics. Failed rerank/query-expansion promotion benchmarks remain respected: modes never auto-enable those stages. Latency/cost budgets remain open. Search execution diagnostics now expose safe per-stage status/timing plus provider/model identity without query, document, URL, secret or exception-message content.
 
 ### DP-MODEL-001 — optional local/remote model provider layer
 

@@ -69,6 +69,7 @@ from .schemas import (
     RelevanceFeedbackResponse,
     RelevanceFeedbackSummaryResponse,
     SearchHitResponse,
+    SearchExecutionDiagnosticsResponse,
     SearchRequest,
     SearchResponse,
     StatusResponse,
@@ -457,7 +458,17 @@ def create_app(
                 rerank_candidates=payload.rerank_candidates,
                 execution_mode=payload.execution_mode,
             )
-            if hasattr(runtime_service, "search_with_diagnostics"):
+            stage_diagnostics = ()
+            if hasattr(runtime_service, "search_with_execution_diagnostics"):
+                (
+                    hits,
+                    query_expansions,
+                    stage_diagnostics,
+                ) = runtime_service.search_with_execution_diagnostics(
+                    search_query,
+                    consumer=consumer,
+                )
+            elif hasattr(runtime_service, "search_with_diagnostics"):
                 hits, query_expansions = runtime_service.search_with_diagnostics(
                     search_query,
                     consumer=consumer,
@@ -507,6 +518,28 @@ def create_app(
                 }
                 for item in query_expansions
             ],
+            diagnostics=SearchExecutionDiagnosticsResponse(
+                execution_mode=payload.execution_mode,
+                total_ms=next(
+                    (
+                        item.duration_ms
+                        for item in stage_diagnostics
+                        if item.stage == "total-search"
+                    ),
+                    None,
+                ),
+                stages=[
+                    {
+                        "stage": item.stage,
+                        "status": item.status,
+                        "duration_ms": item.duration_ms,
+                        "provider": item.provider,
+                        "model": item.model,
+                        "metadata": dict(item.metadata),
+                    }
+                    for item in stage_diagnostics
+                ],
+            ),
         )
 
     @router.get(

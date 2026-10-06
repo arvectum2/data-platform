@@ -251,11 +251,27 @@ class QueryExpansionResponse(BaseModel):
     weight: float
 
 
+class SearchStageDiagnosticResponse(BaseModel):
+    stage: str
+    status: str
+    duration_ms: float
+    provider: str | None = None
+    model: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SearchExecutionDiagnosticsResponse(BaseModel):
+    execution_mode: ExecutionMode | None = None
+    total_ms: float | None = None
+    stages: list[SearchStageDiagnosticResponse] = Field(default_factory=list)
+
+
 class SearchResponse(BaseModel):
     query: str | None = None
     execution_mode: ExecutionMode | None = None
     hits: list[SearchHitResponse]
     query_expansions: list[QueryExpansionResponse] = Field(default_factory=list)
+    diagnostics: SearchExecutionDiagnosticsResponse | None = None
 
 
 class ExecutionModeProfileResponse(BaseModel):

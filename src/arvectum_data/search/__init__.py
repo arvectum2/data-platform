@@ -8,6 +8,7 @@ from .models import (
     SearchMode,
     SearchQuery,
     SearchScores,
+    SearchStageDiagnostic,
 )
 from .postgres import PostgresSearchBackend
 from .protocols import LexicalBackend, VectorBackend
@@ -32,5 +33,6 @@ __all__ = [
     "SearchMode",
     "SearchQuery",
     "SearchScores",
+    "SearchStageDiagnostic",
     "VectorBackend",
 ]

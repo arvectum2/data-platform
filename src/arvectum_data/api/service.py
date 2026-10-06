@@ -40,7 +40,7 @@ from ..models import ModelLocality, ModelPolicy, ModelRole, ModelRouter, RoleCon
 from ..memory import MemoryConflictPolicy, MemoryKind, MemoryWrite, build_memory_ingest
 from ..sync import RefreshPolicy, RefreshResult
 
-from ..search import HybridSearchEngine, PostgresSearchBackend, QueryExpansion, ReasoningQueryExpander, ReasoningReranker, SearchHit, SearchQuery
+from ..search import HybridSearchEngine, PostgresSearchBackend, QueryExpansion, ReasoningQueryExpander, ReasoningReranker, SearchHit, SearchQuery, SearchStageDiagnostic
 from ..storage.postgres import (
     ChunkEmbeddingRow,
     ChunkRow,
@@ -1085,6 +1085,22 @@ class DataPlatformService:
         *,
         consumer: str | None = None,
     ) -> tuple[list[SearchHit], tuple[QueryExpansion, ...]]:
+        hits, expansions, _ = self.search_with_execution_diagnostics(
+            request,
+            consumer=consumer,
+        )
+        return hits, expansions
+
+    def search_with_execution_diagnostics(
+        self,
+        request: SearchQuery,
+        *,
+        consumer: str | None = None,
+    ) -> tuple[
+        list[SearchHit],
+        tuple[QueryExpansion, ...],
+        tuple[SearchStageDiagnostic, ...],
+    ]:
         with self._require_factory()() as session:
             for collection_id in request.collections:
                 collection = session.get(CollectionRow, collection_id)
@@ -1125,7 +1141,7 @@ class DataPlatformService:
             )
             if len(request.collections) == 1 and not request.collapse_by_canonical_uri:
                 hits = engine.search(request)
-                return hits, engine.last_expansions
+                return hits, engine.last_expansions, engine.last_diagnostics
 
             overfetch_factor = (
                 4
@@ -1171,10 +1187,11 @@ class DataPlatformService:
                     hits,
                     limit=request.limit,
                 )
-                return collapsed, engine.last_expansions
+                return collapsed, engine.last_expansions, engine.last_diagnostics
             return (
                 self._dedupe_federated_hits(hits, limit=request.limit),
                 engine.last_expansions,
+                engine.last_diagnostics,
             )
 
 
