@@ -39,3 +39,18 @@ PDF metadata records:
 ## Real procurement acceptance
 
 On 2026-10-05 the local cascade was run against a real scanned procurement PDF from the existing Tender Agent corpus. Native PDF extraction returned zero characters. Tesseract OCR selected only the scan page and returned 925 characters with mean confidence 93.16%, including the document heading and NMCK text. No VLM was needed for this document.
+
+## Benchmark-driven VLM routing threshold
+
+The first two frozen scan profiles exposed a weakness in the original
+confidence-only threshold of 70. The layout-stress procurement form measured
+86.89% mean Tesseract confidence but still had CER 35.78% / WER 74.47%, while
+the linear technical-specification scan measured 94.41% confidence with CER
+3.61% / WER 5.86%.
+
+The default VLM escalation confidence threshold is therefore 90. With a vision
+provider configured, the layout-stress profile is routed to VLM escalation and
+the linear baseline remains on OCR. Vision is still never invoked when the
+vision role is disabled, so this does not introduce an implicit cloud path.
+The frozen vlm_routing_v1 gate requires 100% routing accuracy on these accepted
+profiles.

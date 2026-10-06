@@ -67,7 +67,7 @@ def extract_pdf_cascade(
     vision_provider: VisionProvider | None = None,
     max_pages: int = 10,
     min_native_chars: int = 32,
-    min_ocr_confidence: float = 70.0,
+    min_ocr_confidence: float = 90.0,
     min_ocr_chars: int = 24,
 ) -> PDFExtractionResult:
     pages = assess_pdf_pages(

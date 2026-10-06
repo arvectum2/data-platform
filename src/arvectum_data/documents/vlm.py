@@ -25,7 +25,7 @@ class VLMEscalation:
 def pages_requiring_vlm(
     ocr: OCRDocumentResult | None,
     *,
-    min_ocr_confidence: float = 70.0,
+    min_ocr_confidence: float = 90.0,
     min_ocr_chars: int = 24,
 ) -> tuple[tuple[int, str], ...]:
     if ocr is None:

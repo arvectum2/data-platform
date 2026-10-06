@@ -108,3 +108,16 @@ def test_vlm_escalation_selector_is_bounded_to_bad_ocr():
         (2, "ocr-low-text"),
         (3, "ocr-low-confidence"),
     )
+
+def test_vlm_default_confidence_gate_matches_real_scan_profiles():
+    from arvectum_data.documents import pages_requiring_vlm
+
+    ocr = OCRDocumentResult(
+        pages=(
+            OCRPageResult(1, "x" * 1148, 86.89, provider="recorded-tesseract"),
+            OCRPageResult(2, "x" * 2221, 94.41, provider="recorded-tesseract"),
+        ),
+        provider="recorded-tesseract",
+    )
+
+    assert pages_requiring_vlm(ocr) == ((1, "ocr-low-confidence"),)
