@@ -260,3 +260,12 @@ single-parallel embedding server. A post-throughput powermetrics sample showed
 CPU power about 6.51 W, GPU power about 0.66 W and GPU active residency about
 85.6%. The sanitized snapshot is frozen in
 benchmarks/results/runtime_resources_2026-10-06.json.
+
+## Query-expansion comparison
+
+A base-vs-expansion runner now evaluates identical frozen suites and fails
+closed on execution errors. On growth_search_console_v1, automatic local-model
+expansion (maximum three variants) changed no quality metric: top-1 remained
+0.50, MRR 0.5833, recall@5 0.75 and mean nDCG@5 0.6468. p95 latency increased
+from about 263 ms to 2.74 s (10.42x), so the existing <=2x activation gate
+fails. No default promotion is claimed.
