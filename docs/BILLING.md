@@ -59,7 +59,22 @@ The built-in `manual` provider supports invoice lifecycle testing and offline/ba
 
 `mark-paid` is an internal administrative action and records the paid timestamp and optional provider/bank reference.
 
-A concrete online acquiring/СБП adapter remains a separate product integration because provider credentials, webhook signatures, fiscalization/tax requirements and commercial terms are provider-specific and can change independently of Data Platform.
+A concrete YooKassa adapter is available for RUB online payments. It supports the provider's smart-payment flow or explicit SBP, uses HTTP Basic authentication at the provider boundary, sends a deterministic invoice-derived idempotence key on payment creation, requests automatic capture and returns the provider confirmation URL. Runtime activation still requires merchant credentials to be supplied through an approved secret channel.
+
+## YooKassa reconciliation
+
+The adapter never marks an invoice paid from an unverified callback payload. `sync_invoice_payment` fetches the current payment object from YooKassa and verifies:
+
+- the provider payment reference matches the invoice handoff;
+- returned currency matches the invoice;
+- returned amount in minor units matches the invoice total;
+- payment status is `succeeded` and the provider reports it paid.
+
+Only then is the invoice moved to `paid`. Canceled or pending provider states remain separate `provider_status` values while the invoice remains finalized.
+
+The adapter is hard-wired to the official YooKassa API base URL by default; runtime configuration does not expose an arbitrary credential destination. Unit tests can inject a fake HTTPS base URL directly into the provider class.
+
+Webhook handling can use the same reconciliation path: receive the event, extract the payment reference, then fetch current payment state from the provider before mutating invoice state. Live webhook/provider activation remains blocked until merchant credentials are deliberately supplied.
 
 ## Control-plane API
 
@@ -74,6 +89,7 @@ Internal-key-only endpoints:
 - `GET /v1/billing/invoices`;
 - `GET /v1/billing/invoices/{invoice_id}`;
 - `POST /v1/billing/invoices/{invoice_id}/payment`;
+- `POST /v1/billing/invoices/{invoice_id}/sync-payment`;
 - `POST /v1/billing/invoices/{invoice_id}/mark-paid`.
 
 These surfaces are intentionally not exposed through consumer credentials.
