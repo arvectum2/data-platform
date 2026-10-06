@@ -46,8 +46,9 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "dp_tenant_billing",
-        sa.Column("tenant_id", sa.String(length=128), primary_key=True),
+        "dp_tenant_billing_assignments",
+        sa.Column("assignment_id", sa.String(length=36), primary_key=True),
+        sa.Column("tenant_id", sa.String(length=128), nullable=False),
         sa.Column(
             "catalog_id",
             sa.String(length=36),
@@ -57,12 +58,18 @@ def upgrade() -> None:
         sa.Column("payment_provider", sa.String(length=64), nullable=False),
         sa.Column("external_customer_id", sa.String(length=256), nullable=True),
         sa.Column("status", sa.String(length=16), nullable=False),
-        sa.Column("assigned_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("effective_from", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("effective_to", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+    )
+    op.create_index(
+        "ix_dp_tenant_billing_tenant_effective",
+        "dp_tenant_billing_assignments",
+        ["tenant_id", "effective_from", "effective_to"],
     )
     op.create_index(
         "ix_dp_tenant_billing_catalog_status",
-        "dp_tenant_billing",
+        "dp_tenant_billing_assignments",
         ["catalog_id", "status"],
     )
 
@@ -144,9 +151,13 @@ def downgrade() -> None:
     op.drop_table("dp_invoices")
     op.drop_index(
         "ix_dp_tenant_billing_catalog_status",
-        table_name="dp_tenant_billing",
+        table_name="dp_tenant_billing_assignments",
     )
-    op.drop_table("dp_tenant_billing")
+    op.drop_index(
+        "ix_dp_tenant_billing_tenant_effective",
+        table_name="dp_tenant_billing_assignments",
+    )
+    op.drop_table("dp_tenant_billing_assignments")
     op.drop_index(
         "ix_dp_billing_catalog_plan_effective",
         table_name="dp_billing_catalogs",
