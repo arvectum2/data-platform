@@ -532,6 +532,19 @@ Status: COMPLETE (2026-10-05).
 
 Implementation: `docs/AGENT_MEMORY.md`. Writes are deny-by-default through `memory_writers`; source evidence must be an exact indexed excerpt, agent observations require source chunks, and user memory has a separate writer policy.
 
+### DP-METER-001 — billing-grade usage metering
+
+Status: COMPLETE (2026-10-06).
+
+- [x] durable immutable usage events attributed to authenticated consumer and tenant;
+- [x] deterministic request-id deduplication so retries are not double-counted;
+- [x] explicit billable vs non-billable status without coupling usage to product pricing;
+- [x] content-free accounting: no queries, URLs, documents, prompts, credentials or result payloads;
+- [x] aggregate summary API by tenant / consumer / operation / unit / time window;
+- [x] fail-open user traffic with observable `usage_metering_errors` instead of search outages;
+- [x] PostgreSQL indexes and migration for billing-period aggregation.
+
+Implementation: `docs/USAGE_METERING.md`. The initial meter counts authenticated external data-plane requests for search, answer, research and memory operations. Successful 2xx/3xx requests are billable; trusted authenticated failures can be retained as non-billable usage. Pricing, currency, taxes, invoices and payment-provider integration deliberately remain outside Data Platform so commercial policy can change without rewriting historical usage.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: FUTURE.
@@ -541,7 +554,8 @@ Potential product contour: connect documents, websites and APIs -> continuously 
 Before externalization:
 - [x] tenant isolation and quotas;
 - [ ] customer-managed connectors/credentials;
-- [ ] billing/usage metering;
+- [x] billing-grade usage metering;
+- [ ] product pricing / invoicing / payment-provider integration;
 - [x] external auth and key lifecycle;
 - [x] retention/deletion/export controls;
 - [x] deployment/privacy modes including a local/private mode in which documents and model requests never leave customer-controlled infrastructure;

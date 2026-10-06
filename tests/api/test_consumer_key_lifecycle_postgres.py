@@ -115,7 +115,7 @@ def test_managed_consumer_key_issue_rotate_revoke_and_external_search() -> None:
     }
     search = client.post(
         "/v1/search",
-        headers=consumer_headers,
+        headers={**consumer_headers, "X-Request-ID": "usage-retry-search"},
         json={
             "query": "managed key external search evidence",
             "collections": [collection_id],
@@ -125,6 +125,18 @@ def test_managed_consumer_key_issue_rotate_revoke_and_external_search() -> None:
     )
     assert search.status_code == 200
     assert search.json()["hits"][0]["canonical_uri"] == "benchmark://auth/evidence"
+
+    usage_retry = client.post(
+        "/v1/search",
+        headers={**consumer_headers, "X-Request-ID": "usage-retry-search"},
+        json={
+            "query": "managed key external search evidence",
+            "collections": [collection_id],
+            "limit": 5,
+            "mode": "lexical",
+        },
+    )
+    assert usage_retry.status_code == 200
 
     admin_denied = client.get(
         "/v1/collections",
@@ -184,3 +196,24 @@ def test_managed_consumer_key_issue_rotate_revoke_and_external_search() -> None:
         },
     )
     assert revoked_denied.status_code == 403
+
+    usage = client.get(
+        f"/v1/usage/summary?consumer_id={consumer_id}",
+        headers=admin,
+    )
+    assert usage.status_code == 200
+    usage_body = usage.json()
+    assert usage_body["total_events"] == 2
+    assert usage_body["total_quantity"] == 2
+    assert usage_body["billable_quantity"] == 2
+    assert usage_body["buckets"] == [
+        {
+            "tenant_id": "tenant-external",
+            "consumer_id": consumer_id,
+            "operation": "search",
+            "unit": "request",
+            "events": 2,
+            "quantity": 2,
+            "billable_quantity": 2,
+        }
+    ]
