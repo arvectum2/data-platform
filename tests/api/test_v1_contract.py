@@ -181,7 +181,16 @@ class FakePlatformService:
             }
         ]
 
-    def discover(self, *, connector_name, query, cursor=None, limit=10):
+    def discover(
+        self,
+        *,
+        connector_name,
+        query,
+        cursor=None,
+        limit=10,
+        consumer=None,
+        credential_id=None,
+    ):
         from arvectum_data.connectors import DiscoveryPage, DiscoveredResource
 
         assert connector_name == "fake"
