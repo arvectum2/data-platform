@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import BaseModel, Field, model_validator
 
 from ..modes import ExecutionMode, validate_research_envelope, validate_search_envelope
-from ..search import SearchMode
+from ..search import RerankStrategy, SearchMode
 
 
 class ConsumerContractResponse(BaseModel):
@@ -187,6 +187,7 @@ class SearchRequest(BaseModel):
     collapse_by_canonical_uri: bool = False
     rerank: bool = False
     rerank_candidates: int = Field(default=20, ge=1, le=100)
+    rerank_strategy: RerankStrategy = RerankStrategy.REASONING
     execution_mode: ExecutionMode | None = None
 
     @model_validator(mode="after")
