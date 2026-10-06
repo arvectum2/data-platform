@@ -21,6 +21,7 @@ import uvicorn
 from ..acquisition.security import UnsafeURL
 from ..engine import FieldSpec
 from ..observability import configure_logging
+from ..modes import MODE_PROFILES
 from ..search import SearchQuery
 from .config import Settings
 from .contract import (
@@ -49,6 +50,7 @@ from .schemas import (
     ExtractDecisionResponse,
     ExtractRequest,
     ExtractResponse,
+    ExecutionModesResponse,
     GraphSuggestionRequest,
     GraphSuggestionResponse,
     IndexJobResponse,
@@ -218,6 +220,16 @@ def create_app(
             name=CONSUMER_CONTRACT_NAME,
             version=CONSUMER_CONTRACT_VERSION,
             capabilities=list(CONSUMER_CONTRACT_CAPABILITIES),
+        )
+
+    @router.get(
+        "/modes",
+        response_model=ExecutionModesResponse,
+        tags=["system"],
+    )
+    def execution_modes() -> ExecutionModesResponse:
+        return ExecutionModesResponse(
+            modes=[profile.to_dict() for profile in MODE_PROFILES.values()]
         )
 
     @router.get("/status", response_model=StatusResponse, tags=["system"])
@@ -443,6 +455,7 @@ def create_app(
                 collapse_by_canonical_uri=payload.collapse_by_canonical_uri,
                 rerank=payload.rerank,
                 rerank_candidates=payload.rerank_candidates,
+                execution_mode=payload.execution_mode,
             )
             if hasattr(runtime_service, "search_with_diagnostics"):
                 hits, query_expansions = runtime_service.search_with_diagnostics(
@@ -457,6 +470,7 @@ def create_app(
 
         return SearchResponse(
             query=payload.query,
+            execution_mode=payload.execution_mode,
             hits=[
                 SearchHitResponse(
                     chunk_id=hit.chunk_id,
@@ -875,6 +889,7 @@ def create_app(
             raise map_service_error(exc) from exc
         return ResearchResponse(
             query=result.query,
+            execution_mode=payload.execution_mode,
             answer=result.answer.answer,
             claims=[
                 {"text": claim.text, "chunk_ids": list(claim.chunk_ids)}

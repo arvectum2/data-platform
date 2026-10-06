@@ -8,6 +8,7 @@ CONSUMER_CONTRACT_CAPABILITIES = (
     "document_ingest",
     "url_ingest",
     "search",
+    "execution_modes",
     "discovery",
     "entities",
     "entity_relations",

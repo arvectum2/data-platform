@@ -916,3 +916,82 @@ def test_index_job_contracts() -> None:
     )
     assert jobs.status_code == 200
     assert jobs.json()[0]["collection_id"] == "tests:knowledge"
+
+def test_execution_modes_are_discoverable_and_enforce_search_depth() -> None:
+    client = _client()
+    headers = {"X-Arvectum-Key": "secret"}
+
+    modes = client.get("/v1/modes", headers=headers)
+    assert modes.status_code == 200
+    payload = {item["mode"]: item for item in modes.json()["modes"]}
+    assert set(payload) == {"fast", "standard", "deep", "research"}
+    assert payload["fast"]["optional_stages"] == []
+    assert payload["standard"]["optional_stages"] == ["rerank"]
+    assert payload["deep"]["optional_stages"] == ["query-expansion", "rerank"]
+    assert payload["research"]["endpoint"] == "/v1/research"
+
+    fast = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "кабель",
+            "collections": ["tests:knowledge"],
+            "execution_mode": "fast",
+        },
+    )
+    assert fast.status_code == 200
+    assert fast.json()["execution_mode"] == "fast"
+
+    fast_rerank = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "кабель",
+            "collections": ["tests:knowledge"],
+            "execution_mode": "fast",
+            "rerank": True,
+        },
+    )
+    assert fast_rerank.status_code == 422
+
+    standard_expansion = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "кабель",
+            "collections": ["tests:knowledge"],
+            "execution_mode": "standard",
+            "expand_query": True,
+        },
+    )
+    assert standard_expansion.status_code == 422
+
+    research_search = client.post(
+        "/v1/search",
+        headers=headers,
+        json={
+            "query": "кабель",
+            "collections": ["tests:knowledge"],
+            "execution_mode": "research",
+        },
+    )
+    assert research_search.status_code == 422
+
+
+def test_legacy_search_without_execution_mode_keeps_manual_flags_compatible() -> None:
+    client = _client()
+    response = client.post(
+        "/v1/search",
+        headers={"X-Arvectum-Key": "secret"},
+        json={
+            "query": "кабель",
+            "collections": ["tests:knowledge"],
+            "expand_query": True,
+            "query_expansion_limit": 8,
+            "rerank": True,
+            "rerank_candidates": 100,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["execution_mode"] is None

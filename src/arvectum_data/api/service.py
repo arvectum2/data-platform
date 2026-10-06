@@ -35,6 +35,7 @@ from ..indexing import (
     EmbeddingServerUnavailableError,
     build_embedding_provider,
 )
+from ..modes import mode_profile
 from ..models import ModelLocality, ModelPolicy, ModelRole, ModelRouter, RoleConfig
 from ..memory import MemoryConflictPolicy, MemoryKind, MemoryWrite, build_memory_ingest
 from ..sync import RefreshPolicy, RefreshResult
@@ -1131,11 +1132,27 @@ class DataPlatformService:
                 if request.collapse_by_canonical_uri
                 else min(max(len(request.collections), 2), 8)
             )
+            expanded_limit = min(100, request.limit * overfetch_factor)
+            expanded_rerank_candidates = max(
+                request.rerank_candidates,
+                expanded_limit,
+            )
+            if request.execution_mode is not None and request.rerank:
+                profile = mode_profile(request.execution_mode)
+                expanded_limit = min(
+                    expanded_limit,
+                    profile.max_rerank_candidates,
+                )
+                expanded_rerank_candidates = min(
+                    expanded_rerank_candidates,
+                    profile.max_rerank_candidates,
+                )
+
             expanded_request = SearchQuery(
                 query=request.query,
                 collections=request.collections,
                 filters=request.filters,
-                limit=min(100, request.limit * overfetch_factor),
+                limit=expanded_limit,
                 mode=request.mode,
                 lexical_weight=request.lexical_weight,
                 vector_weight=request.vector_weight,
@@ -1145,10 +1162,8 @@ class DataPlatformService:
                 query_expansion_limit=request.query_expansion_limit,
                 collapse_by_canonical_uri=request.collapse_by_canonical_uri,
                 rerank=request.rerank,
-                rerank_candidates=max(
-                    request.rerank_candidates,
-                    min(100, request.limit * overfetch_factor),
-                ),
+                rerank_candidates=expanded_rerank_candidates,
+                execution_mode=request.execution_mode,
             )
             hits = engine.search(expanded_request)
             if request.collapse_by_canonical_uri:

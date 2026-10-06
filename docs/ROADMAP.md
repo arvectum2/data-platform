@@ -340,16 +340,16 @@ Status: PLANNED.
 
 Expose a product-neutral execution-depth abstraction so consumers can request an outcome level without hard-coding model/provider details.
 
-- [ ] FAST: deterministic lexical + vector hybrid retrieval, no generative LLM required;
-- [ ] STANDARD: hybrid retrieval plus bounded reranking when enabled;
-- [ ] DEEP: bounded query expansion + multi-pass retrieval + reranking + optional reasoning;
-- [ ] RESEARCH: discovery + acquisition + iterative retrieval + contradiction checks + evidence-grounded synthesis;
+- [x] FAST: deterministic lexical + vector hybrid retrieval, no generative LLM required;
+- [x] STANDARD: hybrid retrieval plus bounded reranking when enabled;
+- [x] DEEP: bounded query expansion + multi-pass retrieval + reranking + optional reasoning;
+- [x] RESEARCH: discovery + acquisition + iterative retrieval + contradiction checks + evidence-grounded synthesis;
 - [ ] define latency/cost/resource budgets for every mode;
-- [ ] make every mode degrade safely when optional model roles are unavailable;
+- [x] make every mode degrade safely when optional model roles are unavailable;
 - [ ] expose executed stages, providers and timings in diagnostics without leaking sensitive content;
-- [ ] allow consumers to override individual stages only within platform safety/resource bounds.
+- [x] allow consumers to override individual stages only within platform safety/resource bounds.
 
-The mode name describes pipeline depth, not a specific model. Consumers therefore remain portable across local and remote provider choices.
+The mode name describes pipeline depth, not a specific model. Consumers therefore remain portable across local and remote provider choices.\n\nFirst implementation (2026-10-06): execution_mode is optional and therefore backward-compatible with the existing 1.x request contract. FAST forbids automatic model-backed search stages; STANDARD permits only explicit rerank up to 20 candidates; DEEP permits explicit expansion up to four variants plus rerank up to 20 candidates; RESEARCH is route-scoped to the existing governed research workflow. /v1/modes exposes these capability ceilings and degradation semantics. Failed rerank/query-expansion promotion benchmarks remain respected: modes never auto-enable those stages. Latency/cost budgets and per-stage execution timing diagnostics remain open.
 
 ### DP-MODEL-001 — optional local/remote model provider layer
 

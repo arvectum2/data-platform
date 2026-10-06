@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Mapping
 
+from ..modes import ExecutionMode, validate_search_envelope
+
 
 class SearchMode(StrEnum):
     LEXICAL = "lexical"
@@ -69,6 +71,7 @@ class SearchQuery:
     collapse_by_canonical_uri: bool = False
     rerank: bool = False
     rerank_candidates: int = 20
+    execution_mode: ExecutionMode | None = None
 
     def __post_init__(self) -> None:
         if not self.query.strip():
@@ -91,6 +94,14 @@ class SearchQuery:
             raise ValueError("rerank_candidates must be between 1 and 100")
         if self.rerank and self.rerank_candidates < self.limit:
             raise ValueError("rerank_candidates must be greater than or equal to limit")
+        resolved_execution_mode = validate_search_envelope(
+            self.execution_mode,
+            expand_query=self.expand_query,
+            query_expansion_limit=self.query_expansion_limit,
+            rerank=self.rerank,
+            rerank_candidates=self.rerank_candidates,
+        )
+        object.__setattr__(self, "execution_mode", resolved_execution_mode)
         normalized_variants: list[str] = []
         seen = {self.query.strip()}
         for variant in self.query_variants:
