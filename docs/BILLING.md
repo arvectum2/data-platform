@@ -99,3 +99,13 @@ These surfaces are intentionally not exposed through consumer credentials.
 Migrations `0012_billing_pricing_invoices` and `0013_invoice_provider_status` are applied in production. The Data Platform API restarted healthy on the merged billing/YooKassa builds.
 
 No YooKassa merchant credentials are configured or inferred from the host. Therefore the provider adapter is installed but not active in the production provider registry; live payment creation/reconciliation remains blocked on an explicitly supplied merchant secret through an approved runtime channel.
+
+## Production billing-core acceptance — 2026-10-06
+
+Migrations through `0013_invoice_provider_status` are applied in production. A dedicated acceptance tenant was used to exercise the complete provider-neutral billing lifecycle without external merchant credentials.
+
+The acceptance catalog used RUB minor units, a 10000 base fee, one included search request, 250 per additional search request and 1000 per research request. Two billable search events plus one billable research event produced a preview total of 11250 with no unpriced usage. The line amounts were 250 for search and 1000 for research.
+
+Finalization created one invoice with a 64-character usage snapshot hash. Repeating finalization for the same tenant and period returned the same invoice ID, confirming idempotence. Manual payment handoff produced a `manual:` provider reference, and the invoice was then marked paid with a paid timestamp present.
+
+No YooKassa or other external merchant credential was used or discovered during this acceptance.
