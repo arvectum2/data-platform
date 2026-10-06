@@ -526,6 +526,153 @@ class ConnectorCredentialRow(Base):
     )
 
 
+class BillingCatalogRow(Base):
+    __tablename__ = "dp_billing_catalogs"
+
+    catalog_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    plan_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    base_fee_minor: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    rules_json: Mapped[list[dict[str, Any]]] = mapped_column(
+        "rules", JSON_TYPE, default=list, nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)
+    effective_from: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "plan_code",
+            "version",
+            name="uq_dp_billing_catalog_plan_version",
+        ),
+        Index(
+            "ix_dp_billing_catalog_plan_effective",
+            "plan_code",
+            "effective_from",
+        ),
+    )
+
+
+class TenantBillingRow(Base):
+    __tablename__ = "dp_tenant_billing"
+
+    tenant_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    catalog_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_billing_catalogs.catalog_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    payment_provider: Mapped[str] = mapped_column(
+        String(64), default="manual", nullable=False
+    )
+    external_customer_id: Mapped[str | None] = mapped_column(
+        String(256), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_dp_tenant_billing_catalog_status",
+            "catalog_id",
+            "status",
+        ),
+    )
+
+
+class InvoiceRow(Base):
+    __tablename__ = "dp_invoices"
+
+    invoice_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    tenant_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    catalog_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_billing_catalogs.catalog_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    pricing_snapshot: Mapped[dict[str, Any]] = mapped_column(
+        JSON_TYPE, default=dict, nullable=False
+    )
+    usage_snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    subtotal_minor: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    total_minor: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    payment_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    provider_reference: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    payment_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    finalized_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    paid_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id",
+            "period_start",
+            "period_end",
+            name="uq_dp_invoice_tenant_period",
+        ),
+        Index(
+            "ix_dp_invoices_tenant_status_period",
+            "tenant_id",
+            "status",
+            "period_end",
+        ),
+    )
+
+
+class InvoiceLineRow(Base):
+    __tablename__ = "dp_invoice_lines"
+
+    line_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    invoice_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_invoices.invoice_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    operation: Mapped[str] = mapped_column(String(64), nullable=False)
+    unit: Mapped[str] = mapped_column(String(32), nullable=False)
+    quantity: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    included_quantity: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    chargeable_quantity: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    unit_price_minor: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    amount_minor: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "invoice_id",
+            "operation",
+            "unit",
+            name="uq_dp_invoice_line_meter",
+        ),
+        Index("ix_dp_invoice_lines_invoice", "invoice_id"),
+    )
+
+
 class UsageEventRow(Base):
     __tablename__ = "dp_usage_events"
 
