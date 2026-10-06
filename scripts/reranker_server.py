@@ -24,8 +24,17 @@ class CrossEncoderRuntime:
         self._lock = threading.Lock()
         self._model = CrossEncoder(model_name)
 
-        # Warm the lazy torch/Metal execution path before serving traffic.
-        self.score_pairs((("warmup query", "warmup passage"),))
+        # Warm the lazy torch/Metal execution path with the production batch shape
+        # before opening the listening socket. A one-pair warmup leaves the first
+        # real top-3 request paying compilation/shape setup cost on Apple Silicon.
+        warm_query = "тестовый запрос для прогрева reranker"
+        warm_passage = ("тестовый документ для прогрева модели " * 40)[:1000]
+        warm_pairs = tuple(
+            (warm_query, warm_passage)
+            for _ in range(min(3, self.max_pairs))
+        )
+        for _ in range(3):
+            self.score_pairs(warm_pairs)
 
     def score_pairs(self, pairs: tuple[tuple[str, str], ...]) -> tuple[float, ...]:
         if len(pairs) > self.max_pairs:
