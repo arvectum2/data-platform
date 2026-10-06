@@ -574,9 +574,12 @@ Status: COMPLETE (core/provider boundary, 2026-10-06).
 - [x] immutable finalized price/usage snapshot and idempotent tenant-period invoice;
 - [x] provider-neutral payment handoff and manual/offline provider;
 - [x] explicit paid-state administration;
-- [ ] concrete online acquiring / SBP payment provider adapter.
+- [x] YooKassa online acquiring / SBP provider adapter and verified status reconciliation;
+- [ ] live YooKassa merchant activation with deliberately supplied credentials/webhook.
 
 Implementation: `docs/BILLING.md`. Pricing never mutates DP-METER-001 events; finalized invoices snapshot both the exact price catalog and a deterministic hash of the billable usage set. Provider-specific online payment credentials, webhook validation, fiscalization and settlement remain separate adapters.
+
+YooKassa adapter increment (2026-10-06): the optional `YooKassaPaymentProvider` supports RUB smart-payment and explicit SBP flows, deterministic invoice-based idempotence, redirect confirmation URLs and provider status reads. Reconciliation verifies provider reference, amount and currency and marks an invoice paid only for verified `paid=true` + `succeeded`. No merchant credentials were discovered or scraped; live activation remains pending an explicitly supplied approved runtime secret.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: FUTURE.
@@ -589,7 +592,8 @@ Before externalization:
 - [x] first authenticated third-party connector package (`github_repository`);\n- [ ] live private GitHub repository acceptance with a customer-owned credential;
 - [x] billing-grade usage metering;
 - [x] product pricing + invoicing core and provider-neutral payment boundary;
-- [ ] concrete online acquiring / SBP payment-provider adapter;
+- [x] YooKassa online acquiring / SBP payment-provider adapter;
+- [ ] live YooKassa merchant activation with deliberately supplied credentials/webhook;
 - [x] external auth and key lifecycle;
 - [x] retention/deletion/export controls;
 - [x] deployment/privacy modes including a local/private mode in which documents and model requests never leave customer-controlled infrastructure;

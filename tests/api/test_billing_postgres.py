@@ -9,6 +9,7 @@ from alembic import command
 from alembic.config import Config
 
 from arvectum_data.api.config import Settings
+from arvectum_data.billing import PaymentHandoff, PaymentStatus
 from arvectum_data.api.service import (
     DataPlatformService,
     InvoicePricingIncomplete,
@@ -27,7 +28,7 @@ def _database_url() -> str:
     return value
 
 
-def _service() -> DataPlatformService:
+def _service(*, payment_providers=None) -> DataPlatformService:
     database_url = _database_url()
     os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url
     command.upgrade(Config("alembic.ini"), "head")
@@ -42,6 +43,7 @@ def _service() -> DataPlatformService:
     return DataPlatformService(
         settings,
         embedding_provider=HashingEmbeddingProvider(dimension=16),
+        payment_providers=payment_providers,
     )
 
 
@@ -259,3 +261,80 @@ def test_assignment_change_inside_period_blocks_invoice() -> None:
             period_start=now - timedelta(hours=1),
             period_end=now + timedelta(hours=1),
         )
+
+
+
+class FakeOnlinePaymentProvider:
+    name = "fake-online"
+
+    def create_payment(self, request):
+        return PaymentHandoff(
+            provider=self.name,
+            status="pending",
+            reference=f"provider-{request.invoice_id}",
+            payment_url="https://pay.example/checkout",
+        )
+
+    def get_payment(self, reference):
+        return PaymentStatus(
+            provider=self.name,
+            status="succeeded",
+            reference=reference,
+            paid=True,
+            amount_minor=self.expected_amount_minor,
+            currency="RUB",
+        )
+
+
+def test_payment_provider_reconciliation_marks_invoice_paid_only_after_verification() -> None:
+    provider = FakeOnlinePaymentProvider()
+    service = _service(payment_providers={provider.name: provider})
+    suffix = uuid.uuid4().hex[:10]
+    tenant_id = f"tenant-provider-{suffix}"
+    consumer_id = f"consumer-provider-{suffix}"
+    now = datetime.now(UTC)
+
+    service.create_consumer_key(
+        consumer_id=consumer_id,
+        tenant_id=tenant_id,
+        label="provider reconciliation",
+    )
+    catalog = service.create_billing_catalog(
+        plan_code=f"provider-{suffix}",
+        version=1,
+        name="Provider",
+        currency="RUB",
+        base_fee_minor=500,
+        rules=(
+            {"operation": "search", "unit": "request", "unit_price_minor": 100},
+        ),
+        effective_from=now - timedelta(days=1),
+    )
+    service.assign_tenant_billing(
+        tenant_id=tenant_id,
+        catalog_id=catalog["catalog_id"],
+        effective_from=now - timedelta(hours=2),
+        payment_provider=provider.name,
+    )
+    service.record_usage_event(
+        consumer_id=consumer_id,
+        operation="search",
+        request_id=f"{suffix}-search",
+        status_code=200,
+    )
+    invoice = service.finalize_invoice(
+        tenant_id=tenant_id,
+        period_start=now - timedelta(hours=1),
+        period_end=now + timedelta(hours=1),
+    )
+    provider.expected_amount_minor = invoice["total_minor"]
+
+    handoff = service.create_invoice_payment(invoice["invoice_id"])
+    assert handoff["status"] == "finalized"
+    assert handoff["provider_status"] == "pending"
+    assert handoff["payment_url"] == "https://pay.example/checkout"
+
+    synchronized = service.sync_invoice_payment(invoice["invoice_id"])
+    assert synchronized["status"] == "paid"
+    assert synchronized["provider_status"] == "succeeded"
+    assert synchronized["paid_at"] is not None

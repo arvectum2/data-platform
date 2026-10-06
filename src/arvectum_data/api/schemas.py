@@ -124,6 +124,7 @@ class InvoiceResponse(BaseModel):
     unpriced_usage: list[UnpricedUsageResponse] = Field(default_factory=list)
     payment_provider: str | None = None
     provider_reference: str | None = None
+    provider_status: str | None = None
     payment_url: str | None = None
     created_at: datetime | None = None
     finalized_at: datetime | None = None

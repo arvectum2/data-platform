@@ -646,6 +646,20 @@ def create_app(
             raise map_service_error(exc) from exc
 
     @router.post(
+        "/billing/invoices/{invoice_id}/sync-payment",
+        response_model=InvoiceResponse,
+        tags=["billing"],
+    )
+    def sync_invoice_payment_endpoint(
+        invoice_id: str,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.sync_invoice_payment(invoice_id)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
         "/billing/invoices/{invoice_id}/mark-paid",
         response_model=InvoiceResponse,
         tags=["billing"],

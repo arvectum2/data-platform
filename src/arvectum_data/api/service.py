@@ -1225,6 +1225,7 @@ class DataPlatformService:
             "unpriced_usage": [],
             "payment_provider": row.payment_provider,
             "provider_reference": row.provider_reference,
+            "provider_status": row.provider_status,
             "payment_url": row.payment_url,
             "created_at": row.created_at,
             "finalized_at": row.finalized_at,
@@ -1335,6 +1336,7 @@ class DataPlatformService:
             ],
             "payment_provider": assignment.payment_provider,
             "provider_reference": None,
+            "provider_status": None,
             "payment_url": None,
             "created_at": None,
             "finalized_at": None,
@@ -1481,7 +1483,45 @@ class DataPlatformService:
             )
             row.payment_provider = handoff.provider
             row.provider_reference = handoff.reference
+            row.provider_status = handoff.status
             row.payment_url = handoff.payment_url
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return self._invoice_payload(session, row)
+
+    def sync_invoice_payment(self, invoice_id: str) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            row = session.get(InvoiceRow, invoice_id)
+            if row is None:
+                raise InvoiceNotFound(invoice_id)
+            if row.status == "paid":
+                return self._invoice_payload(session, row)
+            provider_name = (row.payment_provider or "").strip().lower()
+            reference = (row.provider_reference or "").strip()
+            if not provider_name or not reference:
+                raise ValueError("invoice does not have a payment handoff to synchronize")
+            provider = self.payment_providers.get(provider_name)
+            if provider is None:
+                raise ValueError(f"payment provider {provider_name!r} is not configured")
+            provider_status = provider.get_payment(reference)
+            if provider_status.reference != reference:
+                raise ValueError("payment provider returned a mismatched reference")
+            if (
+                provider_status.currency is not None
+                and provider_status.currency != row.currency
+            ):
+                raise ValueError("payment provider returned a mismatched currency")
+            if (
+                provider_status.amount_minor is not None
+                and provider_status.amount_minor != row.total_minor
+            ):
+                raise ValueError("payment provider returned a mismatched amount")
+
+            row.provider_status = provider_status.status
+            if provider_status.paid:
+                row.status = "paid"
+                row.paid_at = datetime.now(UTC)
             session.add(row)
             session.commit()
             session.refresh(row)
@@ -1502,6 +1542,7 @@ class DataPlatformService:
                 row.paid_at = datetime.now(UTC)
                 if provider_reference:
                     row.provider_reference = provider_reference.strip()
+                row.provider_status = "succeeded"
                 session.add(row)
                 session.commit()
                 session.refresh(row)
