@@ -95,6 +95,13 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_deployment_privacy(self):
+        cross_encoder_provider = self.cross_encoder_provider.strip().lower()
+        if cross_encoder_provider not in {"disabled", "http", "sentence_transformers"}:
+            raise ValueError(
+                "cross_encoder_provider must be disabled, http or sentence_transformers"
+            )
+        self.cross_encoder_provider = cross_encoder_provider
+
         mode = self.deployment_mode.strip().lower()
         if mode not in {"standard", "local-private"}:
             raise ValueError("deployment_mode must be standard or local-private")
