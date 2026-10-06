@@ -56,3 +56,14 @@ A provider-neutral `CrossEncoderReranker` is available as a benchmark candidate.
 The optional `SentenceTransformersCrossEncoderScorer` uses a lazy import, so sentence-transformers/torch are not mandatory runtime dependencies and default deployments are unchanged. No cross-encoder is enabled automatically.
 
 The first intended local benchmark candidate is `BAAI/bge-reranker-v2-m3`: multilingual and commercially usable under Apache-2.0. Promotion still requires measurable nDCG/MRR uplift on the hard frozen suite while staying inside the accepted latency/resource envelope. Until that live benchmark exists, the learned/cross-encoder roadmap gate remains open.
+
+## Cross-encoder live promotion result
+
+On 2026-10-06 the hard `growth_search_console_v1` suite was rerun on the Mac mini with `BAAI/bge-reranker-v2-m3` after one explicit warm-up. The accepted configuration reranks only the top 3 candidates and truncates candidate text to 1000 characters.
+
+- baseline: top-1 0.50, MRR 0.5833, mean nDCG@5 0.6468, p95 126.8 ms;
+- cross-encoder: top-1 0.5833, MRR 0.6667, mean nDCG@5 0.6885, p95 276.6 ms;
+- gain: +0.0833 MRR, +0.0833 top-1, +0.0417 mean nDCG@5;
+- latency multiplier: 2.18x, inside the existing <=3x promotion gate.
+
+The learned/cross-encoder candidate therefore passes the benchmark promotion gate. This does not make reranking automatic yet: API integration, lifecycle/memory accounting and model packaging remain separate implementation work. The frozen result is `benchmarks/results/cross_encoder_rerank_2026-10-06.json`.
