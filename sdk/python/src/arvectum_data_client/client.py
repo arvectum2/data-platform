@@ -537,6 +537,47 @@ class DataPlatformClient:
             ),
         )
 
+    def research(
+        self,
+        *,
+        query: str,
+        collection_id: str,
+        connector: str = "duckduckgo_html",
+        credential_id: str | None = None,
+        source_limit: int = 8,
+        evidence_limit: int = 8,
+        rerank: bool = False,
+        expand_query: bool = False,
+        execution_mode: str | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "query": query,
+            "collection_id": collection_id,
+            "connector": connector,
+            "source_limit": source_limit,
+            "evidence_limit": evidence_limit,
+            "rerank": rerank,
+            "expand_query": expand_query,
+        }
+        if credential_id is not None:
+            payload["credential_id"] = credential_id
+        if execution_mode is not None:
+            payload["execution_mode"] = execution_mode
+        headers = None
+        if credential_id is not None:
+            headers = self._consumer_headers_required()
+        elif self._consumer or self._consumer_key:
+            headers = self._consumer_headers_required()
+        return cast(
+            dict[str, Any],
+            self.request_json(
+                "POST",
+                "/v1/research",
+                headers=headers,
+                json=payload,
+            ),
+        )
+
     def resolve_entity(
         self,
         *,
