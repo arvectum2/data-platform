@@ -86,3 +86,57 @@ def test_research_bounds_source_expansion():
         assert "source_limit" in str(exc)
     else:
         raise AssertionError("expected source limit validation")
+
+
+class CredentialResearchService(FakeService):
+    def __init__(self):
+        super().__init__()
+        self.discover_kwargs = None
+        self.connector_ingests = []
+
+    def discover(self, **kwargs):
+        self.discover_kwargs = kwargs
+        return DiscoveryPage(
+            resources=(
+                DiscoveredResource(
+                    "https://github.com/acme/private/blob/main/a.py",
+                    "github_repository",
+                    title="a.py",
+                    rank=1,
+                    metadata={"repository": "acme/private", "path": "a.py"},
+                ),
+            )
+        )
+
+    def ingest_discovered_resource(self, **kwargs):
+        self.connector_ingests.append(kwargs)
+        return {"resource_id": "private-resource"}
+
+
+def test_research_uses_credential_aware_discovery_and_fetch_ingest() -> None:
+    service = CredentialResearchService()
+    result = ResearchWorkflow(service).run(
+        query="private code",
+        collection_id="research:private",
+        connector="github_repository",
+        source_limit=2,
+        evidence_limit=2,
+        consumer="consumer-a",
+        credential_id="credential-1",
+    )
+
+    assert service.discover_kwargs == {
+        "connector_name": "github_repository",
+        "query": "private code",
+        "limit": 2,
+        "consumer": "consumer-a",
+        "credential_id": "credential-1",
+    }
+    assert len(service.connector_ingests) == 1
+    ingest = service.connector_ingests[0]
+    assert ingest["collection_id"] == "research:private"
+    assert ingest["connector_name"] == "github_repository"
+    assert ingest["consumer"] == "consumer-a"
+    assert ingest["credential_id"] == "credential-1"
+    assert ingest["resource"].metadata["path"] == "a.py"
+    assert result.sources[0].ingested is True
