@@ -590,6 +590,8 @@ Implementation: `docs/BILLING.md`. Pricing never mutates DP-METER-001 events; fi
 YooKassa adapter increment (2026-10-06): the optional `YooKassaPaymentProvider` supports RUB smart-payment and explicit SBP flows, deterministic invoice-based idempotence, redirect confirmation URLs and provider status reads. Reconciliation verifies provider reference, amount and currency and marks an invoice paid only for verified `paid=true` + `succeeded`. No merchant credentials were discovered or scraped; live activation remains pending an explicitly supplied approved runtime secret.
 
 YooKassa production schema increment (2026-10-06): migration `0013_invoice_provider_status` is live in production and the API restarted healthy on the merged adapter build. Provider activation remains intentionally disabled because no merchant credentials were supplied through an approved secret channel.
+
+Billing-core production acceptance (2026-10-06): a dedicated production acceptance tenant exercised catalog assignment, billable usage aggregation, preview, finalize, repeat-finalize idempotence, manual payment handoff and paid-state transition. The sample invoice total was 11250 RUB minor units (10000 base + 250 search overage + 1000 research), with no unpriced usage and a 64-character usage snapshot hash. No external merchant credential was used.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: PILOT-READY; external production activation is blocked only on deliberately supplied customer/merchant credentials for the remaining live acceptance gates.
