@@ -174,8 +174,12 @@ class PostgresAdversarialRunner:
                 database_url=database_url,
                 internal_api_key="adversarial-internal",
                 consumer_api_keys={
-                    "tenant-a": "tenant-a-key",
-                    "tenant-b": "tenant-b-key",
+                    "tenant-a-agent": "tenant-a-key",
+                    "tenant-b-agent": "tenant-b-key",
+                },
+                consumer_tenants={
+                    "tenant-a-agent": "tenant-a",
+                    "tenant-b-agent": "tenant-b",
                 },
                 embedding_provider="hashing",
                 embedding_model="adversarial-v1-hash",
@@ -205,19 +209,20 @@ class PostgresAdversarialRunner:
         suffix: str,
         *,
         allowed_consumers: tuple[str, ...] = (),
+        tenant_id: str | None = None,
     ) -> str:
         collection_id = self._collection_id(suffix)
-        policy = (
-            {"allowed_consumers": list(allowed_consumers)}
-            if allowed_consumers
-            else None
-        )
+        policy: dict[str, object] = {}
+        if tenant_id:
+            policy["tenant_id"] = tenant_id
+        if allowed_consumers:
+            policy["allowed_consumers"] = list(allowed_consumers)
         self.service.create_collection(
             collection_id=collection_id,
             owner="dp-bench-002",
             name=f"Adversarial {suffix}",
             default_language="simple",
-            access_policy=policy,
+            access_policy=policy or None,
         )
         return collection_id
 
@@ -306,7 +311,7 @@ class PostgresAdversarialRunner:
     def _tenant_isolation(self, case: AdversarialCase) -> AdversarialObservation:
         protected = self._create_collection(
             "tenant-protected",
-            allowed_consumers=("tenant-b",),
+            tenant_id="tenant-b",
         )
         uri = "benchmark://adversarial/tenant/protected"
         self._ingest_text(
@@ -317,14 +322,18 @@ class PostgresAdversarialRunner:
 
         denied = False
         try:
-            self._search("tenant sentinel", (protected,), consumer="tenant-a")
+            self._search(
+                "tenant sentinel",
+                (protected,),
+                consumer="tenant-a-agent",
+            )
         except CollectionAccessDenied:
             denied = True
 
         authorized_hits = self._search(
             "tenant sentinel",
             (protected,),
-            consumer="tenant-b",
+            consumer="tenant-b-agent",
         )
         authorized = any(hit.canonical_uri == uri for hit in authorized_hits)
         return self._observation(

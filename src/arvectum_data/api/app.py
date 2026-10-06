@@ -90,6 +90,7 @@ from .service import (
     IndexJobNotFound,
     MemoryNotFound,
     PlatformNotConfigured,
+    TenantQuotaExceeded,
 )
 
 
@@ -217,6 +218,8 @@ def create_app(
             return HTTPException(status_code=404, detail="collection not found")
         if isinstance(exc, CollectionAccessDenied):
             return HTTPException(status_code=403, detail="collection access denied")
+        if isinstance(exc, TenantQuotaExceeded):
+            return HTTPException(status_code=429, detail=str(exc))
         if isinstance(exc, IndexJobNotFound):
             return HTTPException(status_code=404, detail="index job not found")
         if isinstance(exc, MemoryNotFound):

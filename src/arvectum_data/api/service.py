@@ -97,6 +97,10 @@ class CollectionAccessDenied(PermissionError):
     pass
 
 
+class TenantQuotaExceeded(RuntimeError):
+    pass
+
+
 class MemoryNotFound(LookupError):
     pass
 
@@ -197,6 +201,61 @@ class DataPlatformService:
             ),
             max_candidate_chars=self.settings.cross_encoder_max_candidate_chars,
         )
+
+    def _authorize_collection_consumer(
+        self,
+        collection: CollectionRow,
+        consumer: str | None,
+    ) -> None:
+        policy = dict(collection.access_policy or {})
+        tenant_id = str(policy.get("tenant_id") or "").strip()
+        if tenant_id:
+            consumer_tenant = (
+                self.settings.consumer_tenants.get(consumer, "")
+                if consumer is not None
+                else ""
+            )
+            if consumer_tenant != tenant_id:
+                raise CollectionAccessDenied(collection.collection_id)
+        allowed_consumers = tuple(
+            str(item)
+            for item in policy.get("allowed_consumers", [])
+            if str(item)
+        )
+        if allowed_consumers and consumer not in allowed_consumers:
+            raise CollectionAccessDenied(collection.collection_id)
+
+    def _validate_tenant_search_quota(
+        self,
+        request: SearchQuery,
+        consumer: str | None,
+    ) -> None:
+        if consumer is None:
+            return
+        tenant_id = self.settings.consumer_tenants.get(consumer)
+        if not tenant_id:
+            return
+        quota = dict(self.settings.tenant_quotas.get(tenant_id) or {})
+        checks = {
+            "max_collections_per_search": len(request.collections),
+            "max_results_per_search": request.limit,
+            "max_rerank_candidates": (
+                request.rerank_candidates if request.rerank else 0
+            ),
+            "max_query_variants": len(request.query_variants),
+        }
+        for key, actual in checks.items():
+            raw_limit = quota.get(key)
+            if raw_limit is None:
+                continue
+            limit = int(raw_limit)
+            if limit < 0:
+                raise ValueError(f"tenant quota {key} must be non-negative")
+            if actual > limit:
+                raise TenantQuotaExceeded(
+                    f"tenant {tenant_id!r} quota exceeded: "
+                    f"{key}={actual} > {limit}"
+                )
 
     @staticmethod
     def _default_connector_registry() -> ConnectorRegistry:
@@ -815,6 +874,7 @@ class DataPlatformService:
             collection = session.get(CollectionRow, collection_id)
             if collection is None:
                 raise CollectionNotFound(collection_id)
+            self._authorize_collection_consumer(collection, consumer)
             policy = dict(collection.access_policy or {})
             writers = tuple(str(x) for x in policy.get("memory_writers", []) if str(x))
             user_writers = tuple(str(x) for x in policy.get("user_memory_writers", []) if str(x))
@@ -841,13 +901,7 @@ class DataPlatformService:
                         .where(DocumentRow.document_id == chunk.document_id)
                     )
                     source = session.get(CollectionRow, source_collection)
-                    allowed = tuple(
-                        str(x)
-                        for x in (source.access_policy or {}).get("allowed_consumers", [])
-                        if str(x)
-                    )
-                    if allowed and consumer not in allowed:
-                        raise CollectionAccessDenied(source_collection)
+                    self._authorize_collection_consumer(source, consumer)
 
             if resolved_kind in {MemoryKind.SOURCE_EVIDENCE, MemoryKind.AGENT_OBSERVATION} and not source_ids:
                 raise ValueError("evidence and agent observations require source_chunk_ids")
@@ -950,6 +1004,7 @@ class DataPlatformService:
                 raise MemoryNotFound(record_id)
             resource = session.get(ResourceRow, record.resource_id)
             collection = session.get(CollectionRow, resource.collection_id)
+            self._authorize_collection_consumer(collection, consumer)
             policy = dict(collection.access_policy or {})
             writers = {
                 str(x) for x in (
@@ -1359,20 +1414,13 @@ class DataPlatformService:
         tuple[QueryExpansion, ...],
         tuple[SearchStageDiagnostic, ...],
     ]:
+        self._validate_tenant_search_quota(request, consumer)
         with self._require_factory()() as session:
             for collection_id in request.collections:
                 collection = session.get(CollectionRow, collection_id)
                 if collection is None:
                     raise CollectionNotFound(collection_id)
-                allowed_consumers = tuple(
-                    str(item)
-                    for item in (collection.access_policy or {}).get(
-                        "allowed_consumers", []
-                    )
-                    if str(item)
-                )
-                if allowed_consumers and consumer not in allowed_consumers:
-                    raise CollectionAccessDenied(collection_id)
+                self._authorize_collection_consumer(collection, consumer)
                 self._validate_embedding_contract(collection)
 
             backend = PostgresSearchBackend(DataRepository(session))

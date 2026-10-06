@@ -539,7 +539,7 @@ Status: FUTURE.
 Potential product contour: connect documents, websites and APIs -> continuously index them -> expose evidence-backed search/API/SDK for customer AI agents.
 
 Before externalization:
-- [ ] tenant isolation and quotas;
+- [x] tenant isolation and quotas;
 - [ ] customer-managed connectors/credentials;
 - [ ] billing/usage metering;
 - [ ] external auth and key lifecycle;
@@ -553,6 +553,8 @@ Supportability increment (2026-10-06): /v1/status now reports a bounded rolling 
 Collection-lifecycle increment (2026-10-06): collection creation now accepts a bounded max_age_days retention policy; retention pruning is dry-run by default and deletes only when dry_run=false; collection export is paginated and omits source/chunk/record content unless include_content=true; hard collection deletion is a preview unless confirm=true. Isolated PostgreSQL acceptance verified export redaction/content opt-in, retention dry-run, cascading resource deletion and confirmed collection deletion. Shared/global entity rows are not removed by collection lifecycle controls. See docs/COLLECTION_LIFECYCLE.md.
 
 Privacy-mode increment (2026-10-06): Settings now supports deployment_mode=local-private as a startup invariant. The service fails closed if the API bind, database or embedding endpoint is non-local, OCR is not local/disabled, or reasoning/vision use anything other than disabled/local-only loopback policies; stale remote allowlists are rejected too. Standard mode keeps the existing explicit per-role disabled/local-only/remote-allowlist controls. /v1/status exposes the active deployment_mode. See docs/PRIVACY_MODES.md.
+
+Tenancy increment (2026-10-06): authenticated consumer identity is now separate from tenant identity through consumer_tenants. Collection access_policy can bind a collection to tenant_id and optionally narrow it further with allowed_consumers. Tenant search quotas bound collections/request, result count, rerank candidates and query variants and fail with HTTP 429; enforcement lives in DataPlatformService so direct callers cannot bypass it. The isolated PostgreSQL adversarial suite remains 5/5 with a real cross-tenant denial and authorized tenant retrieval. See docs/TENANCY.md.
 
 ## DP-BENCH-002 — competitive benchmark suite
 
