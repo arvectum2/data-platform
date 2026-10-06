@@ -26,6 +26,7 @@ from ..connectors import (
     ConnectorRegistry,
     CredentialCipher,
     DuckDuckGoHTMLConnector,
+    GitHubRepositoryConnector,
     ManualURLConnector,
     SitemapConnector,
 )
@@ -332,6 +333,7 @@ class DataPlatformService:
         registry.register(ManualURLConnector())
         registry.register(SitemapConnector())
         registry.register(DuckDuckGoHTMLConnector())
+        registry.register(GitHubRepositoryConnector())
         return registry
 
     @staticmethod
