@@ -1,0 +1,49 @@
+{
+  "id": "crawl-transport-2026-10-06",
+  "host": "Mac mini, production network",
+  "target": "https://arvectum.com/",
+  "diagnosis": {
+    "dns_addresses": [
+      "2a00:f940:2:2:1:1:0:34",
+      "31.31.196.39"
+    ],
+    "curl_ipv4_ms": 75.63,
+    "curl_ipv6_outcome": "timeout",
+    "curl_ipv6_timeout_ms": 10007.151,
+    "public_http_before_ms": [
+      8261.2,
+      8067.9,
+      8061.7
+    ],
+    "public_http_after_ms": [
+      64.3,
+      56.8,
+      80.9
+    ],
+    "before_mean_ms": 8130.27,
+    "after_mean_ms": 67.33,
+    "mean_speedup": 120.75
+  },
+  "crawl_after_fix": {
+    "ten_page_run": {
+      "elapsed_s": 0.631,
+      "pages_fetched": 10,
+      "links_discovered": 36,
+      "failures": 0,
+      "pages_per_s": 15.843,
+      "limit_reasons": [
+        "max_pages"
+      ]
+    },
+    "site_run": {
+      "max_pages": 50,
+      "elapsed_s": 3.186,
+      "pages_fetched": 41,
+      "links_discovered": 40,
+      "failures": 0,
+      "pages_per_s": 12.87,
+      "limit_reasons": []
+    }
+  },
+  "decision": "Keep distributed crawling deferred. Current single-node bounded crawler is not throughput-limited after transport repair."
+}

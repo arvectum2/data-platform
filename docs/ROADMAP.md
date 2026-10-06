@@ -512,13 +512,15 @@ Implementation: `docs/CONTINUOUS_INDEXING.md`. Scheduling is intentionally exter
 
 ### DP-CRAWL-002 — distributed crawling
 
-Status: FUTURE.
+Status: DEFERRED BY BENCHMARK; single-node transport bottleneck repaired (2026-10-06).
 
 - [ ] durable crawl queue;
 - [ ] multiple workers with host-level rate limits;
 - [ ] deduplication and leases;
 - [ ] resumable crawl jobs;
-- [ ] only introduce when single-node throughput becomes a measured bottleneck.
+- [x] only introduce when single-node throughput becomes a measured bottleneck.
+
+Crawl transport acceptance (2026-10-06): the apparent crawler bottleneck was traced to dual-stack network fallback, not crawl orchestration. On the Mac mini, `arvectum.com` IPv4 completed in ~76 ms while IPv6 timed out after ~10 s; the old urllib-based public transport therefore spent ~8.13 s/fetch despite SSRF validation itself taking only ~0.5-2.7 ms. The repaired transport pins connections to the already-validated public address set, prefers IPv4 with bounded IPv6 fallback, preserves TLS hostname verification and re-validates redirects. Fetch latency fell to ~67 ms mean (~121x faster). The existing sequential crawler then processed 10 pages in 0.631 s (15.84 pages/s) and the full reachable 41-page site graph in 3.186 s (12.87 pages/s), both with zero failures. Distributed crawling remains deliberately deferred because there is no measured throughput justification. See `docs/CRAWL_TRANSPORT_BENCHMARK.md`.
 
 ### DP-MEM-001 — shared evidence-backed agent memory
 
