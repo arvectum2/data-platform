@@ -374,7 +374,7 @@ The intended deployment separates model roles: embeddings, reasoning/generation 
 
 ### DP-OCR-001 — OCR and multimodal document ingestion
 
-Status: IN PROGRESS (2026-10-05).
+Status: COMPLETE (2026-10-06).
 
 Extraction cascade:
 
@@ -387,12 +387,14 @@ Extraction cascade:
 - [x] preserve page coordinates, confidence and source provenance where available;
 - [x] add optional VLM document-understanding fallback for low-text / low-confidence OCR pages;
 - [x] preserve tables/forms in the VLM contract instead of silently requesting flat prose;
-- [ ] benchmark accuracy/latency on a larger frozen set of real procurement and business documents;
+- [x] benchmark accuracy/latency on a larger frozen set of real procurement and business documents;
 - [x] never send documents to a remote vision provider unless deployment policy explicitly permits it.
 
 Real acceptance (2026-10-05): a scanned PDF from the existing Tender Agent procurement corpus had 0 native extracted characters; the local OCR cascade selected its single page and recovered 925 characters at 93.16% mean Tesseract confidence without VLM escalation. Implementation: `docs/OCR_MULTIMODAL.md`.
 
 A VLM is therefore not required for ordinary OCR. It is an escalation path for documents where classical OCR/layout extraction is insufficient.
+
+Scale benchmark (2026-10-06): private_runtime_ocr_scale_v1 freezes nine real production-derived PDF cases by SHA-256 only (8 procurement, 1 business), with no paths or document text committed. Reproducible local Tesseract acceptance measured median CER 9.81%, median WER 11.03%, p50 ~1.39 s and p95 ~2.46 s. The three cases classified as poor OCR (CER >25% or WER >50%) all fell below the existing confidence 90 escalation threshold, while all six acceptable cases stayed above it, yielding routing precision=1.0, recall=1.0 and accuracy=1.0. Live VLM output quality remains a separate DP-BENCH-002 item because vision is not configured in production.
 
 ### DP-RERANK-001 — optional intelligent reranking
 

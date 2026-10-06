@@ -295,3 +295,12 @@ vlm_routing_v1 freezes the two real local-Tesseract scan profiles already in
 public_v1. The layout-stress form (confidence 86.89%, CER 35.78%, WER 74.47%)
 must escalate when vision is available; the linear scan (confidence 94.41%,
 CER 3.61%, WER 5.86%) must not. The routing gate is fixed at 1.0.
+
+## Private OCR scale
+
+private_runtime_ocr_scale_v1 extends OCR validation beyond the two shareable
+public scan profiles using nine real production-derived PDFs identified only by
+SHA-256. It stores no source path or document/OCR text. The accepted run
+measured median CER 9.81%, median WER 11.03% and p95 2.46 s. Three poor OCR
+cases were all selected by the existing confidence<90 VLM routing rule, with
+routing precision and recall both 1.0.
