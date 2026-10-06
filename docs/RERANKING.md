@@ -48,3 +48,11 @@ This is a benchmark result, not a removal of the feature. rerank=true remains
 available as an explicit opt-in, but default activation is rejected. A lighter
 learned/cross-encoder reranker can be evaluated later against the same frozen
 suite and gate.
+
+## Learned cross-encoder candidate
+
+A provider-neutral `CrossEncoderReranker` is available as a benchmark candidate. It scores only the already-retrieved bounded candidate set and cannot retrieve or inject new documents. Provider/model identity is exposed through the same safe rerank diagnostics as the reasoning reranker.
+
+The optional `SentenceTransformersCrossEncoderScorer` uses a lazy import, so sentence-transformers/torch are not mandatory runtime dependencies and default deployments are unchanged. No cross-encoder is enabled automatically.
+
+The first intended local benchmark candidate is `BAAI/bge-reranker-v2-m3`: multilingual and commercially usable under Apache-2.0. Promotion still requires measurable nDCG/MRR uplift on the hard frozen suite while staying inside the accepted latency/resource envelope. Until that live benchmark exists, the learned/cross-encoder roadmap gate remains open.

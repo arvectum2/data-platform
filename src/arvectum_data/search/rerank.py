@@ -26,6 +26,85 @@ class Reranker(Protocol):
     ) -> tuple[RerankScore, ...]: ...
 
 
+@runtime_checkable
+class CrossEncoderScorer(Protocol):
+    provider_name: str
+    model_name: str
+
+    def score_pairs(self, pairs: Sequence[tuple[str, str]]) -> Sequence[float]: ...
+
+
+class SentenceTransformersCrossEncoderScorer:
+    provider_name = "sentence-transformers-cross-encoder"
+
+    def __init__(self, model_name: str) -> None:
+        if not model_name.strip():
+            raise ValueError("model_name must not be blank")
+        try:
+            from sentence_transformers import CrossEncoder
+        except Exception as exc:  # pragma: no cover - optional dependency path
+            raise RuntimeError(
+                "sentence-transformers is not installed; install the optional "
+                "cross-encoder benchmark dependency before using this scorer"
+            ) from exc
+        self.model_name = model_name
+        self._model = CrossEncoder(model_name)
+
+    def score_pairs(self, pairs: Sequence[tuple[str, str]]) -> Sequence[float]:
+        if not pairs:
+            return ()
+        raw = self._model.predict(list(pairs))
+        return tuple(float(value) for value in raw)
+
+
+class CrossEncoderReranker:
+    name = "cross-encoder"
+
+    def __init__(
+        self,
+        scorer: CrossEncoderScorer,
+        *,
+        max_candidates: int = 20,
+        max_candidate_chars: int = 1800,
+    ) -> None:
+        if max_candidates < 1 or max_candidates > 100:
+            raise ValueError("max_candidates must be between 1 and 100")
+        self.scorer = scorer
+        self.max_candidates = max_candidates
+        self.max_candidate_chars = max_candidate_chars
+
+    @property
+    def provider(self) -> CrossEncoderScorer:
+        return self.scorer
+
+    def rerank(
+        self,
+        request: SearchQuery,
+        hits: Sequence[SearchHit],
+    ) -> tuple[RerankScore, ...]:
+        bounded = list(hits[: self.max_candidates])
+        if not bounded:
+            return ()
+        pairs = [
+            (
+                request.query,
+                ((hit.title or "") + "\n" + hit.text[: self.max_candidate_chars]).strip(),
+            )
+            for hit in bounded
+        ]
+        scores = list(self.scorer.score_pairs(pairs))
+        if len(scores) != len(bounded):
+            raise ValueError("cross-encoder scorer returned an unexpected score count")
+        ranked = sorted(
+            zip(bounded, scores),
+            key=lambda item: (-float(item[1]), item[0].chunk_id),
+        )
+        return tuple(
+            RerankScore(hit.chunk_id, float(score), rank)
+            for rank, (hit, score) in enumerate(ranked, start=1)
+        )
+
+
 class ReasoningReranker:
     name = "reasoning"
 

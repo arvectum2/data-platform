@@ -12,10 +12,12 @@ from .models import (
 )
 from .postgres import PostgresSearchBackend
 from .protocols import LexicalBackend, VectorBackend
-from .rerank import ReasoningReranker, Reranker, RerankScore
+from .rerank import CrossEncoderReranker, CrossEncoderScorer, ReasoningReranker, Reranker, RerankScore
 
 __all__ = [
     "BackendHit",
+    "CrossEncoderReranker",
+    "CrossEncoderScorer",
     "DictionaryQueryExpander",
     "QueryExpander",
     "QueryExpansion",

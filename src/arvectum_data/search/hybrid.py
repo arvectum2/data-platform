@@ -331,6 +331,14 @@ class HybridSearchEngine:
         descriptor = getattr(provider, "descriptor", None)
         if descriptor is not None:
             return str(descriptor.provider), str(descriptor.model)
+        if provider is not None:
+            provider_name = getattr(provider, "provider_name", None)
+            model_name = getattr(provider, "model_name", None)
+            if provider_name is not None or model_name is not None:
+                return (
+                    str(provider_name) if provider_name is not None else type(provider).__name__,
+                    str(model_name) if model_name is not None else None,
+                )
         provider_name = getattr(component, "name", None)
         if provider_name is not None:
             return str(provider_name), None
