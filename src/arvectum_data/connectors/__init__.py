@@ -1,4 +1,5 @@
 from .credentials import CredentialCipher
+from .github import GitHubRepositoryConnector
 from .manual import ManualURLConnector
 from .models import (
     ConnectorHealth,
@@ -27,6 +28,7 @@ __all__ = [
     "DiscoveredResource",
     "DuckDuckGoHTMLConnector",
     "FetchConnector",
+    "GitHubRepositoryConnector",
     "ManualURLConnector",
     "SitemapConnector",
     "parse_duckduckgo_html",
