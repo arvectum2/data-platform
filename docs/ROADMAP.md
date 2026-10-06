@@ -398,7 +398,7 @@ Scale benchmark (2026-10-06): private_runtime_ocr_scale_v1 freezes nine real pro
 
 ### DP-RERANK-001 — optional intelligent reranking
 
-Status: COMPLETE (2026-10-05); default activation remains benchmark-gated.
+Status: COMPLETE; BGE learned reranking is promoted as the preferred optional strategy.
 
 - [x] rerank a bounded top-N candidate set after lexical/vector retrieval;
 - [x] add a provider-neutral reranker protocol and reasoning/LLM implementation;
@@ -406,7 +406,7 @@ Status: COMPLETE (2026-10-05); default activation remains benchmark-gated.
 - [x] add a frozen-benchmark quality/latency gate; reranking remains opt-in until a repeatable gain is demonstrated;
 - [x] keep deterministic hybrid retrieval as fail-open fallback when disabled, unavailable or invalid.
 
-Implementation notes: `docs/RERANKING.md`. The existing production acceptance v3 suite is already 20/20 top-1 with MRR 1.0, so it cannot prove positive rerank gain; default activation correctly remains off pending a harder frozen relevance suite.
+Implementation notes: `docs/RERANKING.md`. The harder `growth_search_console_v1` suite demonstrated repeatable BGE cross-encoder uplift within the accepted latency gate. Search still defaults to `rerank=false`; when reranking is explicitly enabled, `cross_encoder` is now the preferred/default strategy and deterministic hybrid remains the fail-open fallback.
 
 ### DP-QE-001 — query expansion
 
@@ -652,6 +652,8 @@ Adoption-gate sync (2026-10-06): the existing frozen benchmarks now resolve six 
 Cross-encoder promotion increment (2026-10-06): `BAAI/bge-reranker-v2-m3` was benchmarked locally on the hard `growth_search_console_v1` suite after warm-up. With top-3 reranking and 1000-character candidate truncation it improved top-1 from 0.50 to 0.5833, MRR from 0.5833 to 0.6667 and mean nDCG@5 from 0.6468 to 0.6885 while p95 rose from ~126.8 ms to ~276.6 ms (2.18x, within the <=3x rerank gate). Independent warm-process measurement showed ~3.74 GB physical footprint and ~3.87 GB peak. The learned/cross-encoder promotion gate therefore passes. API/runtime integration remains backlog work; the current LLM reranker remains rejected on latency.
 
 BGE reranker acceptance (2026-10-06): `BAAI/bge-reranker-v2-m3` passed the frozen hard-suite promotion gate on the Mac mini after warm-up. Versus base hybrid on 12 Search Console/Yandex cases: top-1 0.500 -> 0.583, MRR 0.583 -> 0.667, nDCG@5 0.647 -> 0.688, p95 134.6 ms -> 334.2 ms (2.48x, below the 3x ceiling). It is accepted as the preferred optional learned reranker but remains disabled by default until model/runtime packaging is isolated from the core service.
+
+BGE runtime activation increment (2026-10-06): learned reranking is isolated from the core API through a localhost-only HTTP sidecar on `127.0.0.1:8091`. Core Data Platform uses a lightweight HTTP scorer; `sentence-transformers`/Torch live only in the dedicated reranker environment. `rerank=false` remains the request default, but requests that enable reranking now default to `cross_encoder`; `reasoning` remains an explicit alternate strategy. Sidecar timeout/unavailability fails open to deterministic hybrid ordering, and LOCAL_PRIVATE rejects remote reranker endpoints.
 
 ### Benchmark-driven adoption gates
 
