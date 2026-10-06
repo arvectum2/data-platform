@@ -3,6 +3,7 @@ from __future__ import annotations
 import hmac
 import time
 import uuid
+from collections import deque
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
@@ -23,6 +24,7 @@ from ..engine import FieldSpec
 from ..observability import configure_logging
 from ..modes import MODE_PROFILES, mode_profile
 from ..search import SearchQuery
+from ..supportability import evaluate_operation_slo, overall_readiness, percentile
 from .config import Settings
 from .contract import (
     CONSUMER_CONTRACT_CAPABILITIES,
@@ -111,9 +113,23 @@ def create_app(
         platform_service if platform_service is not None else DataPlatformService(resolved)
     )
     service.state.request_count = 0
+    operation_names = (
+        "process",
+        "ingest",
+        "search",
+        "answer",
+        "research",
+        "discover",
+        "extract",
+        "reindex",
+    )
     service.state.operation_metrics = {
         name: {"requests": 0, "errors": 0, "total_ms": 0, "max_ms": 0}
-        for name in ("process", "ingest", "search", "answer", "research", "discover", "extract", "reindex")
+        for name in operation_names
+    }
+    service.state.operation_latency_samples = {
+        name: deque(maxlen=256)
+        for name in operation_names
     }
 
     def operation_name(method: str, path: str) -> str | None:
@@ -156,6 +172,7 @@ def create_app(
                     metric["errors"] += 1
                 metric["total_ms"] += duration_ms
                 metric["max_ms"] = max(metric["max_ms"], duration_ms)
+                service.state.operation_latency_samples[operation].append(duration_ms)
 
     @service.get("/health", tags=["system"])
     def health() -> dict[str, str]:
@@ -247,11 +264,31 @@ def create_app(
                 "embedding_dimension": None,
             }
         payload["requests"] = int(service.state.request_count)
-        payload["operations"] = {
-            name: dict(values)
+        payload["operations"] = {}
+        for name, values in service.state.operation_metrics.items():
+            samples = tuple(service.state.operation_latency_samples[name])
+            operation_payload = dict(values)
+            operation_payload["window_samples"] = len(samples)
+            operation_payload["p95_ms"] = percentile(samples, 0.95)
+            payload["operations"][name] = operation_payload
+        return payload
+
+    @router.get("/support/readiness", tags=["system"])
+    def support_readiness() -> dict[str, Any]:
+        operations = {
+            name: evaluate_operation_slo(
+                operation=name,
+                requests=int(values["requests"]),
+                errors=int(values["errors"]),
+                latency_samples_ms=tuple(service.state.operation_latency_samples[name]),
+            )
             for name, values in service.state.operation_metrics.items()
         }
-        return payload
+        return {
+            "status": overall_readiness(operations),
+            "window_size": 256,
+            "operations": operations,
+        }
 
     @router.get("/models/status", tags=["system"])
     def model_status(

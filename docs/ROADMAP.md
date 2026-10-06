@@ -546,7 +546,9 @@ Before externalization:
 - [ ] retention/deletion/export controls;
 - [ ] deployment/privacy modes including a local/private mode in which documents and model requests never leave customer-controlled infrastructure;
 - [ ] explicit per-capability policy for whether remote LLM/VLM providers are permitted;
-- [ ] operational SLOs and supportability.
+- [x] operational SLOs and supportability.
+
+Supportability increment (2026-10-06): /v1/status now reports a bounded rolling p95 latency window per operation, while /v1/support/readiness evaluates secret-free p95/error-rate SLOs with an explicit insufficient-data state until at least 20 recent samples exist. The window is capped at 256 requests per operation and remains in-memory; docs/SUPPORTABILITY.md defines targets and the support workflow.
 
 ## DP-BENCH-002 — competitive benchmark suite
 
