@@ -1,0 +1,187 @@
+{
+  "name": "public-real-corpus-v1",
+  "version": 1,
+  "description": "First shareable DP-BENCH-002 corpus slice using real public procurement and Arvectum website materials. The OCR scan is a rasterized derivative of the native public PDF and uses native extraction as a silver reference.",
+  "metadata": {
+    "created_at": "2026-10-06",
+    "raw_private_documents_committed": false,
+    "coverage": [
+      "pdf",
+      "scanned-pdf",
+      "docx",
+      "xlsx",
+      "html"
+    ],
+    "artifact_count": 7
+  },
+  "artifacts": [
+    {
+      "id": "procurement-control-notice-pdf",
+      "file": "fixtures/procurement_control_notice.pdf",
+      "format": "pdf",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "public procurement control notice, 2026",
+      "required_text": [
+        "Уведомление о соответствии контролируемой информации",
+        "Комитет финансов Санкт-Петербурга"
+      ],
+      "min_text_chars": 800,
+      "tags": [
+        "native-pdf",
+        "44-fz",
+        "real-source"
+      ],
+      "sha256": "74ff38e7c6d809973c83bad0a2ab470a022285b0e520242e5cae8b77e877f3f3"
+    },
+    {
+      "id": "procurement-nmck-docx",
+      "file": "fixtures/procurement_nmck.docx",
+      "format": "docx",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "public procurement NMCK attachment, 2026",
+      "required_text": [
+        "Обоснование начальной (максимальной) цены контракта",
+        "02.10.2013 № 567"
+      ],
+      "min_text_chars": 5000,
+      "tags": [
+        "docx",
+        "nmck",
+        "real-source"
+      ],
+      "sha256": "dd14129699141aa15c0b9b59a2be2a6122387f8ec4cb9aca3324ea55eefd5c9d"
+    },
+    {
+      "id": "procurement-nmck-xlsx",
+      "file": "fixtures/procurement_nmck.xlsx",
+      "format": "xlsx",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "public procurement NMCK workbook, 2026",
+      "required_text": [
+        "Коэффициент вариации",
+        "Расчет НМЦК"
+      ],
+      "min_text_chars": 3000,
+      "tags": [
+        "xlsx",
+        "table",
+        "nmck",
+        "real-source"
+      ],
+      "sha256": "bee59f89708f539742f7cb00132e76292afe286b3ceac53cf6784a2dc745ac78"
+    },
+    {
+      "id": "arvectum-photo-size-html",
+      "file": "fixtures/arvectum_photo_size.html",
+      "format": "html",
+      "source_kind": "website",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "arvectum.com/tools/photo-size/",
+      "required_text": [
+        "Фото под размер",
+        "Изображение обрабатывается локально на iPhone"
+      ],
+      "min_text_chars": 500,
+      "tags": [
+        "html",
+        "website",
+        "business",
+        "real-source"
+      ],
+      "sha256": "b8c07b93def9ce4499db074f4049ab5da3e21ef34d29e1ccae1bbce6a1cd554b"
+    },
+    {
+      "id": "procurement-control-notice-scan",
+      "file": "fixtures/procurement_control_notice_scan.pdf",
+      "format": "scanned-pdf",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "rasterized page 1 of procurement-control-notice-pdf",
+      "required_text": [
+        "Уведомление о соответствии контролируемой информации",
+        "Комитет финансов Санкт-Петербурга"
+      ],
+      "min_text_chars": 800,
+      "ocr_required": true,
+      "gold_text_file": "gold/procurement_control_notice_scan.txt",
+      "tags": [
+        "scanned-pdf",
+        "ocr",
+        "real-source-derived"
+      ],
+      "metadata": {
+        "gold_kind": "native-extraction-silver",
+        "scan_generation": "page 1 rasterized at 150 DPI then wrapped as image-only PDF",
+        "ocr_profile": "layout-stress",
+        "regression_gate_kind": "layout-stress-baseline"
+      },
+      "sha256": "47fe44ab97205aa64e50219bbf44a01e7fc9afc4dfde40b2d653fb7025692bdb",
+      "gold_sha256": "81e2289a471f4221c3719043e61fcc2d35408cd190f94ebdadddf277651d0914",
+      "max_cer": 0.4,
+      "max_wer": 0.8
+    },
+    {
+      "id": "procurement-technical-spec-pdf",
+      "file": "fixtures/procurement_technical_spec.pdf",
+      "format": "pdf",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "public procurement technical specification, 2026",
+      "required_text": [
+        "ТЕХНИЧЕСКОЕ ЗАДАНИЕ",
+        "Поставка электротехнических изделий"
+      ],
+      "min_text_chars": 2000,
+      "tags": [
+        "native-pdf",
+        "technical-specification",
+        "real-source"
+      ],
+      "metadata": {
+        "ocr_profile": "linear-baseline-source"
+      },
+      "sha256": "c094eccab3aba23935a77123bcddb7902b7560e1eb773457dd45e9680ff94861"
+    },
+    {
+      "id": "procurement-technical-spec-scan",
+      "file": "fixtures/procurement_technical_spec_scan.pdf",
+      "format": "scanned-pdf",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "rasterized page 1 of procurement-technical-spec-pdf",
+      "required_text": [
+        "ТЕХНИЧЕСКОЕ ЗАДАНИЕ",
+        "Поставка электротехнических изделий"
+      ],
+      "min_text_chars": 2000,
+      "ocr_required": true,
+      "gold_text_file": "gold/procurement_technical_spec_scan.txt",
+      "tags": [
+        "scanned-pdf",
+        "ocr",
+        "real-source-derived",
+        "linear-text"
+      ],
+      "metadata": {
+        "gold_kind": "native-extraction-silver",
+        "ocr_profile": "linear-baseline",
+        "scan_generation": "page 1 rasterized at 150 DPI then wrapped as image-only PDF",
+        "regression_gate_kind": "linear-ocr-baseline"
+      },
+      "sha256": "2e9596fea388c7115ed506cba4fa7e7baab949cb92690ede9851beb7bdfc4559",
+      "gold_sha256": "798d78d6c2b405eb7bad58ee076b7db8f928999539408afcbea4accd3423696d",
+      "max_cer": 0.05,
+      "max_wer": 0.1
+    }
+  ]
+}
