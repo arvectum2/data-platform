@@ -30,6 +30,7 @@ def test_local_private_accepts_loopback_core() -> None:
         ("host", "0.0.0.0"),
         ("database_url", "postgresql+psycopg://u:p@db.example.com/data"),
         ("embedding_base_url", "https://embeddings.example.com/v1"),
+        ("cross_encoder_base_url", "https://rerank.example.com"),
     ],
 )
 def test_local_private_rejects_remote_core_endpoints(field: str, value: str) -> None:
@@ -77,3 +78,8 @@ def test_status_exposes_deployment_mode() -> None:
     response = client.get("/v1/status")
     assert response.status_code == 200
     assert response.json()["deployment_mode"] == "local-private"
+
+
+def test_cross_encoder_provider_is_validated() -> None:
+    with pytest.raises(ValidationError, match="cross_encoder_provider"):
+        Settings(cross_encoder_provider="unknown")

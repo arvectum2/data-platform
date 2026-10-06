@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import urllib.request
 from dataclasses import dataclass
 from typing import Protocol, Sequence, runtime_checkable
 
@@ -32,6 +33,50 @@ class CrossEncoderScorer(Protocol):
     model_name: str
 
     def score_pairs(self, pairs: Sequence[tuple[str, str]]) -> Sequence[float]: ...
+
+
+class HttpCrossEncoderScorer:
+    provider_name = "http-cross-encoder"
+
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model_name: str,
+        timeout_seconds: float = 1.0,
+    ) -> None:
+        if not base_url.strip():
+            raise ValueError("base_url must not be blank")
+        if not model_name.strip():
+            raise ValueError("model_name must not be blank")
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
+        self.base_url = base_url.rstrip("/")
+        self.model_name = model_name
+        self.timeout_seconds = float(timeout_seconds)
+
+    def score_pairs(self, pairs: Sequence[tuple[str, str]]) -> Sequence[float]:
+        if not pairs:
+            return ()
+        payload = json.dumps(
+            {
+                "model": self.model_name,
+                "pairs": [[query, passage] for query, passage in pairs],
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+        request = urllib.request.Request(
+            f"{self.base_url}/score",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+            body = json.loads(response.read().decode("utf-8"))
+        scores = body.get("scores") if isinstance(body, dict) else None
+        if not isinstance(scores, list) or len(scores) != len(pairs):
+            raise ValueError("cross-encoder sidecar returned an invalid score payload")
+        return tuple(float(value) for value in scores)
 
 
 class SentenceTransformersCrossEncoderScorer:

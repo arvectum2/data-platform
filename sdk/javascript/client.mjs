@@ -282,6 +282,7 @@ export class DataPlatformClient {
     collapseByCanonicalUri = false,
     rerank = false,
     rerankCandidates = 20,
+    rerankStrategy = "cross_encoder",
   }) {
     const headers = { "Content-Type": "application/json" };
     if (this.consumer || this.consumerKey) {
@@ -306,6 +307,7 @@ export class DataPlatformClient {
         collapse_by_canonical_uri: collapseByCanonicalUri,
         rerank,
         rerank_candidates: rerankCandidates,
+        rerank_strategy: rerankStrategy,
       }),
     });
   }
@@ -333,6 +335,7 @@ export class DataPlatformClient {
       collapseByCanonicalUri: profile.collapseByCanonicalUri ?? false,
       rerank: profile.rerank ?? false,
       rerankCandidates: profile.rerankCandidates ?? 20,
+      rerankStrategy: profile.rerankStrategy ?? "cross_encoder",
     });
   }
 

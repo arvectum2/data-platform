@@ -4,6 +4,7 @@ from arvectum_data.indexing import HashingEmbeddingProvider
 from arvectum_data.search import (
     BackendHit,
     CrossEncoderReranker,
+    HttpCrossEncoderScorer,
     HybridSearchEngine,
     SearchQuery,
 )
@@ -118,3 +119,83 @@ def test_search_query_accepts_cross_encoder_strategy() -> None:
         rerank_strategy="cross_encoder",
     )
     assert request.rerank_strategy is RerankStrategy.CROSS_ENCODER
+
+
+def test_search_query_prefers_cross_encoder_strategy_by_default() -> None:
+    from arvectum_data.search import RerankStrategy
+
+    request = SearchQuery(
+        query="best candidate",
+        collections=("one",),
+        limit=3,
+        rerank=True,
+        rerank_candidates=3,
+    )
+    assert request.rerank_strategy is RerankStrategy.CROSS_ENCODER
+
+
+def test_http_cross_encoder_scorer_posts_payload(monkeypatch) -> None:
+    import json
+
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"scores": [0.1, 0.9]}).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["timeout"] = timeout
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    scorer = HttpCrossEncoderScorer(
+        base_url="http://127.0.0.1:8091",
+        model_name="BAAI/bge-reranker-v2-m3",
+        timeout_seconds=0.8,
+    )
+
+    scores = scorer.score_pairs((("q1", "p1"), ("q2", "p2")))
+
+    assert scores == (0.1, 0.9)
+    assert captured["url"] == "http://127.0.0.1:8091/score"
+    assert captured["timeout"] == 0.8
+    assert captured["payload"] == {
+        "model": "BAAI/bge-reranker-v2-m3",
+        "pairs": [["q1", "p1"], ["q2", "p2"]],
+    }
+
+
+def test_http_cross_encoder_failure_still_fails_open(monkeypatch) -> None:
+    def unavailable(request, timeout):
+        raise OSError("sidecar offline")
+
+    monkeypatch.setattr("urllib.request.urlopen", unavailable)
+    scorer = HttpCrossEncoderScorer(
+        base_url="http://127.0.0.1:8091",
+        model_name="BAAI/bge-reranker-v2-m3",
+        timeout_seconds=0.1,
+    )
+    engine = _engine(scorer)
+    hits = engine.search(
+        SearchQuery(
+            query="best candidate",
+            collections=("one",),
+            limit=2,
+            rerank=True,
+            rerank_candidates=2,
+        )
+    )
+
+    assert [hit.chunk_id for hit in hits] == ["a", "b"]
+    diagnostic = next(item for item in engine.last_diagnostics if item.stage == "rerank")
+    assert diagnostic.status == "failed-open"
+    assert diagnostic.provider == "http-cross-encoder"
+    assert diagnostic.model == "BAAI/bge-reranker-v2-m3"

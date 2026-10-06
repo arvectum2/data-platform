@@ -342,6 +342,7 @@ class DataPlatformClient:
         collapse_by_canonical_uri: bool = False,
         rerank: bool = False,
         rerank_candidates: int = 20,
+        rerank_strategy: str = "cross_encoder",
     ) -> list[SearchHit]:
         headers: dict[str, str] = {}
         if self._consumer or self._consumer_key:
@@ -368,6 +369,7 @@ class DataPlatformClient:
                     "collapse_by_canonical_uri": collapse_by_canonical_uri,
                     "rerank": rerank,
                     "rerank_candidates": rerank_candidates,
+                    "rerank_strategy": rerank_strategy,
                 },
             ),
         )
@@ -409,6 +411,7 @@ class DataPlatformClient:
             ),
             rerank=bool(profile.get("rerank", False)),
             rerank_candidates=int(profile.get("rerank_candidates", 20)),
+            rerank_strategy=str(profile.get("rerank_strategy", "cross_encoder")),
         )
 
     def discover(

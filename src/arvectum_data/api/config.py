@@ -81,7 +81,10 @@ class Settings(BaseSettings):
     model_retry_base_delay_seconds: float = Field(default=0.25, ge=0)
     model_max_concurrency: int = Field(default=2, ge=1, le=128)
 
-    cross_encoder_model: str = ""
+    cross_encoder_provider: str = "http"
+    cross_encoder_model: str = "BAAI/bge-reranker-v2-m3"
+    cross_encoder_base_url: str = "http://127.0.0.1:8091"
+    cross_encoder_timeout_seconds: float = Field(default=1.0, gt=0, le=30)
     cross_encoder_max_candidates: int = Field(default=3, ge=1, le=20)
     cross_encoder_max_candidate_chars: int = Field(default=1000, ge=128, le=8000)
 
@@ -92,6 +95,13 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_deployment_privacy(self):
+        cross_encoder_provider = self.cross_encoder_provider.strip().lower()
+        if cross_encoder_provider not in {"disabled", "http", "sentence_transformers"}:
+            raise ValueError(
+                "cross_encoder_provider must be disabled, http or sentence_transformers"
+            )
+        self.cross_encoder_provider = cross_encoder_provider
+
         mode = self.deployment_mode.strip().lower()
         if mode not in {"standard", "local-private"}:
             raise ValueError("deployment_mode must be standard or local-private")
@@ -112,6 +122,9 @@ class Settings(BaseSettings):
             violations.append("embedding endpoint must be loopback")
         if self.ocr_provider.strip().lower() not in {"disabled", "tesseract"}:
             violations.append("OCR provider must be local or disabled")
+        cross_encoder_provider = self.cross_encoder_provider.strip().lower()
+        if cross_encoder_provider == "http" and not _url_is_local(self.cross_encoder_base_url):
+            violations.append("cross-encoder endpoint must be loopback")
 
         for role in ("reasoning", "vision"):
             policy = str(getattr(self, f"{role}_policy")).strip().lower()

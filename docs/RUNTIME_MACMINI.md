@@ -13,6 +13,9 @@ This document records the first production runtime contour for Arvectum Data Pla
 - embedding provider: `llama_cpp`
 - embedding model: `Qwen3-Embedding-4B`
 - embedding endpoint: `http://127.0.0.1:8090/v1`
+- reranker sidecar: `http://127.0.0.1:8091`
+- reranker model: `BAAI/bge-reranker-v2-m3`
+- reranker launchd label: `com.arvectum.reranker`
 - embedding dimension: `2560`
 
 Data Platform is localhost-only. It does not expose the service directly to the LAN or public internet.
@@ -46,12 +49,31 @@ The runtime wrapper is:
 
 The wrapper derives PostgreSQL credentials from the already-running `arvectum-postgres` container at runtime and selects the dedicated `arvectum_data` database. Credentials are not committed to the repository.
 
+## Learned reranker sidecar
+
+The learned reranker runs outside the core API environment so Torch and sentence-transformers remain optional. The sidecar binds only to loopback and is supervised independently by launchd.
+
+Expected Data Platform runtime settings:
+
+```text
+ARVECTUM_DATA_CROSS_ENCODER_PROVIDER=http
+ARVECTUM_DATA_CROSS_ENCODER_MODEL=BAAI/bge-reranker-v2-m3
+ARVECTUM_DATA_CROSS_ENCODER_BASE_URL=http://127.0.0.1:8091
+ARVECTUM_DATA_CROSS_ENCODER_TIMEOUT_SECONDS=1.0
+ARVECTUM_DATA_CROSS_ENCODER_MAX_CANDIDATES=3
+ARVECTUM_DATA_CROSS_ENCODER_MAX_CANDIDATE_CHARS=1000
+```
+
+The sidecar may use a dedicated virtual environment and Hugging Face cache on ArvectumSSD. A sidecar outage never takes search down: requests with reranking enabled fall back to the original hybrid order.
+
 ## Health checks
 
 ```bash
 curl -fsS http://127.0.0.1:8094/health
 curl -fsS http://127.0.0.1:8094/v1/status
+curl -fsS http://127.0.0.1:8091/health
 launchctl list | grep com.arvectum.data-platform
+launchctl list | grep com.arvectum.reranker
 lsof -nP -iTCP:8094 -sTCP:LISTEN
 ```
 

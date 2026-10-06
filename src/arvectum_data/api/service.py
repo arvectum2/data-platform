@@ -44,6 +44,7 @@ from ..sync import RefreshPolicy, RefreshResult
 
 from ..search import (
     CrossEncoderReranker,
+    HttpCrossEncoderScorer,
     HybridSearchEngine,
     PostgresSearchBackend,
     QueryExpansion,
@@ -187,16 +188,26 @@ class DataPlatformService:
         *,
         max_candidates: int,
     ) -> CrossEncoderReranker | None:
+        provider = self.settings.cross_encoder_provider.strip().lower()
         model_name = self.settings.cross_encoder_model.strip()
-        if not model_name:
+        if provider == "disabled" or not model_name:
             return None
         if self._cross_encoder_scorer is None:
             with self._cross_encoder_lock:
                 if self._cross_encoder_scorer is None:
                     try:
-                        self._cross_encoder_scorer = SentenceTransformersCrossEncoderScorer(
-                            model_name
-                        )
+                        if provider == "http":
+                            self._cross_encoder_scorer = HttpCrossEncoderScorer(
+                                base_url=self.settings.cross_encoder_base_url,
+                                model_name=model_name,
+                                timeout_seconds=self.settings.cross_encoder_timeout_seconds,
+                            )
+                        elif provider == "sentence_transformers":
+                            self._cross_encoder_scorer = SentenceTransformersCrossEncoderScorer(
+                                model_name
+                            )
+                        else:
+                            return None
                     except Exception:
                         return None
         return CrossEncoderReranker(
