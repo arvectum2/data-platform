@@ -24,6 +24,7 @@ from ..processing import ChunkingConfig
 from ..research import ResearchResult, ResearchWorkflow
 from ..connectors import (
     ConnectorRegistry,
+    CredentialCipher,
     DuckDuckGoHTMLConnector,
     ManualURLConnector,
     SitemapConnector,
@@ -60,6 +61,7 @@ from ..storage.postgres import (
     ChunkEmbeddingRow,
     ChunkRow,
     CollectionRow,
+    ConnectorCredentialRow,
     ConsumerApiKeyRow,
     DataRepository,
     DataRecordRow,
@@ -218,6 +220,15 @@ class DataPlatformService:
                 self.settings.cross_encoder_max_candidates,
             ),
             max_candidate_chars=self.settings.cross_encoder_max_candidate_chars,
+        )
+
+    def _credential_cipher(self) -> CredentialCipher:
+        master_key = self.settings.connector_credentials_master_key.strip()
+        if not master_key:
+            raise PlatformNotConfigured("connector credential vault is not configured")
+        return CredentialCipher(
+            master_key,
+            key_version=self.settings.connector_credentials_key_version,
         )
 
     def _consumer_tenant(
@@ -395,8 +406,27 @@ class DataPlatformService:
         query: str,
         cursor: str | None = None,
         limit: int = 10,
+        consumer: str | None = None,
+        credential_id: str | None = None,
     ):
         connector = self.connector_registry.get(connector_name)
+        if credential_id is not None:
+            if consumer is None:
+                raise CollectionAccessDenied("connector credential requires consumer identity")
+            credential = self.resolve_connector_credential(
+                credential_id,
+                consumer_id=consumer,
+                connector_name=connector_name,
+            )
+            configure = getattr(connector, "with_credentials", None)
+            if configure is None:
+                raise ValueError(
+                    f"connector {connector_name!r} does not support managed credentials"
+                )
+            connector = configure(
+                credential["secrets"],
+                metadata=credential["metadata"],
+            )
         discover = getattr(connector, "discover", None)
         if discover is None:
             raise ValueError(f"connector {connector_name!r} does not support discovery")
@@ -600,6 +630,199 @@ class DataPlatformService:
             session.commit()
             session.refresh(replacement)
             return {**self._consumer_key_payload(replacement), "secret": secret}
+
+    @staticmethod
+    def _connector_credential_payload(row: ConnectorCredentialRow) -> dict[str, Any]:
+        return {
+            "credential_id": row.credential_id,
+            "tenant_id": row.tenant_id,
+            "consumer_id": row.consumer_id,
+            "connector": row.connector_name,
+            "label": row.label,
+            "status": row.status,
+            "metadata": dict(row.metadata_json or {}),
+            "created_at": row.created_at,
+            "revoked_at": row.revoked_at,
+        }
+
+    @staticmethod
+    def _normalize_credential_metadata(
+        metadata: Mapping[str, object] | None,
+    ) -> dict[str, object]:
+        result = dict(metadata or {})
+        if len(result) > 32:
+            raise ValueError("connector credential metadata may contain at most 32 keys")
+        for key, value in result.items():
+            if not str(key).strip() or len(str(key)) > 128:
+                raise ValueError("connector credential metadata keys must be 1..128 characters")
+            if isinstance(value, (dict, list, tuple, set)):
+                raise ValueError("connector credential metadata must contain scalar values only")
+            if value is not None and len(str(value)) > 1024:
+                raise ValueError("connector credential metadata values are too large")
+        return result
+
+    def create_connector_credential(
+        self,
+        *,
+        consumer_id: str,
+        connector_name: str,
+        secrets: Mapping[str, str],
+        label: str | None = None,
+        metadata: Mapping[str, object] | None = None,
+    ) -> dict[str, Any]:
+        consumer_id = consumer_id.strip()
+        connector_name = connector_name.strip()
+        if not consumer_id:
+            raise ValueError("consumer_id must not be blank")
+        if not connector_name or len(connector_name) > 128:
+            raise ValueError("connector must be between 1 and 128 characters")
+        if label is not None and len(label.strip()) > 128:
+            raise ValueError("connector credential label is too long")
+        self.connector_registry.get(connector_name)
+        cipher = self._credential_cipher()
+        ciphertext = cipher.encrypt(secrets)
+        safe_metadata = self._normalize_credential_metadata(metadata)
+        with self._require_factory()() as session:
+            tenant_id = self._consumer_tenant(consumer_id, session=session)
+            if not tenant_id:
+                raise CollectionAccessDenied(
+                    "connector credentials require a tenant-bound consumer"
+                )
+            row = ConnectorCredentialRow(
+                tenant_id=tenant_id,
+                consumer_id=consumer_id,
+                connector_name=connector_name,
+                label=label.strip() if label else None,
+                key_version=cipher.key_version,
+                secret_ciphertext=ciphertext,
+                metadata_json=safe_metadata,
+                status="active",
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return self._connector_credential_payload(row)
+
+    def list_connector_credentials(
+        self,
+        *,
+        consumer_id: str,
+        connector_name: str | None = None,
+    ) -> list[dict[str, Any]]:
+        with self._require_factory()() as session:
+            tenant_id = self._consumer_tenant(consumer_id, session=session)
+            if not tenant_id:
+                return []
+            statement = select(ConnectorCredentialRow).where(
+                ConnectorCredentialRow.consumer_id == consumer_id,
+                ConnectorCredentialRow.tenant_id == tenant_id,
+            )
+            if connector_name:
+                statement = statement.where(
+                    ConnectorCredentialRow.connector_name == connector_name.strip()
+                )
+            statement = statement.order_by(
+                ConnectorCredentialRow.created_at.desc(),
+                ConnectorCredentialRow.credential_id.desc(),
+            )
+            return [
+                self._connector_credential_payload(row)
+                for row in session.scalars(statement)
+            ]
+
+    def resolve_connector_credential(
+        self,
+        credential_id: str,
+        *,
+        consumer_id: str,
+        connector_name: str,
+    ) -> dict[str, Any]:
+        cipher = self._credential_cipher()
+        with self._require_factory()() as session:
+            row = session.get(ConnectorCredentialRow, credential_id)
+            if row is None:
+                raise LookupError("connector credential not found")
+            tenant_id = self._consumer_tenant(consumer_id, session=session)
+            if (
+                row.status != "active"
+                or row.consumer_id != consumer_id
+                or row.tenant_id != tenant_id
+                or row.connector_name != connector_name
+            ):
+                raise CollectionAccessDenied("connector credential access denied")
+            secrets = cipher.decrypt(
+                row.secret_ciphertext,
+                key_version=row.key_version,
+            )
+            return {
+                **self._connector_credential_payload(row),
+                "secrets": secrets,
+            }
+
+    def revoke_connector_credential(
+        self,
+        credential_id: str,
+        *,
+        consumer_id: str,
+    ) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            row = session.get(ConnectorCredentialRow, credential_id)
+            if row is None:
+                raise LookupError("connector credential not found")
+            tenant_id = self._consumer_tenant(consumer_id, session=session)
+            if row.consumer_id != consumer_id or row.tenant_id != tenant_id:
+                raise CollectionAccessDenied("connector credential access denied")
+            if row.status != "revoked":
+                row.status = "revoked"
+                row.revoked_at = datetime.now(UTC)
+                session.add(row)
+                session.commit()
+                session.refresh(row)
+            return self._connector_credential_payload(row)
+
+    def rotate_connector_credential(
+        self,
+        credential_id: str,
+        *,
+        consumer_id: str,
+        secrets: Mapping[str, str],
+        label: str | None = None,
+        metadata: Mapping[str, object] | None = None,
+    ) -> dict[str, Any]:
+        cipher = self._credential_cipher()
+        ciphertext = cipher.encrypt(secrets)
+        with self._require_factory()() as session:
+            row = session.get(ConnectorCredentialRow, credential_id)
+            if row is None:
+                raise LookupError("connector credential not found")
+            tenant_id = self._consumer_tenant(consumer_id, session=session)
+            if (
+                row.status != "active"
+                or row.consumer_id != consumer_id
+                or row.tenant_id != tenant_id
+            ):
+                raise CollectionAccessDenied("connector credential access denied")
+            row.status = "revoked"
+            row.revoked_at = datetime.now(UTC)
+            replacement = ConnectorCredentialRow(
+                tenant_id=row.tenant_id,
+                consumer_id=row.consumer_id,
+                connector_name=row.connector_name,
+                label=(label.strip() if label else row.label),
+                key_version=cipher.key_version,
+                secret_ciphertext=ciphertext,
+                metadata_json=(
+                    self._normalize_credential_metadata(metadata)
+                    if metadata is not None
+                    else dict(row.metadata_json or {})
+                ),
+                status="active",
+            )
+            session.add(row)
+            session.add(replacement)
+            session.commit()
+            session.refresh(replacement)
+            return self._connector_credential_payload(replacement)
 
     @staticmethod
     def _usage_event_payload(row: UsageEventRow) -> dict[str, Any]:
