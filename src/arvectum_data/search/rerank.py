@@ -34,6 +34,29 @@ class CrossEncoderScorer(Protocol):
     def score_pairs(self, pairs: Sequence[tuple[str, str]]) -> Sequence[float]: ...
 
 
+class SentenceTransformersCrossEncoderScorer:
+    provider_name = "sentence-transformers-cross-encoder"
+
+    def __init__(self, model_name: str) -> None:
+        if not model_name.strip():
+            raise ValueError("model_name must not be blank")
+        try:
+            from sentence_transformers import CrossEncoder
+        except Exception as exc:  # pragma: no cover - optional dependency path
+            raise RuntimeError(
+                "sentence-transformers is not installed; install the optional "
+                "cross-encoder benchmark dependency before using this scorer"
+            ) from exc
+        self.model_name = model_name
+        self._model = CrossEncoder(model_name)
+
+    def score_pairs(self, pairs: Sequence[tuple[str, str]]) -> Sequence[float]:
+        if not pairs:
+            return ()
+        raw = self._model.predict(list(pairs))
+        return tuple(float(value) for value in raw)
+
+
 class CrossEncoderReranker:
     name = "cross-encoder"
 
