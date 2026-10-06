@@ -4,7 +4,7 @@ import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from statistics import mean
+from statistics import mean, median
 from typing import Any, Mapping, Sequence
 
 from ..answers import GroundedAnswer, ReasoningAnswerSynthesizer
@@ -151,6 +151,19 @@ class FaithfulnessCaseResult:
     error_type: str | None = None
 
 
+def _percentile(values: Sequence[float], percentile: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(float(value) for value in values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = (len(ordered) - 1) * percentile
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    fraction = position - lower
+    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+
+
 @dataclass(frozen=True, slots=True)
 class FaithfulnessSummary:
     suite_name: str
@@ -163,6 +176,8 @@ class FaithfulnessSummary:
     contradiction_recall: float
     answer_term_recall: float
     latency_mean_ms: float
+    latency_p50_ms: float
+    latency_p95_ms: float
     latency_max_ms: float
     results: tuple[FaithfulnessCaseResult, ...]
 
@@ -178,6 +193,8 @@ class FaithfulnessSummary:
             "contradiction_recall": self.contradiction_recall,
             "answer_term_recall": self.answer_term_recall,
             "latency_mean_ms": self.latency_mean_ms,
+            "latency_p50_ms": self.latency_p50_ms,
+            "latency_p95_ms": self.latency_p95_ms,
             "latency_max_ms": self.latency_max_ms,
             "results": [
                 {
@@ -354,6 +371,7 @@ def evaluate_faithfulness_suite(
             )
         results.append(result)
 
+    latencies = [item.latency_ms for item in results]
     return FaithfulnessSummary(
         suite_name=suite.name,
         cases=len(results),
@@ -366,8 +384,10 @@ def evaluate_faithfulness_suite(
         claim_support_rate=mean(item.claim_support_rate for item in results),
         contradiction_recall=mean(item.contradiction_recall for item in results),
         answer_term_recall=mean(item.answer_term_recall for item in results),
-        latency_mean_ms=mean(item.latency_ms for item in results),
-        latency_max_ms=max(item.latency_ms for item in results),
+        latency_mean_ms=mean(latencies),
+        latency_p50_ms=median(latencies),
+        latency_p95_ms=_percentile(latencies, 0.95),
+        latency_max_ms=max(latencies),
         results=tuple(results),
     )
 

@@ -49,6 +49,11 @@ from .models import (
     EvaluationSuite,
     EvaluationSummary,
 )
+from .pipeline_latency import (
+    PipelineLatencyReport,
+    StageLatency,
+    build_pipeline_latency_report,
+)
 from .query_expansion_gate import QueryExpansionGate
 from .rerank_compare import RerankComparison, compare_reranking
 from .rerank_gate import RerankGate
@@ -87,6 +92,7 @@ __all__ = [
     "PostgresAdversarialRunner",
     "PostgresFactRunner",
     "PostgresMultiHopRunner",
+    "PipelineLatencyReport",
     "MultiHopSuite",
     "MultiHopSummary",
     "QueryExpansionGate",
@@ -94,7 +100,9 @@ __all__ = [
     "RerankGate",
     "PostgresSyncEfficiencyRunner",
     "SyncEfficiencySuite",
+    "StageLatency",
     "SyncEfficiencySummary",
+    "build_pipeline_latency_report",
     "character_error_rate",
     "compare_reranking",
     "evaluate_adversarial_suite",
