@@ -180,3 +180,59 @@ def test_search_with_profile_forwards_consumer_owned_weights() -> None:
             "collapse_by_canonical_uri": True,
         },
     ) == []
+
+
+def test_connector_credential_sdk_contract() -> None:
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.url.path))
+        assert request.headers["X-Arvectum-Consumer"] == "growth-agent"
+        assert request.headers["X-Arvectum-Consumer-Key"] == "consumer-secret"
+        if request.url.path == "/v1/connectors/credentials":
+            if request.method == "POST":
+                payload = json.loads(request.content)
+                assert payload["connector"] == "private-search"
+                assert payload["secrets"] == {"api_key": "secret"}
+                return httpx.Response(
+                    200,
+                    json={
+                        "credential_id": "cred-1",
+                        "tenant_id": "tenant-1",
+                        "consumer_id": "growth-agent",
+                        "connector": "private-search",
+                        "label": "key",
+                        "status": "active",
+                        "metadata": {},
+                        "created_at": "2026-10-06T00:00:00Z",
+                        "revoked_at": None,
+                    },
+                )
+            return httpx.Response(200, json=[])
+        if request.url.path == "/v1/discover":
+            payload = json.loads(request.content)
+            assert payload["credential_id"] == "cred-1"
+            return httpx.Response(
+                200,
+                json={"resources": [], "next_cursor": None, "warnings": []},
+            )
+        raise AssertionError(request.url.path)
+
+    client = _client(handler)
+    created = client.create_connector_credential(
+        connector="private-search",
+        secrets={"api_key": "secret"},
+        label="key",
+    )
+    assert created["credential_id"] == "cred-1"
+    assert client.list_connector_credentials() == []
+    assert client.discover(
+        connector="private-search",
+        query="supplier",
+        credential_id="cred-1",
+    )["resources"] == []
+    assert calls == [
+        ("POST", "/v1/connectors/credentials"),
+        ("GET", "/v1/connectors/credentials"),
+        ("POST", "/v1/discover"),
+    ]
