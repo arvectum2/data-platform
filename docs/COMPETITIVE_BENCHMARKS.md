@@ -81,3 +81,28 @@ procurement control form. The OCR layout-stress scan reports the same form
 field score as an observation, while CER/WER continues to expose reading-order
 damage that simple field presence alone cannot reveal. This keeps OCR text
 accuracy and layout preservation as distinct benchmark signals.
+
+## Adversarial invariants
+
+benchmarks/adversarial_v1.json defines five synthetic invariants that execute
+against the real PostgreSQL Data Platform path rather than a mock search
+implementation:
+
+- collection isolation: a matching document in an unrequested collection must
+  never leak into results;
+- tenant isolation: protected collections fail closed for an unauthorized
+  consumer and remain available to an authorized consumer;
+- duplicate content: one canonical URI present in multiple collections produces
+  one federated winner;
+- conflicting evidence: contradictory values from distinct source URIs are
+  both retained with provenance so downstream contradiction checks can inspect
+  them;
+- stale source: repeated refresh failures transition a URL resource through
+  refresh_error to stale while preserving its prior content hash and searchable
+  last-known evidence.
+
+The runner uses hashing embeddings only for deterministic local test setup; the
+adversarial queries themselves use PostgreSQL lexical retrieval. This isolates
+the security/data-lifecycle invariants from embedding-model variance.
+
+First isolated PostgreSQL acceptance on the Mac mini (2026-10-06) passed 5/5. The isolation case returned one requested-collection hit and zero forbidden hits; the tenant case denied the unauthorized consumer and returned one hit for the authorized consumer; federated duplicate content collapsed to one canonical URI; both conflicting source URIs and their evidence survived retrieval; and the stale case transitioned refresh_error -> stale while preserving the original content hash and searchable last-known evidence. The temporary benchmark database was dropped after the run.

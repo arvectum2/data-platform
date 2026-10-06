@@ -1,0 +1,35 @@
+{
+  "name": "adversarial-v1",
+  "description": "Synthetic adversarial invariants executed against the real PostgreSQL Data Platform path.",
+  "metadata": {
+    "created_at": "2026-10-06",
+    "purpose": "collection/tenant isolation, duplicate handling, conflicting evidence preservation and stale-source last-known-evidence behavior"
+  },
+  "cases": [
+    {
+      "id": "collection-isolation",
+      "kind": "collection_isolation",
+      "description": "Searching one collection must never return a matching document from a different collection."
+    },
+    {
+      "id": "tenant-isolation",
+      "kind": "tenant_isolation",
+      "description": "A protected collection must fail closed for an unauthorized consumer and remain searchable for an authorized consumer."
+    },
+    {
+      "id": "duplicate-canonical-uri",
+      "kind": "duplicate_content",
+      "description": "Federated retrieval must emit one winner when the same canonical URI exists in multiple collections."
+    },
+    {
+      "id": "conflicting-evidence-preserved",
+      "kind": "conflicting_evidence",
+      "description": "Distinct sources with contradictory values must both survive retrieval so downstream contradiction checks have evidence to inspect."
+    },
+    {
+      "id": "stale-last-known-evidence",
+      "kind": "stale_source",
+      "description": "Repeated refresh failures mark a URL resource stale without deleting its last-known indexed evidence."
+    }
+  ]
+}

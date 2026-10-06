@@ -588,7 +588,7 @@ Required benchmark dimensions:
 - [ ] abstention quality when evidence is insufficient;
 - [ ] contradiction surfacing across sources;
 - [ ] multi-hop evidence retrieval;
-- [ ] zero cross-collection / cross-tenant leakage;
+- [x] zero cross-collection / cross-tenant leakage;
 - [ ] incremental-sync efficiency: changed resources versus total reprocessed resources;
 - [ ] latency p50/p95/max by pipeline stage;
 - [ ] CPU/RAM/GPU footprint and throughput;
@@ -599,6 +599,8 @@ Competitive acceptance rule: no external system needs to be beaten on every dime
 Foundation increment (2026-10-06): benchmark suites are now registered in benchmarks/catalog_v1.json with frozen SHA-256 digests, case counts, visibility classification, covered dimensions and thresholds. The validator fails closed on silent suite mutation. Reusable CER/WER, nDCG@k and evidence-set precision/recall metrics were added for the OCR/retrieval/citation benchmark layers. See docs/COMPETITIVE_BENCHMARKS.md. Multi-format gold fixtures, adversarial cases and external reference adapters remain open.
 
 Corpus increment (2026-10-06): benchmarks/corpora/public_v1 now pins real public procurement and Arvectum website fixtures across native PDF, DOCX, XLSX and HTML, plus two image-only scans derived from real procurement pages. The executable corpus runner reports extraction success by format, latency and OCR CER/WER against pinned reference text. Live local Tesseract acceptance passed 7/7 artifacts: the linear scan measured CER 3.61% / WER 5.86% at 94.41% confidence, while the table/form layout-stress scan measured CER 35.78% / WER 74.47% at 86.89% confidence. Separate per-case regression ceilings prevent aggregate averages from hiding one degraded OCR profile. Product-research material, malformed/legacy inputs, mixed-language coverage and human-reviewed OCR gold remain open. Native DOCX/XLSX row-cell preservation and PDF form label/value preservation are now scored independently from text accuracy; the OCR layout-stress profile keeps structure and reading-order quality as separate signals.
+
+Adversarial increment (2026-10-06): benchmarks/adversarial_v1.json now executes five invariants against the real PostgreSQL platform path: collection isolation, consumer/tenant fail-closed isolation, federated duplicate canonical-URI suppression, preservation of distinct conflicting evidence, and stale-source last-known-evidence retention. Isolated Mac mini PostgreSQL acceptance passed 5/5: zero forbidden collection hits, unauthorized consumer denied, duplicate canonical URI collapsed to one winner, both conflicting evidence sources preserved, and refresh_error -> stale retained the original content hash plus searchable last-known evidence. The required pass rate is 1.0; contradiction detection itself remains a separate benchmark dimension rather than being inferred from source preservation alone.
 
 ### Benchmark-driven adoption gates
 
