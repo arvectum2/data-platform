@@ -545,6 +545,8 @@ Status: COMPLETE (2026-10-06).
 - [x] PostgreSQL indexes and migration for billing-period aggregation.
 
 Implementation: `docs/USAGE_METERING.md`. The initial meter counts authenticated external data-plane requests for search, answer, research and memory operations. Successful 2xx/3xx requests are billable; trusted authenticated failures can be retained as non-billable usage. Pricing, currency, taxes, invoices and payment-provider integration deliberately remain outside Data Platform so commercial policy can change without rewriting historical usage.
+
+Usage-metering production acceptance (2026-10-06): migration `0010_usage_events` is live in `arvectum_data`. Two authenticated `growth-agent` searches with the same `X-Request-ID` returned HTTP 200 but produced exactly one durable billable usage event. The stored metadata was content-free (`duration_ms`, `request_bytes` only), and `/v1/status` reported `usage_metering_errors=0`.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: FUTURE.
