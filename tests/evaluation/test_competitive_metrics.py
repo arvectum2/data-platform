@@ -33,6 +33,18 @@ def test_ndcg_rewards_correct_graded_order() -> None:
     assert ndcg_at_k(relevance, ["miss"], k=3) == 0.0
 
 
+def test_ndcg_does_not_double_count_duplicate_result_identity() -> None:
+    relevance = {"expected": 1.0}
+
+    score = ndcg_at_k(
+        relevance,
+        ["expected", "expected", "expected", "miss"],
+        k=5,
+    )
+
+    assert score == pytest.approx(1.0)
+
+
 def test_set_precision_recall_supports_citation_style_metrics() -> None:
     precision, recall = set_precision_recall(
         ["source-a", "source-b"],

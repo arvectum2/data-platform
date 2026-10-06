@@ -43,9 +43,19 @@ def ndcg_at_k(
     if k < 1:
         raise ValueError("k must be positive")
 
+    unique_returned_ids: list[str] = []
+    seen_ids: set[str] = set()
+    for result_id in returned_ids:
+        if result_id in seen_ids:
+            continue
+        seen_ids.add(result_id)
+        unique_returned_ids.append(result_id)
+        if len(unique_returned_ids) >= k:
+            break
+
     gains = [
         max(0.0, float(relevance_by_id.get(result_id, 0.0)))
-        for result_id in returned_ids[:k]
+        for result_id in unique_returned_ids
     ]
     dcg = sum(
         ((2.0**gain) - 1.0) / log2(rank + 1)

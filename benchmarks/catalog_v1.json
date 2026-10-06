@@ -81,7 +81,8 @@
       ],
       "thresholds": {
         "top1_accuracy": 1.0,
-        "mrr": 1.0
+        "mrr": 1.0,
+        "mean_ndcg_at_5": 0.99
       }
     },
     {
