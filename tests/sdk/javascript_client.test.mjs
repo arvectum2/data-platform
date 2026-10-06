@@ -201,3 +201,72 @@ test("writeMemory sends authenticated evidence-backed memory payload", async () 
   });
   assert.equal(result.record_id, "memory:1");
 });
+
+
+test("connector credential lifecycle uses consumer auth", async () => {
+  const calls = [];
+  const client = new DataPlatformClient({
+    baseUrl: "http://data-platform.test",
+    consumer: "growth-agent",
+    consumerKey: "consumer-secret",
+    fetchImpl: async (url, options = {}) => {
+      const path = new URL(url).pathname;
+      calls.push([options.method || "GET", path]);
+      assert.equal(options.headers["X-Arvectum-Consumer"], "growth-agent");
+      assert.equal(options.headers["X-Arvectum-Consumer-Key"], "consumer-secret");
+      if (path === "/v1/connectors/credentials" && options.method === "POST") {
+        const payload = JSON.parse(options.body);
+        assert.equal(payload.connector, "private-search");
+        assert.deepEqual(payload.secrets, { api_key: "secret" });
+        return new Response(
+          JSON.stringify({
+            credential_id: "cred-1",
+            tenant_id: "tenant-1",
+            consumer_id: "growth-agent",
+            connector: "private-search",
+            status: "active",
+            metadata: {},
+            created_at: "2026-10-06T00:00:00Z",
+            revoked_at: null,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (path === "/v1/connectors/credentials" && !options.method) {
+        return new Response("[]", {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (path === "/v1/discover") {
+        const payload = JSON.parse(options.body);
+        assert.equal(payload.credential_id, "cred-1");
+        return new Response(
+          JSON.stringify({ resources: [], next_cursor: null, warnings: [] }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      throw new Error("unexpected path " + path);
+    },
+  });
+
+  const created = await client.createConnectorCredential({
+    connector: "private-search",
+    secrets: { api_key: "secret" },
+  });
+  assert.equal(created.credential_id, "cred-1");
+  assert.deepEqual(await client.listConnectorCredentials(), []);
+  assert.deepEqual(
+    (await client.discover({
+      connector: "private-search",
+      query: "supplier",
+      credentialId: "cred-1",
+    })).resources,
+    [],
+  );
+  assert.deepEqual(calls, [
+    ["POST", "/v1/connectors/credentials"],
+    ["GET", "/v1/connectors/credentials"],
+    ["POST", "/v1/discover"],
+  ]);
+});

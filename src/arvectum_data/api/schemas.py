@@ -404,6 +404,31 @@ class IndexJobResponse(BaseModel):
     completed_at: Any | None = None
 
 
+class ConnectorCredentialCreateRequest(BaseModel):
+    connector: str = Field(min_length=1, max_length=128)
+    label: str | None = Field(default=None, max_length=128)
+    secrets: dict[str, str] = Field(min_length=1, max_length=32)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConnectorCredentialRotateRequest(BaseModel):
+    secrets: dict[str, str] = Field(min_length=1, max_length=32)
+    label: str | None = Field(default=None, max_length=128)
+    metadata: dict[str, Any] | None = None
+
+
+class ConnectorCredentialResponse(BaseModel):
+    credential_id: str
+    tenant_id: str
+    consumer_id: str
+    connector: str
+    label: str | None = None
+    status: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+    revoked_at: datetime | None = None
+
+
 class ConnectorHealthResponse(BaseModel):
     name: str
     state: str
@@ -417,6 +442,7 @@ class DiscoveryRequest(BaseModel):
     query: str = Field(min_length=1)
     cursor: str | None = None
     limit: int = Field(default=10, ge=1, le=200)
+    credential_id: str | None = Field(default=None, max_length=36)
 
 
 class DiscoveredResourceResponse(BaseModel):

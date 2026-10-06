@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Mapping, Protocol
 
 from ..acquisition import AcquisitionResult
 from .models import ConnectorHealth, DiscoveryPage, DiscoveredResource
@@ -30,3 +30,14 @@ class FetchConnector(Protocol):
 
 class Connector(DiscoveryConnector, FetchConnector, Protocol):
     pass
+
+
+class CredentialAwareConnector(Protocol):
+    name: str
+
+    def with_credentials(
+        self,
+        secrets: Mapping[str, str],
+        *,
+        metadata: Mapping[str, Any],
+    ) -> object: ...

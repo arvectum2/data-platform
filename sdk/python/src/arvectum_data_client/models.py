@@ -126,6 +126,18 @@ class SearchProfile(TypedDict, total=False):
     rerank_strategy: str
 
 
+class ConnectorCredential(TypedDict, total=False):
+    credential_id: str
+    tenant_id: str
+    consumer_id: str
+    connector: str
+    label: str | None
+    status: str
+    metadata: dict[str, Any]
+    created_at: Any
+    revoked_at: Any | None
+
+
 class DiscoveredResource(TypedDict, total=False):
     canonical_uri: str
     provider: str

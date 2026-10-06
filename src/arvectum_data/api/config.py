@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     max_chunks_per_ingest: int = Field(default=1000, ge=1)
     max_search_collections: int = Field(default=32, ge=1)
     allow_private_fetches: bool = False
+    connector_credentials_master_key: str = ""
+    connector_credentials_key_version: str = "v1"
 
     embedding_provider: str = "hashing"
     embedding_model: str = "local-hash-v1"

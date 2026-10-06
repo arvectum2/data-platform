@@ -1,3 +1,4 @@
+from .credentials import CredentialCipher
 from .manual import ManualURLConnector
 from .models import (
     ConnectorHealth,
@@ -7,13 +8,15 @@ from .models import (
     DiscoveredResource,
 )
 from .policy import ConnectorExecutor
-from .protocols import Connector, DiscoveryConnector, FetchConnector
+from .protocols import Connector, CredentialAwareConnector, DiscoveryConnector, FetchConnector
 from .registry import ConnectorRegistry
 from .sitemap import SitemapConnector
 from .web import DuckDuckGoHTMLConnector, parse_duckduckgo_html
 
 __all__ = [
     "Connector",
+    "CredentialCipher",
+    "CredentialAwareConnector",
     "ConnectorExecutor",
     "ConnectorHealth",
     "ConnectorPolicy",

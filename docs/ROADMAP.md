@@ -547,6 +547,20 @@ Status: COMPLETE (2026-10-06).
 Implementation: `docs/USAGE_METERING.md`. The initial meter counts authenticated external data-plane requests for search, answer, research and memory operations. Successful 2xx/3xx requests are billable; trusted authenticated failures can be retained as non-billable usage. Pricing, currency, taxes, invoices and payment-provider integration deliberately remain outside Data Platform so commercial policy can change without rewriting historical usage.
 
 Usage-metering production acceptance (2026-10-06): migration `0010_usage_events` is live in `arvectum_data`. Two authenticated `growth-agent` searches with the same `X-Request-ID` returned HTTP 200 but produced exactly one durable billable usage event. The stored metadata was content-free (`duration_ms`, `request_bytes` only), and `/v1/status` reported `usage_metering_errors=0`.
+### DP-CRED-001 — customer-managed connector credentials
+
+Status: COMPLETE (platform vault/binding, 2026-10-06).
+
+- [x] tenant+consumer-scoped credential ownership;
+- [x] authenticated encryption at rest with runtime-only master key;
+- [x] create/list/rotate/revoke lifecycle with no secret readback;
+- [x] credential-aware connector contract and `credential_id` discovery binding;
+- [x] fail-closed connector/consumer/tenant/status checks before decryption;
+- [x] Python and JavaScript SDK support;
+- [x] consumer discovery participates in usage metering;
+- [ ] ship the first concrete authenticated third-party connector package.
+
+Implementation: `docs/CONNECTOR_CREDENTIALS.md`. The platform deliberately does not provide a generic arbitrary Authorization-header forwarder: each authenticated connector must define its own credential schema/application so secrets cannot be leaked through redirects or unrelated hosts.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: FUTURE.
@@ -555,7 +569,8 @@ Potential product contour: connect documents, websites and APIs -> continuously 
 
 Before externalization:
 - [x] tenant isolation and quotas;
-- [ ] customer-managed connectors/credentials;
+- [x] customer-managed encrypted credential vault + connector binding;
+- [ ] first authenticated third-party connector package;
 - [x] billing-grade usage metering;
 - [ ] product pricing / invoicing / payment-provider integration;
 - [x] external auth and key lifecycle;

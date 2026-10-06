@@ -42,6 +42,9 @@ from .schemas import (
     CollectionResponse,
     CollectionRetentionPruneResponse,
     CollectionStatsResponse,
+    ConnectorCredentialCreateRequest,
+    ConnectorCredentialResponse,
+    ConnectorCredentialRotateRequest,
     ConnectorHealthResponse,
     ConsumerKeyCreateRequest,
     ConsumerKeyIssuedResponse,
@@ -90,6 +93,7 @@ from .schemas import (
 from .service import (
     CollectionAccessDenied,
     CollectionNotFound,
+    ConnectorCredentialNotFound,
     ConsumerKeyNotFound,
     DataPlatformService,
     EmbeddingContractMismatch,
@@ -258,8 +262,10 @@ def create_app(
                 "/v1/answer",
                 "/v1/research",
                 "/v1/memory",
+                "/v1/discover",
             }
             or request.url.path.startswith("/v1/memory/")
+            or request.url.path.startswith("/v1/connectors/credentials")
         )
         if external_data_plane and (
             x_arvectum_consumer is not None
@@ -308,6 +314,8 @@ def create_app(
             return HTTPException(status_code=404, detail="collection not found")
         if isinstance(exc, ConsumerKeyNotFound):
             return HTTPException(status_code=404, detail="consumer key not found")
+        if isinstance(exc, ConnectorCredentialNotFound):
+            return HTTPException(status_code=404, detail="connector credential not found")
         if isinstance(exc, CollectionAccessDenied):
             return HTTPException(status_code=403, detail="collection access denied")
         if isinstance(exc, TenantQuotaExceeded):
@@ -850,6 +858,105 @@ def create_app(
             ),
         )
 
+    @router.post(
+        "/connectors/credentials",
+        response_model=ConnectorCredentialResponse,
+        tags=["connectors"],
+    )
+    def create_connector_credential_endpoint(
+        payload: ConnectorCredentialCreateRequest,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
+        runtime_service=Depends(runtime),
+    ):
+        consumer = require_consumer_identity(
+            x_arvectum_consumer,
+            x_arvectum_consumer_key,
+        )
+        try:
+            return runtime_service.create_connector_credential(
+                consumer_id=consumer,
+                connector_name=payload.connector,
+                secrets=payload.secrets,
+                label=payload.label,
+                metadata=payload.metadata,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.get(
+        "/connectors/credentials",
+        response_model=list[ConnectorCredentialResponse],
+        tags=["connectors"],
+    )
+    def list_connector_credentials_endpoint(
+        connector: str | None = None,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
+        runtime_service=Depends(runtime),
+    ):
+        consumer = require_consumer_identity(
+            x_arvectum_consumer,
+            x_arvectum_consumer_key,
+        )
+        try:
+            return runtime_service.list_connector_credentials(
+                consumer_id=consumer,
+                connector_name=connector,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/connectors/credentials/{credential_id}/rotate",
+        response_model=ConnectorCredentialResponse,
+        tags=["connectors"],
+    )
+    def rotate_connector_credential_endpoint(
+        credential_id: str,
+        payload: ConnectorCredentialRotateRequest,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
+        runtime_service=Depends(runtime),
+    ):
+        consumer = require_consumer_identity(
+            x_arvectum_consumer,
+            x_arvectum_consumer_key,
+        )
+        try:
+            return runtime_service.rotate_connector_credential(
+                credential_id,
+                consumer_id=consumer,
+                secrets=payload.secrets,
+                label=payload.label,
+                metadata=payload.metadata,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/connectors/credentials/{credential_id}/revoke",
+        response_model=ConnectorCredentialResponse,
+        tags=["connectors"],
+    )
+    def revoke_connector_credential_endpoint(
+        credential_id: str,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
+        runtime_service=Depends(runtime),
+    ):
+        consumer = require_consumer_identity(
+            x_arvectum_consumer,
+            x_arvectum_consumer_key,
+        )
+        try:
+            return runtime_service.revoke_connector_credential(
+                credential_id,
+                consumer_id=consumer,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
     @router.get(
         "/connectors",
         response_model=list[ConnectorHealthResponse],
@@ -868,15 +975,32 @@ def create_app(
     )
     def discover_endpoint(
         payload: DiscoveryRequest,
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
         runtime_service=Depends(runtime),
     ):
-        try:
-            page = runtime_service.discover(
-                connector_name=payload.connector,
-                query=payload.query,
-                cursor=payload.cursor,
-                limit=payload.limit,
+        consumer = None
+        if (
+            payload.credential_id is not None
+            or x_arvectum_consumer is not None
+            or x_arvectum_consumer_key is not None
+        ):
+            consumer = require_consumer_identity(
+                x_arvectum_consumer,
+                x_arvectum_consumer_key,
             )
+        try:
+            discover_kwargs = {
+                "connector_name": payload.connector,
+                "query": payload.query,
+                "cursor": payload.cursor,
+                "limit": payload.limit,
+            }
+            if consumer is not None:
+                discover_kwargs["consumer"] = consumer
+            if payload.credential_id is not None:
+                discover_kwargs["credential_id"] = payload.credential_id
+            page = runtime_service.discover(**discover_kwargs)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="connector not found") from exc
         except Exception as exc:

@@ -6,6 +6,7 @@ CONSUMER_CONTRACT_CAPABILITIES = (
     "collections",
     "collection_lifecycle",
     "managed_consumer_keys",
+    "connector_credentials",
     "usage_metering",
     "document_process",
     "document_ingest",

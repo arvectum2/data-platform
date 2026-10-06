@@ -8,6 +8,7 @@ from .models import (
     Collection,
     CollectionStats,
     ConsumerContract,
+    ConnectorCredential,
     DiscoveryResponse,
     Entity,
     EntityAliasInput,
@@ -99,6 +100,16 @@ class DataPlatformClient:
 
     def request_json(self, method: str, path: str, **kwargs) -> Any:
         return self._request(method, path, **kwargs).json()
+
+    def _consumer_headers_required(self) -> dict[str, str]:
+        if not self._consumer or not self._consumer_key:
+            raise DataPlatformError(
+                "consumer credentials are required for this Data Platform operation"
+            )
+        return {
+            "X-Arvectum-Consumer": self._consumer,
+            "X-Arvectum-Consumer-Key": self._consumer_key,
+        }
 
     def health(self) -> dict[str, Any]:
         return cast(dict[str, Any], self.request_json("GET", "/health"))
@@ -414,6 +425,82 @@ class DataPlatformClient:
             rerank_strategy=str(profile.get("rerank_strategy", "cross_encoder")),
         )
 
+    def create_connector_credential(
+        self,
+        *,
+        connector: str,
+        secrets: dict[str, str],
+        label: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> ConnectorCredential:
+        return cast(
+            ConnectorCredential,
+            self.request_json(
+                "POST",
+                "/v1/connectors/credentials",
+                headers=self._consumer_headers_required(),
+                json={
+                    "connector": connector,
+                    "secrets": secrets,
+                    "label": label,
+                    "metadata": metadata or {},
+                },
+            ),
+        )
+
+    def list_connector_credentials(
+        self,
+        *,
+        connector: str | None = None,
+    ) -> list[ConnectorCredential]:
+        params = {"connector": connector} if connector is not None else None
+        return cast(
+            list[ConnectorCredential],
+            self.request_json(
+                "GET",
+                "/v1/connectors/credentials",
+                headers=self._consumer_headers_required(),
+                params=params,
+            ),
+        )
+
+    def rotate_connector_credential(
+        self,
+        credential_id: str,
+        *,
+        secrets: dict[str, str],
+        label: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> ConnectorCredential:
+        payload: dict[str, Any] = {
+            "secrets": secrets,
+            "label": label,
+        }
+        if metadata is not None:
+            payload["metadata"] = metadata
+        return cast(
+            ConnectorCredential,
+            self.request_json(
+                "POST",
+                f"/v1/connectors/credentials/{credential_id}/rotate",
+                headers=self._consumer_headers_required(),
+                json=payload,
+            ),
+        )
+
+    def revoke_connector_credential(
+        self,
+        credential_id: str,
+    ) -> ConnectorCredential:
+        return cast(
+            ConnectorCredential,
+            self.request_json(
+                "POST",
+                f"/v1/connectors/credentials/{credential_id}/revoke",
+                headers=self._consumer_headers_required(),
+            ),
+        )
+
     def discover(
         self,
         *,
@@ -421,6 +508,7 @@ class DataPlatformClient:
         query: str,
         cursor: str | None = None,
         limit: int = 10,
+        credential_id: str | None = None,
     ) -> DiscoveryResponse:
         payload: dict[str, Any] = {
             "connector": connector,
@@ -429,9 +517,24 @@ class DataPlatformClient:
         }
         if cursor is not None:
             payload["cursor"] = cursor
+        if credential_id is not None:
+            payload["credential_id"] = credential_id
+        headers = (
+            {
+                "X-Arvectum-Consumer": self._consumer,
+                "X-Arvectum-Consumer-Key": self._consumer_key,
+            }
+            if self._consumer or self._consumer_key
+            else None
+        )
         return cast(
             DiscoveryResponse,
-            self.request_json("POST", "/v1/discover", json=payload),
+            self.request_json(
+                "POST",
+                "/v1/discover",
+                headers=headers,
+                json=payload,
+            ),
         )
 
     def resolve_entity(
