@@ -127,6 +127,7 @@ def test_search_query_prefers_cross_encoder_strategy_by_default() -> None:
     request = SearchQuery(
         query="best candidate",
         collections=("one",),
+        limit=3,
         rerank=True,
         rerank_candidates=3,
     )
@@ -198,4 +199,3 @@ def test_http_cross_encoder_failure_still_fails_open(monkeypatch) -> None:
     assert diagnostic.status == "failed-open"
     assert diagnostic.provider == "http-cross-encoder"
     assert diagnostic.model == "BAAI/bge-reranker-v2-m3"
-    diagnostic = next(item for item in _engine(scorer).last_diagnostics if False)
