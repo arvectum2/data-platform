@@ -1,0 +1,86 @@
+{
+  "reference": "Unstructured",
+  "versions": {
+    "unstructured": "0.27.16",
+    "unstructured_pytesseract": "0.3.15",
+    "unstructured_inference": "1.6.13"
+  },
+  "manifest": "benchmarks/corpora/public_v1/manifest.json",
+  "artifacts": 7,
+  "pass_rate": 0.7142857142857143,
+  "native_pass_rate": 1.0,
+  "ocr_pass_rate": 0.0,
+  "ocr_mean_cer": null,
+  "ocr_mean_wer": null,
+  "latency_ms_total": 2332.9893740592524,
+  "results": [
+    {
+      "artifact_id": "procurement-control-notice-pdf",
+      "format": "pdf",
+      "ocr_required": false,
+      "passed": true,
+      "elements": 62,
+      "text_chars": 1251,
+      "missing_required_text": [],
+      "latency_ms": 534.0535829891451
+    },
+    {
+      "artifact_id": "procurement-nmck-docx",
+      "format": "docx",
+      "ocr_required": false,
+      "passed": true,
+      "elements": 12,
+      "text_chars": 15170,
+      "missing_required_text": [],
+      "latency_ms": 216.18191699963063
+    },
+    {
+      "artifact_id": "procurement-nmck-xlsx",
+      "format": "xlsx",
+      "ocr_required": false,
+      "passed": true,
+      "elements": 9,
+      "text_chars": 7219,
+      "missing_required_text": [],
+      "latency_ms": 290.6294160056859
+    },
+    {
+      "artifact_id": "arvectum-photo-size-html",
+      "format": "html",
+      "ocr_required": false,
+      "passed": true,
+      "elements": 13,
+      "text_chars": 721,
+      "missing_required_text": [],
+      "latency_ms": 90.14804201433435
+    },
+    {
+      "artifact_id": "procurement-control-notice-scan",
+      "format": "scanned-pdf",
+      "ocr_required": true,
+      "passed": false,
+      "latency_ms": 469.0491250366904,
+      "error_type": "UnicodeDecodeError",
+      "error": "'utf-8' codec can't decode byte 0x89 in position 270: invalid start byte"
+    },
+    {
+      "artifact_id": "procurement-technical-spec-pdf",
+      "format": "pdf",
+      "ocr_required": false,
+      "passed": true,
+      "elements": 287,
+      "text_chars": 22668,
+      "missing_required_text": [],
+      "latency_ms": 387.4753749696538
+    },
+    {
+      "artifact_id": "procurement-technical-spec-scan",
+      "format": "scanned-pdf",
+      "ocr_required": true,
+      "passed": false,
+      "latency_ms": 345.4519160441123,
+      "error_type": "UnicodeDecodeError",
+      "error": "'utf-8' codec can't decode byte 0x89 in position 270: invalid start byte"
+    }
+  ]
+}
