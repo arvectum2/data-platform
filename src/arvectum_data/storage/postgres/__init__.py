@@ -15,6 +15,7 @@ from .models import (
     RelevanceFeedbackRow,
     RefreshRunRow,
     ResourceRow,
+    UsageEventRow,
 )
 from .repository import DataRepository, VectorSearchHit
 
@@ -35,6 +36,7 @@ __all__ = [
     "RelevanceFeedbackRow",
     "RefreshRunRow",
     "ResourceRow",
+    "UsageEventRow",
     "VectorSearchHit",
     "build_engine",
     "build_session_factory",
