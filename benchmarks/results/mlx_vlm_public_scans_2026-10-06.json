@@ -1,0 +1,49 @@
+{
+  "reference": "MLX-VLM",
+  "versions": {
+    "mlx_vlm": "0.7.6",
+    "mlx": "0.32.3"
+  },
+  "model": "mlx-community/Qwen2.5-VL-3B-Instruct-4bit",
+  "manifest": "benchmarks/corpora/public_v1/manifest.json",
+  "load_ms": 4841.395583003759,
+  "warmup_ms": 7268.349334015511,
+  "cases": 2,
+  "required_text_pass_rate": 1.0,
+  "mean_cer": 0.13950689277778391,
+  "mean_wer": 0.23498971977730032,
+  "mean_latency_ms": 15071.801208512625,
+  "max_peak_memory_gb": 4.132494382,
+  "results": [
+    {
+      "artifact_id": "procurement-control-notice-scan",
+      "latency_ms": 13191.837374994066,
+      "cer": 0.2547923322683706,
+      "wer": 0.41134751773049644,
+      "required_text_passed": true,
+      "missing_required_text": [],
+      "gold_chars": 1252,
+      "output_chars": 1229,
+      "prompt_tokens": 2841,
+      "generation_tokens": 605,
+      "generation_tps": 95.82879876672514,
+      "peak_memory_gb": 4.132183086,
+      "finish_reason": "stop"
+    },
+    {
+      "artifact_id": "procurement-technical-spec-scan",
+      "latency_ms": 16951.765042031184,
+      "cer": 0.02422145328719723,
+      "wer": 0.05863192182410423,
+      "required_text_passed": true,
+      "missing_required_text": [],
+      "gold_chars": 2601,
+      "output_chars": 2563,
+      "prompt_tokens": 2841,
+      "generation_tokens": 961,
+      "generation_tps": 95.41438759021355,
+      "peak_memory_gb": 4.132494382,
+      "finish_reason": "stop"
+    }
+  ]
+}
