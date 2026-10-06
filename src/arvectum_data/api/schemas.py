@@ -613,6 +613,7 @@ class ResearchRequest(BaseModel):
     query: str = Field(min_length=1)
     collection_id: str = Field(min_length=1, max_length=128)
     connector: str = Field(default="duckduckgo_html", min_length=1, max_length=128)
+    credential_id: str | None = Field(default=None, max_length=36)
     source_limit: int = Field(default=8, ge=1, le=25)
     evidence_limit: int = Field(default=8, ge=1, le=50)
     rerank: bool = False
