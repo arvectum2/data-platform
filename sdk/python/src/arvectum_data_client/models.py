@@ -123,6 +123,7 @@ class SearchProfile(TypedDict, total=False):
     collapse_by_canonical_uri: bool
     rerank: bool
     rerank_candidates: int
+    rerank_strategy: str
 
 
 class DiscoveredResource(TypedDict, total=False):
