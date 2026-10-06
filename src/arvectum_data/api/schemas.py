@@ -32,6 +32,25 @@ class ConsumerKeyIssuedResponse(ConsumerKeyResponse):
     secret: str
 
 
+class UsageSummaryBucketResponse(BaseModel):
+    tenant_id: str | None = None
+    consumer_id: str
+    operation: str
+    unit: str
+    events: int
+    quantity: int
+    billable_quantity: int
+
+
+class UsageSummaryResponse(BaseModel):
+    since: datetime | None = None
+    until: datetime | None = None
+    total_events: int
+    total_quantity: int
+    billable_quantity: int
+    buckets: list[UsageSummaryBucketResponse] = Field(default_factory=list)
+
+
 class ConsumerContractResponse(BaseModel):
     name: str
     version: str
