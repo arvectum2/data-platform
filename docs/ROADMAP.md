@@ -575,8 +575,8 @@ Benchmark corpus strategy:
 
 Required benchmark dimensions:
 
-- [ ] ingestion success rate by format;
-- [ ] OCR word/character accuracy on scanned material;
+- [x] ingestion success rate by format;
+- [x] OCR word/character accuracy on scanned material;
 - [ ] table/form structure preservation;
 - [ ] fact-preserving chunking quality;
 - [ ] exact identifier/number/date/amount retrieval;
@@ -597,6 +597,8 @@ Required benchmark dimensions:
 Competitive acceptance rule: no external system needs to be beaten on every dimension. Data Platform must meet its own product gates and document where a reference product is materially better, so the gap can be either intentionally accepted or added to the roadmap.
 
 Foundation increment (2026-10-06): benchmark suites are now registered in benchmarks/catalog_v1.json with frozen SHA-256 digests, case counts, visibility classification, covered dimensions and thresholds. The validator fails closed on silent suite mutation. Reusable CER/WER, nDCG@k and evidence-set precision/recall metrics were added for the OCR/retrieval/citation benchmark layers. See docs/COMPETITIVE_BENCHMARKS.md. Multi-format gold fixtures, adversarial cases and external reference adapters remain open.
+
+Corpus increment (2026-10-06): benchmarks/corpora/public_v1 now pins real public procurement and Arvectum website fixtures across native PDF, DOCX, XLSX and HTML, plus two image-only scans derived from real procurement pages. The executable corpus runner reports extraction success by format, latency and OCR CER/WER against pinned reference text. Live local Tesseract acceptance passed 7/7 artifacts: the linear scan measured CER 3.61% / WER 5.86% at 94.41% confidence, while the table/form layout-stress scan measured CER 35.78% / WER 74.47% at 86.89% confidence. Separate per-case regression ceilings prevent aggregate averages from hiding one degraded OCR profile. Product-research material, malformed/legacy inputs, mixed-language coverage, human-reviewed OCR gold and layout/table scoring remain open.
 
 ### Benchmark-driven adoption gates
 
