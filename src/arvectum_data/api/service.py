@@ -17,6 +17,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from ..acquisition import AcquisitionEngine
 from ..answers import GroundedAnswer, ReasoningAnswerSynthesizer
+from ..billing import (
+    ManualPaymentProvider,
+    PaymentProvider,
+    PaymentRequest,
+    PriceRule,
+    UsageQuantity,
+    calculate_invoice,
+    normalize_rules,
+)
 from ..acquisition.security import UnsafeURL, validate_public_url
 from ..documents import TesseractOCRProvider, ingest_file, ingest_url
 from ..graph import EvidenceGraphSuggester, GraphSuggestions
@@ -61,6 +70,10 @@ from ..search import (
 )
 from ..storage.postgres import (
     ChunkEmbeddingRow,
+    TenantBillingAssignmentRow,
+    InvoiceRow,
+    InvoiceLineRow,
+    BillingCatalogRow,
     ChunkRow,
     CollectionRow,
     ConnectorCredentialRow,
@@ -117,6 +130,22 @@ class ConnectorCredentialNotFound(LookupError):
     pass
 
 
+class BillingCatalogNotFound(LookupError):
+    pass
+
+
+class BillingAssignmentNotFound(LookupError):
+    pass
+
+
+class InvoiceNotFound(LookupError):
+    pass
+
+
+class InvoicePricingIncomplete(ValueError):
+    pass
+
+
 class MemoryNotFound(LookupError):
     pass
 
@@ -159,11 +188,16 @@ class DataPlatformService:
         acquisition: AcquisitionEngine | None = None,
         connector_registry: ConnectorRegistry | None = None,
         model_router: ModelRouter | None = None,
+        payment_providers: Mapping[str, PaymentProvider] | None = None,
     ) -> None:
         self.settings = settings
         self.acquisition = acquisition
         self.connector_registry = connector_registry or self._default_connector_registry()
         self.model_router = model_router or self._build_model_router(settings)
+        self.payment_providers: dict[str, PaymentProvider] = {
+            ManualPaymentProvider.name: ManualPaymentProvider(),
+            **dict(payment_providers or {}),
+        }
         self._cross_encoder_scorer = None
         self._cross_encoder_lock = threading.Lock()
         if settings.ocr_provider == "disabled":
