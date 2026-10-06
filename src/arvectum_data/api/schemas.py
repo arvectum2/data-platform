@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
+from ..modes import ExecutionMode, validate_research_envelope, validate_search_envelope
 from ..search import SearchMode
 
 
@@ -186,6 +187,7 @@ class SearchRequest(BaseModel):
     collapse_by_canonical_uri: bool = False
     rerank: bool = False
     rerank_candidates: int = Field(default=20, ge=1, le=100)
+    execution_mode: ExecutionMode | None = None
 
     @model_validator(mode="after")
     def normalize_query_variants(self):
@@ -200,6 +202,13 @@ class SearchRequest(BaseModel):
         self.query_variants = normalized
         if self.rerank and self.rerank_candidates < self.limit:
             raise ValueError("rerank_candidates must be greater than or equal to limit")
+        self.execution_mode = validate_search_envelope(
+            self.execution_mode,
+            expand_query=self.expand_query,
+            query_expansion_limit=self.query_expansion_limit,
+            rerank=self.rerank,
+            rerank_candidates=self.rerank_candidates,
+        )
         return self
 
 
@@ -244,8 +253,27 @@ class QueryExpansionResponse(BaseModel):
 
 class SearchResponse(BaseModel):
     query: str | None = None
+    execution_mode: ExecutionMode | None = None
     hits: list[SearchHitResponse]
     query_expansions: list[QueryExpansionResponse] = Field(default_factory=list)
+
+
+class ExecutionModeProfileResponse(BaseModel):
+    mode: ExecutionMode
+    endpoint: str
+    baseline_stages: list[str]
+    optional_stages: list[str]
+    generative_model_required: bool
+    network_discovery: bool
+    max_query_expansions: int
+    max_rerank_candidates: int
+    max_discovery_sources: int
+    max_evidence_items: int
+    degradation: str
+
+
+class ExecutionModesResponse(BaseModel):
+    modes: list[ExecutionModeProfileResponse]
 
 
 class StatusResponse(BaseModel):
@@ -463,6 +491,16 @@ class ResearchRequest(BaseModel):
     evidence_limit: int = Field(default=8, ge=1, le=50)
     rerank: bool = False
     expand_query: bool = False
+    execution_mode: ExecutionMode | None = None
+
+    @model_validator(mode="after")
+    def validate_execution_mode(self):
+        self.execution_mode = validate_research_envelope(
+            self.execution_mode,
+            source_limit=self.source_limit,
+            evidence_limit=self.evidence_limit,
+        )
+        return self
 
 
 class ResearchSourceResponse(BaseModel):
@@ -476,6 +514,7 @@ class ResearchSourceResponse(BaseModel):
 
 class ResearchResponse(BaseModel):
     query: str
+    execution_mode: ExecutionMode | None = None
     answer: str | None = None
     claims: list[AnswerClaimResponse] = Field(default_factory=list)
     contradictions: list[str] = Field(default_factory=list)
