@@ -18,6 +18,7 @@ from .corpus import (
     validate_corpus_manifest,
 )
 from .metrics import character_error_rate, ndcg_at_k, set_precision_recall, word_error_rate
+from .mode_budgets import ModeBudgetObservation, ModeBudgetResult, evaluate_mode_budget
 from .facts import (
     FactCase,
     FactCaseResult,
@@ -105,6 +106,8 @@ __all__ = [
     "FactSuite",
     "FactSummary",
     "HttpSearchRunner",
+    "ModeBudgetObservation",
+    "ModeBudgetResult",
     "PostgresAdversarialRunner",
     "PostgresFactRunner",
     "PostgresMultiHopRunner",
@@ -134,6 +137,7 @@ __all__ = [
     "evaluate_case",
     "evaluate_corpus",
     "evaluate_fact_chunking",
+    "evaluate_mode_budget",
     "evaluate_private_runtime",
     "build_local_provider",
     "evaluate_faithfulness_suite",
