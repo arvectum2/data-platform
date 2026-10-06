@@ -98,7 +98,19 @@ These surfaces are intentionally not exposed through consumer credentials.
 
 Migrations `0012_billing_pricing_invoices` and `0013_invoice_provider_status` are applied in production. The Data Platform API restarted healthy on the merged billing/YooKassa builds.
 
-No YooKassa merchant credentials are configured or inferred from the host. Therefore the provider adapter is installed but not active in the production provider registry; live payment creation/reconciliation remains blocked on an explicitly supplied merchant secret through an approved runtime channel.
+No YooKassa merchant credentials are configured or inferred from the host. The standard runtime now supports explicit activation through the following secret-backed settings:
+
+```text
+ARVECTUM_DATA_YOOKASSA_SHOP_ID=...
+ARVECTUM_DATA_YOOKASSA_SECRET_KEY=...
+ARVECTUM_DATA_YOOKASSA_RETURN_URL=https://...
+ARVECTUM_DATA_YOOKASSA_PAYMENT_METHOD=smart|sbp
+ARVECTUM_DATA_YOOKASSA_TIMEOUT_SECONDS=10
+```
+
+The API base URL remains fixed to the official YooKassa endpoint and is not runtime-configurable. Supplying only part of the required merchant configuration fails startup. The secret key is represented as a secret type and is never returned by `/v1/status`; status exposes only the active provider names. In `local-private` mode YooKassa activation is rejected because it is an external network capability.
+
+With these runtime controls in place, live payment creation/reconciliation is now blocked only on deliberately supplied merchant credentials and the live webhook/merchant acceptance itself.
 
 ## Production billing-core acceptance — 2026-10-06
 
@@ -109,3 +121,9 @@ The acceptance catalog used RUB minor units, a 10000 base fee, one included sear
 Finalization created one invoice with a 64-character usage snapshot hash. Repeating finalization for the same tenant and period returned the same invoice ID, confirming idempotence. Manual payment handoff produced a `manual:` provider reference, and the invoice was then marked paid with a paid timestamp present.
 
 No YooKassa or other external merchant credential was used or discovered during this acceptance.
+
+## Runtime activation safety
+
+YooKassa runtime activation is opt-in. With no merchant settings present, only the built-in `manual` provider is registered. When all required merchant settings are supplied, `yookassa` is added to the provider registry during service startup. Partial configuration fails closed instead of silently running with an incomplete payment boundary.
+
+`/v1/status` exposes only `payment_providers` such as `["manual"]` or `["manual", "yookassa"]`; it never exposes shop IDs, secret keys, Authorization values or return credentials.
