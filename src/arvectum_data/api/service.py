@@ -656,9 +656,23 @@ class DataPlatformService:
         result = dict(metadata or {})
         if len(result) > 32:
             raise ValueError("connector credential metadata may contain at most 32 keys")
+        blocked_fragments = (
+            "secret",
+            "password",
+            "token",
+            "api_key",
+            "apikey",
+            "authorization",
+        )
         for key, value in result.items():
-            if not str(key).strip() or len(str(key)) > 128:
+            normalized_key = str(key).strip()
+            if not normalized_key or len(normalized_key) > 128:
                 raise ValueError("connector credential metadata keys must be 1..128 characters")
+            lowered_key = normalized_key.casefold()
+            if any(fragment in lowered_key for fragment in blocked_fragments):
+                raise ValueError(
+                    "sensitive connector credential values must be stored in secrets"
+                )
             if isinstance(value, (dict, list, tuple, set)):
                 raise ValueError("connector credential metadata must contain scalar values only")
             if value is not None and len(str(value)) > 1024:
