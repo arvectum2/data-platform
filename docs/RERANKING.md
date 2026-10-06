@@ -75,3 +75,13 @@ The first concrete learned candidate, `BAAI/bge-reranker-v2-m3` (Apache-2.0), wa
 That is +0.0833 top-1, +0.0833 MRR, +0.0417 nDCG@5 and a 2.48x p95 multiplier. It passes the frozen rerank promotion gate: MRR gain >= 0.03, top-1 gain >= 0.05 and p95 <= 3x baseline.
 
 Decision: accept BGE as the preferred optional learned reranker. Keep it disabled by default until runtime packaging is isolated from the core API service; the model cache is about 2.1 GB and sentence-transformers/torch should not become mandatory dependencies for FAST/local-core deployments.
+
+## Production sidecar activation
+
+The accepted BGE reranker is packaged as a separate localhost-only sidecar rather than importing Torch into the core Data Platform environment. `scripts/reranker_server.py` loads `BAAI/bge-reranker-v2-m3` once, warms the model before serving, bounds request size/pair count and exposes only `GET /health` plus `POST /score` on loopback.
+
+Core Data Platform uses the lightweight `HttpCrossEncoderScorer` and therefore keeps `sentence-transformers`/Torch out of the mandatory server dependencies. Default cross-encoder settings point to `http://127.0.0.1:8091`, top-3 candidates, 1000 candidate characters and a 1 second sidecar timeout.
+
+`rerank=false` remains the API default, so FAST/core behavior is unchanged. When reranking is explicitly enabled and no strategy is supplied, `cross_encoder` is now preferred. The previous reasoning/LLM path remains available with `rerank_strategy=reasoning`.
+
+Sidecar failure is fail-open: timeout, connection failure, malformed scoring output or an unavailable model leaves the original deterministic hybrid ordering intact and reports the rerank stage as `failed-open`/unavailable in diagnostics. LOCAL_PRIVATE additionally rejects a non-loopback cross-encoder endpoint.
