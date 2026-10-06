@@ -147,6 +147,7 @@ test("searchWithProfile forwards the consumer-owned ranking profile", async () =
     assert.equal(payload.vector_weight, 4);
     assert.equal(payload.query_variant_weight, 0.7);
     assert.equal(payload.collapse_by_canonical_uri, true);
+    assert.equal(payload.rerank_strategy, "cross_encoder");
     return new Response(JSON.stringify({ query: "q", hits: [] }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
