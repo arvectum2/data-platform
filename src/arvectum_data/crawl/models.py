@@ -36,6 +36,8 @@ class CrawlPolicy:
     render_mode: RenderMode = RenderMode.AUTO
     timeout_s: float = 20.0
     max_bytes: int = 2_000_000
+    max_workers: int = 1
+    max_in_flight_per_host: int = 1
 
     def __post_init__(self) -> None:
         if self.max_pages < 1:
@@ -50,6 +52,12 @@ class CrawlPolicy:
             raise ValueError("timeout_s must be positive")
         if self.max_bytes <= 0:
             raise ValueError("max_bytes must be positive")
+        if self.max_workers < 1 or self.max_workers > 32:
+            raise ValueError("max_workers must be between 1 and 32")
+        if self.max_in_flight_per_host < 1:
+            raise ValueError("max_in_flight_per_host must be >= 1")
+        if self.max_in_flight_per_host > self.max_workers:
+            raise ValueError("max_in_flight_per_host must not exceed max_workers")
         if not isinstance(self.render_mode, RenderMode):
             object.__setattr__(self, "render_mode", RenderMode(self.render_mode))
         cleaned_hosts = tuple(
