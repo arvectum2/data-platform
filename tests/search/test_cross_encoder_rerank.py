@@ -105,3 +105,16 @@ def test_cross_encoder_diagnostics_expose_provider_identity() -> None:
     assert diagnostic.status == "executed"
     assert diagnostic.provider == "fake-cross-encoder"
     assert diagnostic.model == "tiny-reranker-v1"
+
+def test_search_query_accepts_cross_encoder_strategy() -> None:
+    from arvectum_data.search import RerankStrategy
+
+    request = SearchQuery(
+        query="best candidate",
+        collections=("one",),
+        limit=2,
+        rerank=True,
+        rerank_candidates=3,
+        rerank_strategy="cross_encoder",
+    )
+    assert request.rerank_strategy is RerankStrategy.CROSS_ENCODER

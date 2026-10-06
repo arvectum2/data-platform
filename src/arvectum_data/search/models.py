@@ -13,6 +13,11 @@ class SearchMode(StrEnum):
     HYBRID = "hybrid"
 
 
+class RerankStrategy(StrEnum):
+    REASONING = "reasoning"
+    CROSS_ENCODER = "cross_encoder"
+
+
 @dataclass(frozen=True, slots=True)
 class BackendHit:
     chunk_id: str
@@ -81,6 +86,7 @@ class SearchQuery:
     collapse_by_canonical_uri: bool = False
     rerank: bool = False
     rerank_candidates: int = 20
+    rerank_strategy: RerankStrategy = RerankStrategy.REASONING
     execution_mode: ExecutionMode | None = None
 
     def __post_init__(self) -> None:
@@ -102,6 +108,8 @@ class SearchQuery:
             raise ValueError("query_expansion_limit must be between 1 and 8")
         if self.rerank_candidates < 1 or self.rerank_candidates > 100:
             raise ValueError("rerank_candidates must be between 1 and 100")
+        if not isinstance(self.rerank_strategy, RerankStrategy):
+            object.__setattr__(self, "rerank_strategy", RerankStrategy(self.rerank_strategy))
         if self.rerank and self.rerank_candidates < self.limit:
             raise ValueError("rerank_candidates must be greater than or equal to limit")
         resolved_execution_mode = validate_search_envelope(

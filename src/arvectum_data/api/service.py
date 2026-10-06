@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import tempfile
+import threading
 import time
 import uuid
 from collections.abc import Mapping, Sequence
@@ -40,7 +41,19 @@ from ..models import ModelLocality, ModelPolicy, ModelRole, ModelRouter, RoleCon
 from ..memory import MemoryConflictPolicy, MemoryKind, MemoryWrite, build_memory_ingest
 from ..sync import RefreshPolicy, RefreshResult
 
-from ..search import HybridSearchEngine, PostgresSearchBackend, QueryExpansion, ReasoningQueryExpander, ReasoningReranker, SearchHit, SearchQuery, SearchStageDiagnostic
+from ..search import (
+    CrossEncoderReranker,
+    HybridSearchEngine,
+    PostgresSearchBackend,
+    QueryExpansion,
+    ReasoningQueryExpander,
+    ReasoningReranker,
+    RerankStrategy,
+    SearchHit,
+    SearchQuery,
+    SearchStageDiagnostic,
+    SentenceTransformersCrossEncoderScorer,
+)
 from ..storage.postgres import (
     ChunkEmbeddingRow,
     ChunkRow,
@@ -130,6 +143,8 @@ class DataPlatformService:
         self.acquisition = acquisition
         self.connector_registry = connector_registry or self._default_connector_registry()
         self.model_router = model_router or self._build_model_router(settings)
+        self._cross_encoder_scorer = None
+        self._cross_encoder_lock = threading.Lock()
         if settings.ocr_provider == "disabled":
             self.ocr_provider = None
         elif settings.ocr_provider == "tesseract":
@@ -155,6 +170,32 @@ class DataPlatformService:
             self.session_factory = build_session_factory(build_engine(settings.database_url))
         else:
             self.session_factory = None
+
+    def _cross_encoder_reranker(
+        self,
+        *,
+        max_candidates: int,
+    ) -> CrossEncoderReranker | None:
+        model_name = self.settings.cross_encoder_model.strip()
+        if not model_name:
+            return None
+        if self._cross_encoder_scorer is None:
+            with self._cross_encoder_lock:
+                if self._cross_encoder_scorer is None:
+                    try:
+                        self._cross_encoder_scorer = SentenceTransformersCrossEncoderScorer(
+                            model_name
+                        )
+                    except Exception:
+                        return None
+        return CrossEncoderReranker(
+            self._cross_encoder_scorer,
+            max_candidates=min(
+                max_candidates,
+                self.settings.cross_encoder_max_candidates,
+            ),
+            max_candidate_chars=self.settings.cross_encoder_max_candidate_chars,
+        )
 
     @staticmethod
     def _default_connector_registry() -> ConnectorRegistry:
@@ -1119,14 +1160,17 @@ class DataPlatformService:
 
             backend = PostgresSearchBackend(DataRepository(session))
             reasoning_provider = self.model_router.provider(ModelRole.REASONING)
-            reranker = (
-                ReasoningReranker(
-                    reasoning_provider,
-                    max_candidates=request.rerank_candidates,
-                )
-                if request.rerank and reasoning_provider is not None
-                else None
-            )
+            reranker = None
+            if request.rerank:
+                if request.rerank_strategy is RerankStrategy.CROSS_ENCODER:
+                    reranker = self._cross_encoder_reranker(
+                        max_candidates=request.rerank_candidates,
+                    )
+                elif reasoning_provider is not None:
+                    reranker = ReasoningReranker(
+                        reasoning_provider,
+                        max_candidates=request.rerank_candidates,
+                    )
             query_expander = (
                 ReasoningQueryExpander(reasoning_provider)
                 if request.expand_query and reasoning_provider is not None
@@ -1179,6 +1223,7 @@ class DataPlatformService:
                 collapse_by_canonical_uri=request.collapse_by_canonical_uri,
                 rerank=request.rerank,
                 rerank_candidates=expanded_rerank_candidates,
+                rerank_strategy=request.rerank_strategy,
                 execution_mode=request.execution_mode,
             )
             hits = engine.search(expanded_request)

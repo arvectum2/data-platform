@@ -457,6 +457,7 @@ def create_app(
                 collapse_by_canonical_uri=payload.collapse_by_canonical_uri,
                 rerank=payload.rerank,
                 rerank_candidates=payload.rerank_candidates,
+                rerank_strategy=payload.rerank_strategy,
                 execution_mode=payload.execution_mode,
             )
             stage_diagnostics = ()

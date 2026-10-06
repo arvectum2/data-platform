@@ -33,6 +33,9 @@
   "notes": [
     "Warm steady-state benchmark after one explicit model warmup.",
     "Top-3 candidate reranking preserves all measured quality uplift while staying within the existing <=3x p95 gate.",
-    "The model is benchmarked out-of-process and is not yet enabled by default in the API."
-  ]
+    "The model is benchmarked out-of-process and is not yet enabled by default in the API.",
+    "Independent warm-run resource measurement: physical footprint ~3.74 GB, peak ~3.87 GB."
+  ],
+  "physical_footprint_bytes": 3922722816,
+  "physical_footprint_peak_bytes": 4062183424
 }
