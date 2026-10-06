@@ -66,6 +66,22 @@ ARVECTUM_DATA_CROSS_ENCODER_MAX_CANDIDATE_CHARS=1000
 
 Production uses `/Users/master/arvectum-runtime/data-platform-reranker/.venv` and `/Users/master/arvectum-runtime/data-platform-reranker/hf-cache`. These live on the internal volume because launchd on this host could start the user-local Python reliably but stalled while opening Python/model files directly from the external ArvectumSSD. A sidecar outage never takes search down: requests with reranking enabled fall back to the original hybrid order.
 
+## Optional YooKassa runtime activation
+
+The provider is disabled unless all required merchant settings are present:
+
+```text
+ARVECTUM_DATA_YOOKASSA_SHOP_ID=...
+ARVECTUM_DATA_YOOKASSA_SECRET_KEY=...
+ARVECTUM_DATA_YOOKASSA_RETURN_URL=https://...
+ARVECTUM_DATA_YOOKASSA_PAYMENT_METHOD=smart
+ARVECTUM_DATA_YOOKASSA_TIMEOUT_SECONDS=10
+```
+
+Use the production mode-0600 runtime env file for these values. Do not place them in repository files. Partial configuration fails service startup. Successful activation can be verified without revealing secrets by checking that `/v1/status` lists `yookassa` in `payment_providers`.
+
+Local-private deployments reject YooKassa activation.
+
 ## Health checks
 
 ```bash
