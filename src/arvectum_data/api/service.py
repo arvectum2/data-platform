@@ -7,7 +7,7 @@ import threading
 import time
 import uuid
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -125,6 +125,7 @@ def _collection_payload(row: CollectionRow) -> dict[str, Any]:
         "embedding_dimension": row.embedding_dimension,
         "active_index_revision": row.active_index_revision,
         "access_policy": dict(row.access_policy or {}),
+        "retention_policy": dict(row.retention_policy or {}),
     }
 
 
@@ -349,6 +350,7 @@ class DataPlatformService:
         name: str,
         default_language: str,
         access_policy: Mapping[str, object] | None = None,
+        retention_policy: Mapping[str, object] | None = None,
     ) -> dict[str, Any]:
         with self._require_factory()() as session:
             repo = DataRepository(session)
@@ -372,6 +374,9 @@ class DataPlatformService:
                 embedding_model=self.embedding_provider.model_name,
                 embedding_dimension=self.embedding_provider.dimension,
                 access_policy=None if access_policy is None else dict(access_policy),
+                retention_policy=(
+                    None if retention_policy is None else dict(retention_policy)
+                ),
             )
             session.commit()
             return _collection_payload(row)
@@ -389,6 +394,217 @@ class DataPlatformService:
                 select(CollectionRow).order_by(CollectionRow.collection_id.asc())
             ).all()
             return [_collection_payload(row) for row in rows]
+
+    def export_collection(
+        self,
+        collection_id: str,
+        *,
+        include_content: bool = False,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        if offset < 0:
+            raise ValueError("offset must be non-negative")
+        if limit < 1 or limit > 1000:
+            raise ValueError("limit must be between 1 and 1000")
+        with self._require_factory()() as session:
+            collection = session.get(CollectionRow, collection_id)
+            if collection is None:
+                raise CollectionNotFound(collection_id)
+
+            total_resources = int(
+                session.scalar(
+                    select(func.count())
+                    .select_from(ResourceRow)
+                    .where(ResourceRow.collection_id == collection_id)
+                )
+                or 0
+            )
+            resources = list(
+                session.scalars(
+                    select(ResourceRow)
+                    .where(ResourceRow.collection_id == collection_id)
+                    .order_by(ResourceRow.resource_id.asc())
+                    .offset(offset)
+                    .limit(limit)
+                )
+            )
+            exported_resources: list[dict[str, Any]] = []
+            for resource in resources:
+                documents = list(
+                    session.scalars(
+                        select(DocumentRow)
+                        .where(DocumentRow.resource_id == resource.resource_id)
+                        .order_by(DocumentRow.document_id.asc())
+                    )
+                )
+                exported_documents: list[dict[str, Any]] = []
+                for document in documents:
+                    chunks = list(
+                        session.scalars(
+                            select(ChunkRow)
+                            .where(ChunkRow.document_id == document.document_id)
+                            .order_by(ChunkRow.ordinal.asc())
+                        )
+                    )
+                    exported_documents.append(
+                        {
+                            "document_id": document.document_id,
+                            "title": document.title,
+                            "text": document.text if include_content else None,
+                            "media_type": document.media_type,
+                            "content_hash": document.content_hash,
+                            "extraction_status": document.extraction_status,
+                            "metadata": dict(document.metadata_json or {}),
+                            "chunks": [
+                                {
+                                    "chunk_id": chunk.chunk_id,
+                                    "ordinal": chunk.ordinal,
+                                    "text": chunk.text if include_content else None,
+                                    "content_hash": chunk.content_hash,
+                                    "char_start": chunk.char_start,
+                                    "char_end": chunk.char_end,
+                                    "token_estimate": chunk.token_estimate,
+                                    "metadata": dict(chunk.metadata_json or {}),
+                                }
+                                for chunk in chunks
+                            ],
+                        }
+                    )
+
+                records = list(
+                    session.scalars(
+                        select(DataRecordRow)
+                        .where(DataRecordRow.resource_id == resource.resource_id)
+                        .order_by(DataRecordRow.record_id.asc())
+                    )
+                )
+                provenance = list(
+                    session.scalars(
+                        select(ProvenanceRow)
+                        .where(ProvenanceRow.resource_id == resource.resource_id)
+                        .order_by(ProvenanceRow.provenance_id.asc())
+                    )
+                )
+                exported_resources.append(
+                    {
+                        "resource_id": resource.resource_id,
+                        "source_type": resource.source_type,
+                        "canonical_uri": resource.canonical_uri,
+                        "external_id": resource.external_id,
+                        "content_hash": resource.content_hash,
+                        "status": resource.status,
+                        "first_seen_at": resource.first_seen_at,
+                        "last_seen_at": resource.last_seen_at,
+                        "metadata": dict(resource.metadata_json or {}),
+                        "documents": exported_documents,
+                        "records": [
+                            {
+                                "record_id": record.record_id,
+                                "document_id": record.document_id,
+                                "record_type": record.record_type,
+                                "data": dict(record.data_json or {}) if include_content else None,
+                                "revision": record.revision,
+                                "review_status": record.review_status,
+                                "metadata": dict(record.metadata_json or {}),
+                            }
+                            for record in records
+                        ],
+                        "provenance": [
+                            {
+                                "provenance_id": item.provenance_id,
+                                "document_id": item.document_id,
+                                "chunk_id": item.chunk_id,
+                                "record_id": item.record_id,
+                                "source_ref": item.source_ref,
+                                "metadata": dict(item.metadata_json or {}),
+                            }
+                            for item in provenance
+                        ],
+                    }
+                )
+
+            return {
+                "collection": _collection_payload(collection),
+                "include_content": include_content,
+                "offset": offset,
+                "limit": limit,
+                "total_resources": total_resources,
+                "has_more": offset + len(resources) < total_resources,
+                "resources": exported_resources,
+            }
+
+    def prune_collection_retention(
+        self,
+        collection_id: str,
+        *,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        with self._require_factory()() as session:
+            collection = session.get(CollectionRow, collection_id)
+            if collection is None:
+                raise CollectionNotFound(collection_id)
+            policy = dict(collection.retention_policy or {})
+            raw_days = policy.get("max_age_days")
+            if raw_days is None:
+                raise ValueError("collection retention max_age_days is not configured")
+            max_age_days = int(raw_days)
+            if max_age_days < 1:
+                raise ValueError("collection retention max_age_days must be positive")
+            cutoff = datetime.now(UTC) - timedelta(days=max_age_days)
+            resources = list(
+                session.scalars(
+                    select(ResourceRow)
+                    .where(
+                        ResourceRow.collection_id == collection_id,
+                        ResourceRow.last_seen_at < cutoff,
+                    )
+                    .order_by(ResourceRow.resource_id.asc())
+                )
+            )
+            if not dry_run:
+                for resource in resources:
+                    session.delete(resource)
+                session.commit()
+            return {
+                "collection_id": collection_id,
+                "dry_run": dry_run,
+                "max_age_days": max_age_days,
+                "cutoff_at": cutoff,
+                "matched_resources": len(resources),
+                "deleted_resources": 0 if dry_run else len(resources),
+            }
+
+    def delete_collection(
+        self,
+        collection_id: str,
+        *,
+        confirm: bool = False,
+    ) -> dict[str, Any]:
+        counts = self.collection_stats(collection_id)
+        owned_counts = {
+            key: int(counts[key])
+            for key in ("resources", "documents", "chunks", "embeddings")
+        }
+        if not confirm:
+            return {
+                "collection_id": collection_id,
+                "confirmed": False,
+                "deleted": False,
+                "counts": owned_counts,
+            }
+        with self._require_factory()() as session:
+            collection = session.get(CollectionRow, collection_id)
+            if collection is None:
+                raise CollectionNotFound(collection_id)
+            session.delete(collection)
+            session.commit()
+        return {
+            "collection_id": collection_id,
+            "confirmed": True,
+            "deleted": True,
+            "counts": owned_counts,
+        }
 
     def collection_stats(self, collection_id: str) -> dict[str, Any]:
         with self._require_factory()() as session:

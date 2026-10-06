@@ -64,6 +64,7 @@ class DataRepository:
         embedding_model: str | None = None,
         embedding_dimension: int | None = None,
         access_policy: dict[str, object] | None = None,
+        retention_policy: dict[str, object] | None = None,
     ) -> CollectionRow:
         row = self.session.get(CollectionRow, collection_id)
         if row is None:
@@ -76,6 +77,7 @@ class DataRepository:
                 embedding_model=embedding_model,
                 embedding_dimension=embedding_dimension,
                 access_policy=dict(access_policy or {}),
+                retention_policy=dict(retention_policy or {}),
             )
             self.session.add(row)
         else:
@@ -123,6 +125,8 @@ class DataRepository:
             row.embedding_dimension = requested_dimension
             if access_policy is not None:
                 row.access_policy = dict(access_policy)
+            if retention_policy is not None:
+                row.retention_policy = dict(retention_policy)
         self.session.flush()
         return row
 
