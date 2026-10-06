@@ -54,3 +54,29 @@ the linear baseline remains on OCR. Vision is still never invoked when the
 vision role is disabled, so this does not introduce an implicit cloud path.
 The frozen vlm_routing_v1 gate requires 100% routing accuracy on these accepted
 profiles.
+
+## Private runtime scale benchmark
+
+A SHA-only private-derived suite now freezes nine real first-page PDF cases
+without storing source paths, filenames, native text or OCR text in Git:
+
+- 8 procurement documents from the Tender Agent runtime;
+- 1 business review document;
+- native PDF text acts as independent page-level gold;
+- local Tesseract runs at rus+eng / 220 DPI.
+
+The 2026-10-06 reproducible run measured median CER 9.81%, median WER 11.03%,
+mean confidence 91.86%, p50 latency about 1.39 s and p95 about 2.46 s.
+
+For routing evaluation, OCR is classified as poor when CER > 25% or WER > 50%.
+Three of nine cases crossed that quality boundary. All three had Tesseract
+confidence below the current 90 escalation threshold (89.14, 87.53 and 86.29),
+while all six acceptable cases stayed at or above 90. The current threshold
+therefore achieved routing precision=1.0, recall=1.0 and accuracy=1.0 on this
+larger real private-derived sample.
+
+The frozen suite is benchmarks/private_runtime_ocr_scale_v1.json and the
+privacy-safe run output is
+benchmarks/results/private_runtime_ocr_scale_2026-10-06.json. A live VLM
+content-quality comparison is still separate benchmark work because the
+production vision role is currently disabled.

@@ -214,6 +214,26 @@
       "thresholds": {
         "routing_accuracy": 1.0
       }
+    },
+    {
+      "id": "private-runtime-ocr-scale-v1",
+      "file": "private_runtime_ocr_scale_v1.json",
+      "sha256": "476b9e42d14e26aee0935da0fb2560897ee703c782e52a06ec25e1345dddb5a7",
+      "case_count": 9,
+      "visibility": "private-derived",
+      "dimensions": [
+        "ocr-accuracy",
+        "ocr-latency",
+        "vlm-routing",
+        "private-runtime-scale",
+        "procurement",
+        "business"
+      ],
+      "thresholds": {
+        "routing_precision": 1.0,
+        "routing_recall": 1.0
+      },
+      "items_key": "artifacts"
     }
   ]
 }

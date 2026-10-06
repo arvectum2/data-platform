@@ -1,0 +1,25 @@
+{
+  "name": "private-runtime-ocr-scale-v1",
+  "version": 1,
+  "visibility": "private-derived",
+  "description": "Frozen SHA-only OCR scale benchmark over real procurement and business PDFs. Source paths and document text are intentionally not stored.",
+  "page": 1,
+  "thresholds": {
+    "poor_cer_above": 0.25,
+    "poor_wer_above": 0.5,
+    "vlm_confidence_below": 90.0,
+    "routing_precision_min": 1.0,
+    "routing_recall_min": 1.0
+  },
+  "artifacts": [
+    {"id":"659ea498b86e","sha256":"659ea498b86e41bd23011fa04fe4e2e2acffdeb607eba36d9294debd4e4d8f16","category":"procurement"},
+    {"id":"bf082948e34f","sha256":"bf082948e34fc3241e2c1a512a13c6dc67fed40bb083e27e89d5f9580eea2ee8","category":"procurement"},
+    {"id":"41243ebfb9e2","sha256":"41243ebfb9e29549a6cb29687a8200b0f40be4605599c34b7983d7eefe86c11a","category":"procurement"},
+    {"id":"c094eccab3ab","sha256":"c094eccab3aba23935a77123bcddb7902b7560e1eb773457dd45e9680ff94861","category":"procurement"},
+    {"id":"37b319c2fb6c","sha256":"37b319c2fb6c0a86a7766393d50554737133987251dd1b9d865710fda9630948","category":"procurement"},
+    {"id":"2edcfd9c2907","sha256":"2edcfd9c29074d23751b53aea088488cf7ba6cacb81468368d9cf7ad496ef01d","category":"procurement"},
+    {"id":"74ff38e7c6d8","sha256":"74ff38e7c6d809973c83bad0a2ab470a022285b0e520242e5cae8b77e877f3f3","category":"procurement"},
+    {"id":"6e8d99dc0e4b","sha256":"6e8d99dc0e4bb80dad0424c93f11899096357bef58564f5ab6b59bbd2f582214","category":"procurement"},
+    {"id":"20da57f89a89","sha256":"20da57f89a8987da6fbec4956932b5c7acd282d25c5032af45b0217de1cf425d","category":"business"}
+  ]
+}
