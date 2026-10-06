@@ -13,7 +13,7 @@ from .models import (
 )
 from .postgres import PostgresSearchBackend
 from .protocols import LexicalBackend, VectorBackend
-from .rerank import CrossEncoderReranker, CrossEncoderScorer, ReasoningReranker, Reranker, RerankScore, SentenceTransformersCrossEncoderScorer
+from .rerank import CrossEncoderReranker, CrossEncoderScorer, HttpCrossEncoderScorer, ReasoningReranker, Reranker, RerankScore, SentenceTransformersCrossEncoderScorer
 
 __all__ = [
     "BackendHit",
@@ -24,6 +24,7 @@ __all__ = [
     "QueryExpansion",
     "ReasoningQueryExpander",
     "HybridSearchEngine",
+    "HttpCrossEncoderScorer",
     "InMemoryLexicalBackend",
     "LexicalBackend",
     "MemorySearchDocument",
