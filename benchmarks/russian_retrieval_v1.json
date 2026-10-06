@@ -1,0 +1,332 @@
+{
+  "name": "russian-retrieval-v1",
+  "description": "Russian-language accepted retrieval slice derived from production_acceptance_v3 by frozen query-language selection.",
+  "metadata": {
+    "created_at": "2026-10-06",
+    "extends": "production-acceptance-v3",
+    "selection": "query contains at least one Cyrillic character",
+    "case_count": 19,
+    "embedding_model": "Qwen3-Embedding-4B"
+  },
+  "cases": [
+    {
+      "id": "tender-requirements",
+      "query": "Какие требования к выполнению работ и результату?",
+      "collections": [
+        "tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"
+      ],
+      "expected_ids": [
+        "tender-chunk://475445e3-c040-412c-8633-676451a2297c"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "tender-payment",
+      "query": "Каков порядок оплаты и приемки услуг?",
+      "collections": [
+        "tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"
+      ],
+      "expected_ids": [
+        "tender-chunk://7b6747fb-e73e-41d3-a52d-30d8025ef8f0"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "tender-responsibility",
+      "query": "Какая ответственность предусмотрена за нарушение обязательств?",
+      "collections": [
+        "tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"
+      ],
+      "expected_ids": [
+        "tender-chunk://68cdf29e-8562-4eeb-843a-01b8c823a135"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "tender-deadlines",
+      "query": "Какие сроки оказания услуг?",
+      "collections": [
+        "tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"
+      ],
+      "expected_ids": [
+        "tender-chunk://00163c8b-1f49-4bda-9c3d-95c969217aed"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "tender-reporting",
+      "query": "Какие требования к отчетным документам?",
+      "collections": [
+        "tender-agent:f694a6ae-fb4d-486e-9777-a8eb8d0134b5:68d8c743cbe86f3b"
+      ],
+      "expected_ids": [
+        "tender-chunk://7b6a48f2-5742-45c8-b2b8-5efeb3c5ff06"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4
+    },
+    {
+      "id": "growth-tender-agent",
+      "query": "агент для тендерного отдела",
+      "collections": [
+        "growth:arvectum-site:8f0e23f96d45b1b9"
+      ],
+      "expected_ids": [
+        "https://arvectum.com/solutions/tender-department-ai-agent.html"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "growth-photo-pixels",
+      "query": "уменьшить фото до нужного размера в пикселях",
+      "collections": [
+        "growth:arvectum-site:8f0e23f96d45b1b9"
+      ],
+      "expected_ids": [
+        "https://arvectum.com/tools/index.html",
+        "https://arvectum.com/tools/photo-size/index.html",
+        "https://arvectum.com/tools/photo-size/resize-pixels.html"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "product-photo-size",
+      "query": "уменьшить фото до 500 КБ на iPhone",
+      "collections": [
+        "growth:products:e93c4eb90b2b2e3a"
+      ],
+      "expected_ids": [
+        "https://arvectum.com/tools/photo-size/index.html"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5
+    },
+    {
+      "id": "growth-federated-photo-size",
+      "query": "Фото под размер",
+      "collections": [
+        "growth:arvectum-site:8f0e23f96d45b1b9",
+        "growth:products:e93c4eb90b2b2e3a"
+      ],
+      "expected_ids": [
+        "https://arvectum.com/tools/photo-size/index.html"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid"
+    },
+    {
+      "collections": [
+        "growth:arvectum-site:0227dfdd95e47527"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "id": "gsc-automate-procurement",
+      "query": "автоматизировать закупки",
+      "expected_ids": [
+        "https://arvectum.com/solutions/procurement.html"
+      ],
+      "metadata": {
+        "consumer": "growth",
+        "source": "search-console/webmaster-2026-10-04",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "growth:arvectum-site:0227dfdd95e47527"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "id": "gsc-ai-document-check",
+      "query": "ии для проверки документов",
+      "expected_ids": [
+        "https://arvectum.com/solutions/ai-document-checks.html"
+      ],
+      "metadata": {
+        "consumer": "growth",
+        "source": "search-console/webmaster-2026-10-04",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "growth:arvectum-site:0227dfdd95e47527"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "id": "gsc-ai-agent-procurement",
+      "query": "ии агент для закупок",
+      "expected_ids": [
+        "https://arvectum.com/solutions/procurement-ai-agents.html"
+      ],
+      "metadata": {
+        "consumer": "growth",
+        "source": "search-console/webmaster-2026-10-04",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "growth:arvectum-site:0227dfdd95e47527"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "id": "gsc-closed-loop-ai",
+      "query": "ии в закрытом контуре",
+      "expected_ids": [
+        "https://arvectum.com/solutions/closed-loop-ai-documents.html"
+      ],
+      "metadata": {
+        "consumer": "growth",
+        "source": "search-console/webmaster-2026-10-04",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "growth:arvectum-site:0227dfdd95e47527"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "id": "yandex-rfq-what-is",
+      "query": "rfq что это такое в закупках",
+      "expected_ids": [
+        "https://arvectum.com/materials/rfq-automation-guide.html"
+      ],
+      "metadata": {
+        "consumer": "growth",
+        "source": "search-console/webmaster-2026-10-04",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "growth:arvectum-site:0227dfdd95e47527"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "id": "yandex-tkp-comparison",
+      "query": "сравнение ткп",
+      "expected_ids": [
+        "https://arvectum.com/services/tkp-comparison.html"
+      ],
+      "metadata": {
+        "consumer": "growth",
+        "source": "search-console/webmaster-2026-10-04",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "tender:0137200001226007700"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4,
+      "collapse_by_canonical_uri": true,
+      "id": "tender-013720-object-description",
+      "query": "Что требуется выполнить по описанию объекта закупки «Калужское гостеприимство»?",
+      "expected_ids": [
+        "https://zakupki.gov.ru/44fz/filestore/public/1.0/download/priz/file.html?uid=01A0F6550C997D81AB1DC36762122B3B"
+      ],
+      "metadata": {
+        "consumer": "tender-agent",
+        "source": "real-procurement-0137200001226007700",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "tender:0137200001226007700"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4,
+      "collapse_by_canonical_uri": true,
+      "id": "tender-013720-application-requirements",
+      "query": "Какие требования установлены к заявке участника закупки?",
+      "expected_ids": [
+        "https://zakupki.gov.ru/44fz/filestore/public/1.0/download/priz/file.html?uid=01A0F6550E6375608EBD91D0CA8BCB0B"
+      ],
+      "metadata": {
+        "consumer": "tender-agent",
+        "source": "real-procurement-0137200001226007700",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "tender:0137200001226007700"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4,
+      "collapse_by_canonical_uri": true,
+      "id": "tender-013720-nmck",
+      "query": "Как обоснована начальная максимальная цена контракта НМЦК?",
+      "expected_ids": [
+        "https://zakupki.gov.ru/44fz/filestore/public/1.0/download/priz/file.html?uid=01A0F655109A7B438E8FA3BE7305DA88"
+      ],
+      "metadata": {
+        "consumer": "tender-agent",
+        "source": "real-procurement-0137200001226007700",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    },
+    {
+      "collections": [
+        "tender:0137200001226007700"
+      ],
+      "id_field": "canonical_uri",
+      "limit": 5,
+      "mode": "hybrid",
+      "lexical_weight": 1,
+      "vector_weight": 4,
+      "collapse_by_canonical_uri": true,
+      "id": "tender-013720-contract-terms",
+      "query": "Каковы условия исполнения, оплаты и приемки по проекту контракта?",
+      "expected_ids": [
+        "https://zakupki.gov.ru/44fz/filestore/public/1.0/download/priz/file.html?uid=01A0F65507217BB681C6F32C5448CA29"
+      ],
+      "metadata": {
+        "consumer": "tender-agent",
+        "source": "real-procurement-0137200001226007700",
+        "accepted_into_production_suite": "2026-10-05"
+      }
+    }
+  ]
+}

@@ -286,6 +286,7 @@ def test_cli_passes_consumer_credentials(monkeypatch, tmp_path) -> None:
         ("production_acceptance_v3.json", 20),
         ("growth_search_console_v1.json", 12),
         ("lexical_exact_v1.json", 5),
+        ("russian_retrieval_v1.json", 19),
     ],
 )
 def test_repository_benchmarks_are_valid_frozen_suites(
