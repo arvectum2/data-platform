@@ -1,7 +1,30 @@
 from __future__ import annotations
 
-from pydantic import Field
+import ipaddress
+from urllib.parse import urlsplit
+
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _loopback_host(value: str) -> bool:
+    cleaned = value.strip().lower()
+    if cleaned == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(cleaned).is_loopback
+    except ValueError:
+        return False
+
+
+def _url_is_local(value: str) -> bool:
+    cleaned = value.strip()
+    if not cleaned:
+        return True
+    parsed = urlsplit(cleaned)
+    if parsed.scheme.startswith("sqlite"):
+        return True
+    return _loopback_host(parsed.hostname or "")
 
 
 class Settings(BaseSettings):
@@ -14,6 +37,7 @@ class Settings(BaseSettings):
     service_name: str = "arvectum-data"
     environment: str = "development"
     log_level: str = "INFO"
+    deployment_mode: str = "standard"
     host: str = "127.0.0.1"
     port: int = 8088
 
@@ -63,6 +87,50 @@ class Settings(BaseSettings):
     ocr_languages: str = "rus+eng"
     ocr_dpi: int = Field(default=220, ge=72, le=600)
     ocr_timeout_seconds: float = Field(default=45, gt=0, le=300)
+
+    @model_validator(mode="after")
+    def validate_deployment_privacy(self):
+        mode = self.deployment_mode.strip().lower()
+        if mode not in {"standard", "local-private"}:
+            raise ValueError("deployment_mode must be standard or local-private")
+        self.deployment_mode = mode
+        if mode != "local-private":
+            return self
+
+        violations: list[str] = []
+        if not _loopback_host(self.host):
+            violations.append("API host must be loopback")
+        if self.database_url and not _url_is_local(self.database_url):
+            violations.append("database_url must be local")
+        embedding_provider = self.embedding_provider.strip().lower()
+        if (
+            embedding_provider not in {"hashing", "sentence_transformers"}
+            and not _url_is_local(self.embedding_base_url)
+        ):
+            violations.append("embedding endpoint must be loopback")
+        if self.ocr_provider.strip().lower() not in {"disabled", "tesseract"}:
+            violations.append("OCR provider must be local or disabled")
+
+        for role in ("reasoning", "vision"):
+            policy = str(getattr(self, f"{role}_policy")).strip().lower()
+            locality = str(getattr(self, f"{role}_locality")).strip().lower()
+            base_url = str(getattr(self, f"{role}_base_url"))
+            allowlist = str(getattr(self, f"{role}_remote_allowlist")).strip()
+            if policy not in {"disabled", "local-only"}:
+                violations.append(f"{role} policy must be disabled or local-only")
+            if policy == "local-only" and (
+                locality != "local" or not _url_is_local(base_url)
+            ):
+                violations.append(f"{role} local-only endpoint must be loopback")
+            if allowlist:
+                violations.append(f"{role} remote allowlist must be empty")
+
+        if violations:
+            raise ValueError(
+                "local-private deployment rejects configuration: "
+                + "; ".join(violations)
+            )
+        return self
 
     @property
     def embeddings_provider(self) -> str:

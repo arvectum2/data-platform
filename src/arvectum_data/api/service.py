@@ -331,6 +331,7 @@ class DataPlatformService:
                 if self.session_factory is None or database_ok
                 else "degraded"
             ),
+            "deployment_mode": self.settings.deployment_mode,
             "database_configured": self.session_factory is not None,
             "embedding_provider": self.embedding_provider.provider_name,
             "embedding_model": self.embedding_provider.model_name,
