@@ -217,3 +217,55 @@ def test_query_variants_are_deduplicated_and_bounded() -> None:
             collections=("one",),
             query_variants=tuple(f"variant-{index}" for index in range(9)),
         )
+
+def test_hybrid_search_exposes_safe_stage_diagnostics() -> None:
+    engine = HybridSearchEngine(
+        lexical_backend=FakeLexical(),
+        vector_backend=FakeVector(),
+        embedding_provider=HashingEmbeddingProvider(dimension=16),
+    )
+
+    engine.search(
+        SearchQuery(
+            query="secret query text",
+            collections=("one",),
+            mode=SearchMode.HYBRID,
+        )
+    )
+
+    by_stage = {item.stage: item for item in engine.last_diagnostics}
+    assert {
+        "lexical-retrieval",
+        "embedding-query",
+        "vector-retrieval",
+        "fusion",
+        "total-search",
+    }.issubset(by_stage)
+    assert by_stage["embedding-query"].provider == "hashing"
+    assert by_stage["embedding-query"].model == "local-hash-v1"
+    assert all(item.duration_ms >= 0 for item in engine.last_diagnostics)
+    serialized = repr(engine.last_diagnostics)
+    assert "secret query text" not in serialized
+
+
+def test_unavailable_optional_search_stages_are_visible_as_skipped() -> None:
+    engine = HybridSearchEngine(
+        lexical_backend=FakeLexical(),
+        vector_backend=FakeVector(),
+        embedding_provider=HashingEmbeddingProvider(dimension=16),
+    )
+
+    engine.search(
+        SearchQuery(
+            query="cable",
+            collections=("one",),
+            mode=SearchMode.HYBRID,
+            expand_query=True,
+            rerank=True,
+            rerank_candidates=20,
+        )
+    )
+
+    by_stage = {item.stage: item for item in engine.last_diagnostics}
+    assert by_stage["query-expansion"].status == "skipped-unavailable"
+    assert by_stage["rerank"].status == "skipped-unavailable"

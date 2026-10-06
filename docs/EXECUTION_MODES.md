@@ -52,3 +52,23 @@ prompt text or document content.
 
 These are capability ceilings, not model names. Local and remote provider
 choices remain governed independently by DP-MODEL-001 policy.
+
+## Search execution diagnostics
+
+Search responses now include a diagnostics object. The engine reports aggregate
+duration and status for the stages it actually attempted:
+
+- query expansion;
+- lexical retrieval;
+- query embedding;
+- vector retrieval;
+- fusion;
+- product ranking when configured;
+- reranking;
+- total search.
+
+Model-backed stages distinguish executed, skipped-unavailable and failed-open.
+Provider/model identity is included where available. Metadata is deliberately
+limited to safe counters such as call count, candidate limit, variant count and
+returned-hit count. Query text, document text, URLs, API keys and exception
+messages are not copied into diagnostics.

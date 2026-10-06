@@ -941,6 +941,7 @@ def test_execution_modes_are_discoverable_and_enforce_search_depth() -> None:
     )
     assert fast.status_code == 200
     assert fast.json()["execution_mode"] == "fast"
+    assert fast.json()["diagnostics"]["execution_mode"] == "fast"
 
     fast_rerank = client.post(
         "/v1/search",
