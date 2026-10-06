@@ -33,7 +33,25 @@
         "44-fz",
         "real-source"
       ],
-      "sha256": "74ff38e7c6d809973c83bad0a2ab470a022285b0e520242e5cae8b77e877f3f3"
+      "sha256": "74ff38e7c6d809973c83bad0a2ab470a022285b0e520242e5cae8b77e877f3f3",
+      "required_fields": [
+        {
+          "label": "Наименование органа контроля:",
+          "value": "Комитет финансов Санкт-Петербурга"
+        },
+        {
+          "label": "Результат контроля:",
+          "value": "Финансовый контроль пройден"
+        },
+        {
+          "label": "Форма по ОКУД",
+          "value": "0506135"
+        }
+      ],
+      "min_structure_score": 1.0,
+      "metadata": {
+        "structure_profile": "native-pdf-form-fields"
+      }
     },
     {
       "id": "procurement-nmck-docx",
@@ -53,7 +71,27 @@
         "nmck",
         "real-source"
       ],
-      "sha256": "dd14129699141aa15c0b9b59a2be2a6122387f8ec4cb9aca3324ea55eefd5c9d"
+      "sha256": "dd14129699141aa15c0b9b59a2be2a6122387f8ec4cb9aca3324ea55eefd5c9d",
+      "required_rows": [
+        [
+          "№ п/п",
+          "Наименование товара, услуги (работы)",
+          "Поставщик 1",
+          "Средняя цена (руб.)",
+          "НМЦК (руб.)"
+        ],
+        [
+          "1",
+          "Книгоиздательская продукция",
+          "58.11.19.000",
+          "297 707,00",
+          "299 967,00"
+        ]
+      ],
+      "min_structure_score": 1.0,
+      "metadata": {
+        "structure_profile": "native-docx-table-rows"
+      }
     },
     {
       "id": "procurement-nmck-xlsx",
@@ -74,7 +112,34 @@
         "nmck",
         "real-source"
       ],
-      "sha256": "bee59f89708f539742f7cb00132e76292afe286b3ceac53cf6784a2dc745ac78"
+      "sha256": "bee59f89708f539742f7cb00132e76292afe286b3ceac53cf6784a2dc745ac78",
+      "required_rows": [
+        [
+          "№ п/п",
+          "Наименование работ",
+          "Единица измерения",
+          "Количество",
+          "Расчет НМЦК"
+        ],
+        [
+          "2",
+          "Произвести монтаж новой системы АПС дизельгенераторов",
+          "Усл. ед.",
+          "2",
+          "282171.58"
+        ],
+        [
+          "12",
+          "Генератор №1 МСС-82-4",
+          "Усл. ед.",
+          "1",
+          "116109.02"
+        ]
+      ],
+      "min_structure_score": 1.0,
+      "metadata": {
+        "structure_profile": "native-xlsx-rows"
+      }
     },
     {
       "id": "arvectum-photo-size-html",
@@ -121,12 +186,23 @@
         "gold_kind": "native-extraction-silver",
         "scan_generation": "page 1 rasterized at 150 DPI then wrapped as image-only PDF",
         "ocr_profile": "layout-stress",
-        "regression_gate_kind": "layout-stress-baseline"
+        "regression_gate_kind": "layout-stress-baseline",
+        "structure_profile": "ocr-form-fields-observation"
       },
       "sha256": "47fe44ab97205aa64e50219bbf44a01e7fc9afc4dfde40b2d653fb7025692bdb",
       "gold_sha256": "81e2289a471f4221c3719043e61fcc2d35408cd190f94ebdadddf277651d0914",
       "max_cer": 0.4,
-      "max_wer": 0.8
+      "max_wer": 0.8,
+      "required_fields": [
+        {
+          "label": "Наименование органа контроля",
+          "value": "Комитет финансов Санкт-Петербурга"
+        },
+        {
+          "label": "Результат контроля",
+          "value": "Финансовый контроль пройден"
+        }
+      ]
     },
     {
       "id": "procurement-technical-spec-pdf",

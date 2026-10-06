@@ -53,6 +53,18 @@ def test_public_corpus_extracts_all_non_ocr_formats() -> None:
     assert all(item.passed for item in summary.results if not item.skipped)
 
 
+    structured = {
+        item.artifact_id: item.structure_score
+        for item in summary.results
+        if item.structure_score is not None
+    }
+    assert structured == {
+        "procurement-control-notice-pdf": 1.0,
+        "procurement-nmck-docx": 1.0,
+        "procurement-nmck-xlsx": 1.0,
+    }
+
+
 def test_ocr_gold_metrics_are_executable_with_provider() -> None:
     manifest = validate_corpus_manifest(_manifest())
     base = _manifest().parent
@@ -100,5 +112,11 @@ def test_ocr_gold_metrics_are_executable_with_provider() -> None:
     assert summary.benchmark_success_rate == pytest.approx(1.0)
     assert summary.mean_cer == pytest.approx(0.0)
     assert summary.mean_wer == pytest.approx(0.0)
-    scan_result = next(item for item in summary.results if item.format == "scanned-pdf")
-    assert scan_result.ocr_confidence == pytest.approx(100.0)
+    scan_results = [item for item in summary.results if item.format == "scanned-pdf"]
+    assert all(item.ocr_confidence == pytest.approx(100.0) for item in scan_results)
+    form_scan = next(
+        item
+        for item in scan_results
+        if item.artifact_id == "procurement-control-notice-scan"
+    )
+    assert form_scan.structure_score == pytest.approx(1.0)
