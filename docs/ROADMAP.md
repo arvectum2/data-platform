@@ -631,15 +631,17 @@ Private-runtime increment (2026-10-06): the production Mac mini core path passes
 
 Resource increment (2026-10-06): Mac mini runtime footprint/throughput is now frozen in benchmarks/results/runtime_resources_2026-10-06.json. Current combined physical footprint is ~11.94 GB on 24 GiB unified memory (API ~83.5 MB, embeddings ~1.81 GB, reasoning ~10.05 GB); the ~22.58 GB sum of per-process historical peaks is explicitly not a simultaneous peak. Apple Silicon has no separate dedicated VRAM figure, so GPU memory is reported as unified rather than fabricated. Production-v3 retrieval preserved top-1=1.0 while throughput measured 9.23 QPS sequential, 12.99 QPS at 4 workers and 13.37 QPS at 8 workers. Post-run power telemetry sampled ~6.51 W CPU, ~0.66 W GPU and ~85.6% GPU active residency.
 
+Adoption-gate sync (2026-10-06): the existing frozen benchmarks now resolve six promotion decisions. BM25 remains deferred because current hybrid/FTS quality shows no repeatable lexical gap; tested ANN indexes remain rejected because exact pgvector is already fast and the ANN variants lose recall; the current local LLM reranker fails the accepted latency gate; VLM escalation is restricted to OCR/layout cases that cross the frozen routing threshold; model query expansion fails the hard-suite quality/latency gate and remains off by default; grounded answer synthesis passes the citation/faithfulness/abstention thresholds. The learned/cross-encoder reranker gate remains open because no lighter learned candidate has been benchmarked yet.
+
 ### Benchmark-driven adoption gates
 
-- [ ] BM25 backend only if frozen corpora show a repeatable lexical-quality gap over PostgreSQL FTS;
-- [ ] ANN indexes only if latency/throughput gain justifies measured recall loss at production scale;
+- [x] BM25 backend only if frozen corpora show a repeatable lexical-quality gap over PostgreSQL FTS;
+- [x] ANN indexes only if latency/throughput gain justifies measured recall loss at production scale;
 - [ ] learned/cross-encoder reranker only if it improves nDCG/MRR enough to justify added latency/resources;
-- [ ] LLM reranking only if it beats lighter reranking on accepted relevance/cost gates;
-- [ ] VLM escalation only where OCR/layout benchmarks justify it;
-- [ ] query expansion only if recall improves without unacceptable precision/latency regression;
-- [ ] answer synthesis only if groundedness/citation benchmarks meet the required threshold.
+- [x] LLM reranking only if it beats lighter reranking on accepted relevance/cost gates;
+- [x] VLM escalation only where OCR/layout benchmarks justify it;
+- [x] query expansion only if recall improves without unacceptable precision/latency regression;
+- [x] answer synthesis only if groundedness/citation benchmarks meet the required threshold.
 
 ## Post-v1 backlog
 
