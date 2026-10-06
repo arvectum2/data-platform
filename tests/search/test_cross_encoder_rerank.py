@@ -182,7 +182,8 @@ def test_http_cross_encoder_failure_still_fails_open(monkeypatch) -> None:
         model_name="BAAI/bge-reranker-v2-m3",
         timeout_seconds=0.1,
     )
-    hits = _engine(scorer).search(
+    engine = _engine(scorer)
+    hits = engine.search(
         SearchQuery(
             query="best candidate",
             collections=("one",),
@@ -193,4 +194,8 @@ def test_http_cross_encoder_failure_still_fails_open(monkeypatch) -> None:
     )
 
     assert [hit.chunk_id for hit in hits] == ["a", "b"]
+    diagnostic = next(item for item in engine.last_diagnostics if item.stage == "rerank")
+    assert diagnostic.status == "failed-open"
+    assert diagnostic.provider == "http-cross-encoder"
+    assert diagnostic.model == "BAAI/bge-reranker-v2-m3"
     diagnostic = next(item for item in _engine(scorer).last_diagnostics if False)
