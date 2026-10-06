@@ -548,7 +548,7 @@ Before externalization:
 
 ## DP-BENCH-002 — competitive benchmark suite
 
-Status: PLANNED.
+Status: IN PROGRESS (2026-10-06).
 
 Purpose: evaluate Data Platform against mature reference products by layer, using the same frozen corpora and acceptance questions wherever practical. Product adoption decisions remain benchmark-driven rather than feature-checklist-driven.
 
@@ -569,8 +569,8 @@ Benchmark corpus strategy:
 - [ ] build a frozen corpus from real procurement, business, website and product-research materials;
 - [ ] include native PDFs, scanned PDFs, DOCX, XLSX, HTML, malformed/legacy files and mixed Russian/English content;
 - [ ] maintain gold answers, relevant-document/chunk judgments and source/evidence identities;
-- [ ] version benchmark data and acceptance thresholds;
-- [ ] separate public/shareable fixtures from private production-derived fixtures;
+- [x] version benchmark data and acceptance thresholds;
+- [x] separate public/shareable fixtures from private production-derived fixtures;
 - [ ] add adversarial cases for collection isolation, stale sources, duplicate content and conflicting evidence.
 
 Required benchmark dimensions:
@@ -595,6 +595,8 @@ Required benchmark dimensions:
 - [ ] fully local/private execution coverage.
 
 Competitive acceptance rule: no external system needs to be beaten on every dimension. Data Platform must meet its own product gates and document where a reference product is materially better, so the gap can be either intentionally accepted or added to the roadmap.
+
+Foundation increment (2026-10-06): benchmark suites are now registered in benchmarks/catalog_v1.json with frozen SHA-256 digests, case counts, visibility classification, covered dimensions and thresholds. The validator fails closed on silent suite mutation. Reusable CER/WER, nDCG@k and evidence-set precision/recall metrics were added for the OCR/retrieval/citation benchmark layers. See docs/COMPETITIVE_BENCHMARKS.md. Multi-format gold fixtures, adversarial cases and external reference adapters remain open.
 
 ### Benchmark-driven adoption gates
 

@@ -44,6 +44,7 @@ def test_evaluate_case_supports_chunk_identity_and_recall() -> None:
     assert result.hit_at_3 is True
     assert result.hit_at_5 is True
     assert result.recall_at_5 == pytest.approx(1.0)
+    assert result.ndcg_at_5 > 0.0
     assert result.latency_ms == pytest.approx(12.5)
 
 
@@ -91,6 +92,7 @@ def test_evaluate_suite_aggregates_quality_and_latency() -> None:
     assert summary.hit_rate_at_3 == pytest.approx(1.0)
     assert summary.hit_rate_at_5 == pytest.approx(1.0)
     assert summary.mean_recall_at_5 == pytest.approx(1.0)
+    assert summary.mean_ndcg_at_5 > 0.0
     assert summary.latency_p50_ms == pytest.approx(200.0)
     assert summary.latency_p95_ms == pytest.approx(290.0)
     assert summary.latency_max_ms == pytest.approx(300.0)
@@ -145,6 +147,30 @@ def test_suite_rejects_duplicate_case_ids() -> None:
     )
     with pytest.raises(ValueError, match="unique"):
         EvaluationSuite(name="bad", cases=(case, case))
+
+
+def test_graded_relevance_drives_ndcg() -> None:
+    case = EvaluationCase(
+        case_id="graded",
+        query="q",
+        collections=("c",),
+        expected_ids=("best", "good"),
+        relevance={"best": 3.0, "good": 1.0},
+    )
+
+    ideal = evaluate_case(
+        case,
+        hits=[{"canonical_uri": "best"}, {"canonical_uri": "good"}],
+        latency_ms=1.0,
+    )
+    reversed_order = evaluate_case(
+        case,
+        hits=[{"canonical_uri": "good"}, {"canonical_uri": "best"}],
+        latency_ms=1.0,
+    )
+
+    assert ideal.ndcg_at_5 == pytest.approx(1.0)
+    assert reversed_order.ndcg_at_5 < ideal.ndcg_at_5
 
 
 def test_cli_thresholds_can_fail_ci(monkeypatch, tmp_path) -> None:

@@ -21,6 +21,7 @@ class EvaluationCase:
     query_variants: tuple[str, ...] = ()
     query_variant_weight: float = 0.5
     collapse_by_canonical_uri: bool = False
+    relevance: Mapping[str, float] = field(default_factory=dict)
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -47,6 +48,10 @@ class EvaluationCase:
             raise ValueError("query_variant_weight must be between 0 and 1")
         if len(self.query_variants) > 8:
             raise ValueError("at most 8 query variants are allowed")
+        if any(not str(key).strip() for key in self.relevance):
+            raise ValueError("relevance IDs must not be blank")
+        if any(float(value) < 0 for value in self.relevance.values()):
+            raise ValueError("relevance grades must be non-negative")
 
     @classmethod
     def from_dict(
@@ -76,6 +81,10 @@ class EvaluationCase:
             collapse_by_canonical_uri=bool(
                 merged.get("collapse_by_canonical_uri", False)
             ),
+            relevance={
+                str(key): float(value)
+                for key, value in dict(merged.get("relevance") or {}).items()
+            },
             metadata=dict(merged.get("metadata") or {}),
         )
 
@@ -124,6 +133,7 @@ class CaseEvaluation:
     recall_at_5: float
     latency_ms: float
     returned_ids: tuple[str, ...]
+    ndcg_at_5: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,6 +149,7 @@ class EvaluationSummary:
     latency_p95_ms: float
     latency_max_ms: float
     case_results: tuple[CaseEvaluation, ...]
+    mean_ndcg_at_5: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -149,6 +160,7 @@ class EvaluationSummary:
             "hit_rate_at_3": self.hit_rate_at_3,
             "hit_rate_at_5": self.hit_rate_at_5,
             "mean_recall_at_5": self.mean_recall_at_5,
+            "mean_ndcg_at_5": self.mean_ndcg_at_5,
             "latency_p50_ms": self.latency_p50_ms,
             "latency_p95_ms": self.latency_p95_ms,
             "latency_max_ms": self.latency_max_ms,
@@ -161,6 +173,7 @@ class EvaluationSummary:
                     "hit_at_3": item.hit_at_3,
                     "hit_at_5": item.hit_at_5,
                     "recall_at_5": item.recall_at_5,
+                    "ndcg_at_5": item.ndcg_at_5,
                     "latency_ms": item.latency_ms,
                     "returned_ids": list(item.returned_ids),
                 }
