@@ -245,7 +245,7 @@ class SearchRequest(BaseModel):
     collapse_by_canonical_uri: bool = False
     rerank: bool = False
     rerank_candidates: int = Field(default=20, ge=1, le=100)
-    rerank_strategy: RerankStrategy = RerankStrategy.REASONING
+    rerank_strategy: RerankStrategy = RerankStrategy.CROSS_ENCODER
     execution_mode: ExecutionMode | None = None
 
     @model_validator(mode="after")
