@@ -336,7 +336,7 @@ These roles may point to separate local endpoints/models and may be upgraded ind
 
 ### DP-MODES-001 — capability / effort modes
 
-Status: PLANNED.
+Status: COMPLETE (2026-10-06).
 
 Expose a product-neutral execution-depth abstraction so consumers can request an outcome level without hard-coding model/provider details.
 
@@ -563,11 +563,14 @@ Status: COMPLETE (platform vault/binding, 2026-10-06).
 - [x] fail-closed connector/consumer/tenant/status checks before decryption;
 - [x] Python and JavaScript SDK support;
 - [x] consumer discovery participates in usage metering;
-- [x] ship the first concrete authenticated third-party connector package (`github_repository`);\n- [ ] run live private-repository acceptance with a tenant-owned GitHub credential.
+- [x] ship the first concrete authenticated third-party connector package (`github_repository`);
+- [ ] run live private-repository acceptance with a tenant-owned GitHub credential.
 
 Implementation: `docs/CONNECTOR_CREDENTIALS.md`. The platform deliberately does not provide a generic arbitrary Authorization-header forwarder: each authenticated connector must define its own credential schema/application so secrets cannot be leaked through redirects or unrelated hosts.
 
-Connector-vault production acceptance (2026-10-06): migration `0011_connector_credentials` is live in `arvectum_data`; the production runtime has the cryptography dependency and a mode-0600, runtime-only master key at key version `v1`. A live encryption/decryption smoke confirmed ciphertext contains no plaintext secret and round-trips correctly. The API restarted healthy on the merged build. No real customer credential row was created for the acceptance.\n\nGitHub connector increment (2026-10-06): `github_repository` is the first concrete credential-aware connector package. Its token is resolved only from the encrypted vault; repository/ref scope is separate safe metadata; Authorization is restricted to fixed `api.github.com` HTTPS requests and credentialed redirects are rejected. The connector supports repository-scoped code discovery, raw text-file acquisition and credential-aware RESEARCH ingestion. Python/JavaScript SDKs now expose connector credential lifecycle, discovery and research. Live private-repository acceptance remains pending until a tenant-owned GitHub token is deliberately supplied; Data Platform does not scrape tokens from local Git tooling.
+Connector-vault production acceptance (2026-10-06): migration `0011_connector_credentials` is live in `arvectum_data`; the production runtime has the cryptography dependency and a mode-0600, runtime-only master key at key version `v1`. A live encryption/decryption smoke confirmed ciphertext contains no plaintext secret and round-trips correctly. The API restarted healthy on the merged build. No real customer credential row was created for the acceptance.
+
+GitHub connector increment (2026-10-06): `github_repository` is the first concrete credential-aware connector package. Its token is resolved only from the encrypted vault; repository/ref scope is separate safe metadata; Authorization is restricted to fixed `api.github.com` HTTPS requests and credentialed redirects are rejected. The connector supports repository-scoped code discovery, raw text-file acquisition and credential-aware RESEARCH ingestion. Python/JavaScript SDKs now expose connector credential lifecycle, discovery and research. Live private-repository acceptance remains pending until a tenant-owned GitHub token is deliberately supplied; Data Platform does not scrape tokens from local Git tooling.
 ### DP-BILL-001 — pricing and invoicing core
 
 Status: COMPLETE (core/provider boundary, 2026-10-06).
@@ -589,14 +592,17 @@ YooKassa adapter increment (2026-10-06): the optional `YooKassaPaymentProvider` 
 YooKassa production schema increment (2026-10-06): migration `0013_invoice_provider_status` is live in production and the API restarted healthy on the merged adapter build. Provider activation remains intentionally disabled because no merchant credentials were supplied through an approved secret channel.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
-Status: FUTURE.
+Status: PILOT-READY; external production activation is blocked only on deliberately supplied customer/merchant credentials for the remaining live acceptance gates.
 
 Potential product contour: connect documents, websites and APIs -> continuously index them -> expose evidence-backed search/API/SDK for customer AI agents.
+
+Pilot-readiness note (2026-10-06): all unblocked platform implementation gates are complete. The only remaining externalization checks require credentials that must be deliberately supplied by a real tenant/merchant: private GitHub repository acceptance and YooKassa merchant/webhook activation. No local secret discovery or credential scraping is permitted to close those gates.
 
 Before externalization:
 - [x] tenant isolation and quotas;
 - [x] customer-managed encrypted credential vault + connector binding;
-- [x] first authenticated third-party connector package (`github_repository`);\n- [ ] live private GitHub repository acceptance with a customer-owned credential;
+- [x] first authenticated third-party connector package (`github_repository`);
+- [ ] live private GitHub repository acceptance with a customer-owned credential;
 - [x] billing-grade usage metering;
 - [x] product pricing + invoicing core and provider-neutral payment boundary;
 - [x] YooKassa online acquiring / SBP payment-provider adapter;
