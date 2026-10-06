@@ -246,6 +246,26 @@ test("connector credential lifecycle uses consumer auth", async () => {
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
+      if (path === "/v1/research") {
+        const payload = JSON.parse(options.body);
+        assert.equal(payload.connector, "private-search");
+        assert.equal(payload.credential_id, "cred-1");
+        assert.equal(payload.collection_id, "research:private");
+        return new Response(
+          JSON.stringify({
+            query: "supplier",
+            answer: null,
+            claims: [],
+            contradictions: [],
+            uncertainty: "disabled",
+            abstained: true,
+            sources: [],
+            evidence: [],
+            warnings: [],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
       throw new Error("unexpected path " + path);
     },
   });
@@ -264,9 +284,18 @@ test("connector credential lifecycle uses consumer auth", async () => {
     })).resources,
     [],
   );
+  const research = await client.research({
+    query: "supplier",
+    collectionId: "research:private",
+    connector: "private-search",
+    credentialId: "cred-1",
+    executionMode: "research",
+  });
+  assert.equal(research.abstained, true);
   assert.deepEqual(calls, [
     ["POST", "/v1/connectors/credentials"],
     ["GET", "/v1/connectors/credentials"],
     ["POST", "/v1/discover"],
+    ["POST", "/v1/research"],
   ]);
 });
