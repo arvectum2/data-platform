@@ -561,6 +561,8 @@ Status: COMPLETE (platform vault/binding, 2026-10-06).
 - [ ] ship the first concrete authenticated third-party connector package.
 
 Implementation: `docs/CONNECTOR_CREDENTIALS.md`. The platform deliberately does not provide a generic arbitrary Authorization-header forwarder: each authenticated connector must define its own credential schema/application so secrets cannot be leaked through redirects or unrelated hosts.
+
+Connector-vault production acceptance (2026-10-06): migration `0011_connector_credentials` is live in `arvectum_data`; the production runtime has the cryptography dependency and a mode-0600, runtime-only master key at key version `v1`. A live encryption/decryption smoke confirmed ciphertext contains no plaintext secret and round-trips correctly. The API restarted healthy on the merged build. No real customer credential row was created for the acceptance.
 ### DP-PRODUCT-001 — Data Platform as an external Arvectum product
 
 Status: FUTURE.
