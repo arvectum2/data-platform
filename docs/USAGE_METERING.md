@@ -68,3 +68,11 @@ The response is aggregate-only. It returns event count, total quantity, billable
 Data Platform now owns trustworthy usage accounting, but not commercial policy. Product pricing, currency, taxes, invoice generation, credits, plan changes and payment-provider integration belong to the external product/billing layer.
 
 This separation keeps historical usage immutable when commercial pricing changes.
+
+## Production acceptance — 2026-10-06
+
+Migration `0010_usage_events` was applied to the production `arvectum_data` PostgreSQL database and the API was restarted on the merged DP-METER-001 build.
+
+A live authenticated `growth-agent` search was sent twice with the same `X-Request-ID`. Both requests returned HTTP 200 with three hits, while the durable usage total changed from 0 to 1 and billable quantity changed by exactly +1. This verifies retry deduplication in the production path.
+
+The stored event contained only consumer/operation/accounting fields plus numeric metadata (`duration_ms` and `request_bytes`); no query text, URL, result content, prompt or credential was persisted. `/v1/status` reported `usage_metering_errors=0` after the smoke.
