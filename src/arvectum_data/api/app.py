@@ -1334,22 +1334,29 @@ def create_app(
         runtime_service=Depends(runtime),
     ):
         consumer = None
-        if x_arvectum_consumer is not None or x_arvectum_consumer_key is not None:
+        if (
+            payload.credential_id is not None
+            or x_arvectum_consumer is not None
+            or x_arvectum_consumer_key is not None
+        ):
             consumer = require_consumer_identity(
                 x_arvectum_consumer,
                 x_arvectum_consumer_key,
             )
         try:
-            result = runtime_service.research(
-                query=payload.query,
-                collection_id=payload.collection_id,
-                connector=payload.connector,
-                source_limit=payload.source_limit,
-                evidence_limit=payload.evidence_limit,
-                consumer=consumer,
-                rerank=payload.rerank,
-                expand_query=payload.expand_query,
-            )
+            research_kwargs = {
+                "query": payload.query,
+                "collection_id": payload.collection_id,
+                "connector": payload.connector,
+                "source_limit": payload.source_limit,
+                "evidence_limit": payload.evidence_limit,
+                "consumer": consumer,
+                "rerank": payload.rerank,
+                "expand_query": payload.expand_query,
+            }
+            if payload.credential_id is not None:
+                research_kwargs["credential_id"] = payload.credential_id
+            result = runtime_service.research(**research_kwargs)
         except Exception as exc:
             raise map_service_error(exc) from exc
         research_total_ms = next(
