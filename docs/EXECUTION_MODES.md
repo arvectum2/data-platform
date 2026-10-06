@@ -72,3 +72,34 @@ Provider/model identity is included where available. Metadata is deliberately
 limited to safe counters such as call count, candidate limit, variant count and
 returned-hit count. Query text, document text, URLs, API keys and exception
 messages are not copied into diagnostics.
+
+## Initial budgets
+
+Mode budgets are capability/SLO envelopes, not cancellation deadlines.
+
+| Mode | Latency target | Max model calls | Query expansions | Rerank candidates | External sources | Evidence |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FAST | 500 ms | 0 | 0 | 0 | 0 | 100 |
+| STANDARD | 1500 ms | 1 | 0 | 20 | 0 | 100 |
+| DEEP | 2500 ms | 2 | 4 | 20 | 0 | 100 |
+| RESEARCH | 120000 ms | 3 | 4 | 50 | 25 | 50 |
+
+FAST is calibrated above the measured local production search p95 and the live
+342 ms diagnostic smoke. STANDARD uses the existing <=3x rerank latency gate.
+DEEP uses an additive ceiling corresponding to the accepted 2x expansion plus
+3x rerank gates. RESEARCH is a separate network-bound workflow and starts with
+a deliberately wider 120 s soft target; it remains bounded by source/evidence
+limits and model-provider timeouts.
+
+Search and research responses report the applicable latency target and whether
+the measured execution stayed within it. Exceeding a soft target does not
+silently cancel work or change ranking; promotion/default decisions continue to
+be benchmark-driven.
+
+## Research execution diagnostics
+
+Research responses report safe aggregate timings for discovery,
+acquisition/indexing, retrieval/synthesis and total workflow execution.
+Discovery connector identity and reasoning provider/model identity are included
+when available. Metadata is limited to counts of resources, successful/failed
+acquisitions, evidence, claims and contradictions.

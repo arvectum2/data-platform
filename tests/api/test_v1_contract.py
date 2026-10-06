@@ -153,6 +153,50 @@ class FakePlatformService:
             )
         )
 
+    def research(
+        self,
+        *,
+        query,
+        collection_id,
+        connector="duckduckgo_html",
+        source_limit=8,
+        evidence_limit=8,
+        consumer=None,
+        rerank=False,
+        expand_query=False,
+    ):
+        from arvectum_data.answers import GroundedAnswer
+        from arvectum_data.research import ResearchResult, ResearchStageDiagnostic
+
+        return ResearchResult(
+            query=query,
+            answer=GroundedAnswer(
+                answer=None,
+                claims=(),
+                contradictions=(),
+                uncertainty="reasoning disabled",
+                abstained=True,
+            ),
+            sources=(),
+            evidence=(),
+            warnings=(),
+            diagnostics=(
+                ResearchStageDiagnostic(
+                    stage="discovery",
+                    status="executed",
+                    duration_ms=5.0,
+                    provider=connector,
+                    metadata={"resources": 0, "warnings": 0},
+                ),
+                ResearchStageDiagnostic(
+                    stage="total-research",
+                    status="executed",
+                    duration_ms=12.0,
+                    metadata={"sources": 0, "evidence": 0},
+                ),
+            ),
+        )
+
     def rebuild_index(self, collection_id):
         return {
             "run_id": "job-1",
@@ -929,6 +973,10 @@ def test_execution_modes_are_discoverable_and_enforce_search_depth() -> None:
     assert payload["standard"]["optional_stages"] == ["rerank"]
     assert payload["deep"]["optional_stages"] == ["query-expansion", "rerank"]
     assert payload["research"]["endpoint"] == "/v1/research"
+    assert payload["fast"]["latency_budget_ms"] == 500
+    assert payload["standard"]["max_model_calls"] == 1
+    assert payload["deep"]["latency_budget_ms"] == 2500
+    assert payload["research"]["latency_budget_ms"] == 120000
 
     fast = client.post(
         "/v1/search",
@@ -942,6 +990,8 @@ def test_execution_modes_are_discoverable_and_enforce_search_depth() -> None:
     assert fast.status_code == 200
     assert fast.json()["execution_mode"] == "fast"
     assert fast.json()["diagnostics"]["execution_mode"] == "fast"
+    assert fast.json()["diagnostics"]["latency_budget_ms"] == 500
+    assert fast.json()["diagnostics"]["max_model_calls"] == 0
 
     fast_rerank = client.post(
         "/v1/search",
@@ -996,3 +1046,30 @@ def test_legacy_search_without_execution_mode_keeps_manual_flags_compatible() ->
 
     assert response.status_code == 200
     assert response.json()["execution_mode"] is None
+
+def test_research_execution_mode_exposes_safe_budget_diagnostics() -> None:
+    client = _client()
+    response = client.post(
+        "/v1/research",
+        headers={"X-Arvectum-Key": "secret"},
+        json={
+            "query": "research-secret-marker",
+            "collection_id": "tests:knowledge",
+            "connector": "fake",
+            "execution_mode": "research",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["execution_mode"] == "research"
+    diagnostics = body["diagnostics"]
+    assert diagnostics["latency_budget_ms"] == 120000
+    assert diagnostics["max_model_calls"] == 3
+    assert diagnostics["within_latency_budget"] is True
+    assert diagnostics["total_ms"] == 12.0
+    assert [item["stage"] for item in diagnostics["stages"]] == [
+        "discovery",
+        "total-research",
+    ]
+    assert "research-secret-marker" not in repr(diagnostics)

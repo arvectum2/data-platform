@@ -58,6 +58,23 @@ def test_research_deduplicates_and_isolates_source_failures():
     assert service.answer_request.collections == ("research:test",)
     assert service.answer_request.limit == 4
     assert result.answer.abstained is True
+    by_stage = {item.stage: item for item in result.diagnostics}
+    assert set(by_stage) == {
+        "discovery",
+        "acquisition-indexing",
+        "retrieval-synthesis",
+        "total-research",
+    }
+    assert by_stage["discovery"].provider == "duckduckgo_html"
+    assert by_stage["acquisition-indexing"].status == "partial"
+    assert by_stage["acquisition-indexing"].metadata == {
+        "attempted": 2,
+        "ingested": 1,
+        "failed": 1,
+    }
+    assert by_stage["retrieval-synthesis"].status == "abstained"
+    assert all(item.duration_ms >= 0 for item in result.diagnostics)
+    assert "research question" not in repr(result.diagnostics)
 
 
 def test_research_bounds_source_expansion():

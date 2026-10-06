@@ -24,6 +24,8 @@ class ModeProfile:
     max_rerank_candidates: int
     max_discovery_sources: int
     max_evidence_items: int
+    latency_budget_ms: int
+    max_model_calls: int
     degradation: str
 
     def to_dict(self) -> dict[str, Any]:
@@ -46,6 +48,8 @@ MODE_PROFILES: dict[ExecutionMode, ModeProfile] = {
         max_rerank_candidates=0,
         max_discovery_sources=0,
         max_evidence_items=100,
+        latency_budget_ms=500,
+        max_model_calls=0,
         degradation="lexical-only remains available when embeddings are unavailable",
     ),
     ExecutionMode.STANDARD: ModeProfile(
@@ -59,6 +63,8 @@ MODE_PROFILES: dict[ExecutionMode, ModeProfile] = {
         max_rerank_candidates=20,
         max_discovery_sources=0,
         max_evidence_items=100,
+        latency_budget_ms=1500,
+        max_model_calls=1,
         degradation="rerank fails open to deterministic hybrid ordering",
     ),
     ExecutionMode.DEEP: ModeProfile(
@@ -72,6 +78,8 @@ MODE_PROFILES: dict[ExecutionMode, ModeProfile] = {
         max_rerank_candidates=20,
         max_discovery_sources=0,
         max_evidence_items=100,
+        latency_budget_ms=2500,
+        max_model_calls=2,
         degradation="optional expansion/rerank fail open to deterministic retrieval",
     ),
     ExecutionMode.RESEARCH: ModeProfile(
@@ -91,6 +99,8 @@ MODE_PROFILES: dict[ExecutionMode, ModeProfile] = {
         max_rerank_candidates=50,
         max_discovery_sources=25,
         max_evidence_items=50,
+        latency_budget_ms=120000,
+        max_model_calls=3,
         degradation="reasoning failure returns evidence with explicit abstention",
     ),
 }

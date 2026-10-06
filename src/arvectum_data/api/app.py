@@ -21,7 +21,7 @@ import uvicorn
 from ..acquisition.security import UnsafeURL
 from ..engine import FieldSpec
 from ..observability import configure_logging
-from ..modes import MODE_PROFILES
+from ..modes import MODE_PROFILES, mode_profile
 from ..search import SearchQuery
 from .config import Settings
 from .contract import (
@@ -65,6 +65,7 @@ from .schemas import (
     RefreshResultResponse,
     RefreshRunResponse,
     ResearchRequest,
+    ResearchExecutionDiagnosticsResponse,
     ResearchResponse,
     RelevanceFeedbackResponse,
     RelevanceFeedbackSummaryResponse,
@@ -479,6 +480,20 @@ def create_app(
         except Exception as exc:
             raise map_service_error(exc) from exc
 
+        total_search_ms = next(
+            (
+                item.duration_ms
+                for item in stage_diagnostics
+                if item.stage == "total-search"
+            ),
+            None,
+        )
+        active_profile = (
+            mode_profile(payload.execution_mode)
+            if payload.execution_mode is not None
+            else None
+        )
+
         return SearchResponse(
             query=payload.query,
             execution_mode=payload.execution_mode,
@@ -520,13 +535,21 @@ def create_app(
             ],
             diagnostics=SearchExecutionDiagnosticsResponse(
                 execution_mode=payload.execution_mode,
-                total_ms=next(
-                    (
-                        item.duration_ms
-                        for item in stage_diagnostics
-                        if item.stage == "total-search"
-                    ),
-                    None,
+                total_ms=total_search_ms,
+                latency_budget_ms=(
+                    active_profile.latency_budget_ms
+                    if active_profile is not None
+                    else None
+                ),
+                within_latency_budget=(
+                    total_search_ms <= active_profile.latency_budget_ms
+                    if active_profile is not None and total_search_ms is not None
+                    else None
+                ),
+                max_model_calls=(
+                    active_profile.max_model_calls
+                    if active_profile is not None
+                    else None
                 ),
                 stages=[
                     {
@@ -920,6 +943,20 @@ def create_app(
             )
         except Exception as exc:
             raise map_service_error(exc) from exc
+        research_total_ms = next(
+            (
+                item.duration_ms
+                for item in result.diagnostics
+                if item.stage == "total-research"
+            ),
+            None,
+        )
+        research_profile = (
+            mode_profile(payload.execution_mode)
+            if payload.execution_mode is not None
+            else None
+        )
+
         return ResearchResponse(
             query=result.query,
             execution_mode=payload.execution_mode,
@@ -971,6 +1008,37 @@ def create_app(
                 for hit in result.evidence
             ],
             warnings=list(result.warnings),
+            diagnostics=ResearchExecutionDiagnosticsResponse(
+                execution_mode=payload.execution_mode,
+                total_ms=research_total_ms,
+                latency_budget_ms=(
+                    research_profile.latency_budget_ms
+                    if research_profile is not None
+                    else None
+                ),
+                within_latency_budget=(
+                    research_total_ms <= research_profile.latency_budget_ms
+                    if research_profile is not None
+                    and research_total_ms is not None
+                    else None
+                ),
+                max_model_calls=(
+                    research_profile.max_model_calls
+                    if research_profile is not None
+                    else None
+                ),
+                stages=[
+                    {
+                        "stage": item.stage,
+                        "status": item.status,
+                        "duration_ms": item.duration_ms,
+                        "provider": item.provider,
+                        "model": item.model,
+                        "metadata": dict(item.metadata),
+                    }
+                    for item in result.diagnostics
+                ],
+            ),
         )
 
     @router.post(
