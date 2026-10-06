@@ -32,6 +32,108 @@ class ConsumerKeyIssuedResponse(ConsumerKeyResponse):
     secret: str
 
 
+class BillingPriceRuleRequest(BaseModel):
+    operation: str = Field(min_length=1, max_length=64)
+    unit: str = Field(default="request", min_length=1, max_length=32)
+    unit_price_minor: int = Field(ge=0)
+    included_quantity: int = Field(default=0, ge=0)
+    description: str | None = Field(default=None, max_length=512)
+
+
+class BillingCatalogCreateRequest(BaseModel):
+    plan_code: str = Field(min_length=1, max_length=64)
+    version: int = Field(ge=1)
+    name: str = Field(min_length=1, max_length=128)
+    currency: str = Field(min_length=3, max_length=3)
+    base_fee_minor: int = Field(default=0, ge=0)
+    rules: list[BillingPriceRuleRequest] = Field(min_length=1, max_length=128)
+    effective_from: datetime
+
+
+class BillingCatalogResponse(BaseModel):
+    catalog_id: str
+    plan_code: str
+    version: int
+    name: str
+    currency: str
+    base_fee_minor: int
+    rules: list[dict[str, Any]]
+    status: str
+    effective_from: datetime
+    created_at: datetime
+
+
+class TenantBillingAssignRequest(BaseModel):
+    catalog_id: str = Field(min_length=1, max_length=36)
+    effective_from: datetime
+    payment_provider: str = Field(default="manual", min_length=1, max_length=64)
+    external_customer_id: str | None = Field(default=None, max_length=256)
+
+
+class TenantBillingAssignmentResponse(BaseModel):
+    assignment_id: str
+    tenant_id: str
+    catalog_id: str
+    payment_provider: str
+    external_customer_id: str | None = None
+    status: str
+    effective_from: datetime
+    effective_to: datetime | None = None
+    created_at: datetime
+
+
+class InvoicePeriodRequest(BaseModel):
+    tenant_id: str = Field(min_length=1, max_length=128)
+    period_start: datetime
+    period_end: datetime
+
+
+class InvoiceLineResponse(BaseModel):
+    operation: str
+    unit: str
+    quantity: int
+    included_quantity: int
+    chargeable_quantity: int
+    unit_price_minor: int
+    amount_minor: int
+    description: str | None = None
+
+
+class UnpricedUsageResponse(BaseModel):
+    operation: str
+    unit: str
+    quantity: int
+
+
+class InvoiceResponse(BaseModel):
+    invoice_id: str | None = None
+    tenant_id: str
+    catalog_id: str
+    period_start: datetime
+    period_end: datetime
+    currency: str
+    plan_code: str | None = None
+    plan_version: int | None = None
+    base_fee_minor: int
+    subtotal_minor: int
+    total_minor: int
+    status: str
+    usage_snapshot_hash: str
+    pricing_snapshot: dict[str, Any]
+    lines: list[InvoiceLineResponse] = Field(default_factory=list)
+    unpriced_usage: list[UnpricedUsageResponse] = Field(default_factory=list)
+    payment_provider: str | None = None
+    provider_reference: str | None = None
+    payment_url: str | None = None
+    created_at: datetime | None = None
+    finalized_at: datetime | None = None
+    paid_at: datetime | None = None
+
+
+class InvoiceMarkPaidRequest(BaseModel):
+    provider_reference: str | None = Field(default=None, max_length=256)
+
+
 class UsageSummaryBucketResponse(BaseModel):
     tenant_id: str | None = None
     consumer_id: str
