@@ -181,3 +181,17 @@ The first production run, before query variants, produced:
 Changing global lexical/vector fusion weights to 1:2 or 1:4 did not improve top-1 accuracy. This is evidence that the remaining failures are query-formulation/domain-language gaps rather than a single global fusion-weight problem.
 
 The benchmark therefore justifies bounded consumer-controlled query variants. Data Platform accepts up to eight deterministic variants per search request. The original query always keeps full weight; variants use a separate `query_variant_weight` in the 0..1 range. Data Platform does not invent domain synonyms internally.
+
+### nDCG duplicate identity handling
+
+nDCG is computed over unique result identities. When evaluation uses
+canonical_uri, multiple chunks from the same page count as one result identity
+rather than repeated relevance gains. This keeps nDCG bounded by 1.0 while
+preserving chunk-level output in per-case diagnostics.
+
+After this correction, a live production_acceptance_v3 run on 2026-10-06
+scored top-1=1.0, MRR=1.0, hit-rate@5=1.0, mean recall@5=1.0 and mean
+nDCG@5=0.9953. The current frozen nDCG gate is 0.99. The only non-perfect
+case is growth-photo-pixels (nDCG@5 about 0.906): all three accepted relevant
+URLs are in top-5, but one non-relevant page is interleaved before the latter
+two.

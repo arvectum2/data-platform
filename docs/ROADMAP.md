@@ -580,7 +580,7 @@ Required benchmark dimensions:
 - [x] table/form structure preservation;
 - [x] fact-preserving chunking quality;
 - [x] exact identifier/number/date/amount retrieval;
-- [ ] semantic retrieval quality using Recall@k, MRR and nDCG;
+- [x] semantic retrieval quality using Recall@k, MRR and nDCG;
 - [ ] Russian-language retrieval quality;
 - [ ] reranking uplift over base hybrid retrieval;
 - [ ] citation correctness and citation completeness;
@@ -603,6 +603,8 @@ Corpus increment (2026-10-06): benchmarks/corpora/public_v1 now pins real public
 Adversarial increment (2026-10-06): benchmarks/adversarial_v1.json now executes five invariants against the real PostgreSQL platform path: collection isolation, consumer/tenant fail-closed isolation, federated duplicate canonical-URI suppression, preservation of distinct conflicting evidence, and stale-source last-known-evidence retention. Isolated Mac mini PostgreSQL acceptance passed 5/5: zero forbidden collection hits, unauthorized consumer denied, duplicate canonical URI collapsed to one winner, both conflicting evidence sources preserved, and refresh_error -> stale retained the original content hash plus searchable last-known evidence. The required pass rate is 1.0; contradiction detection itself remains a separate benchmark dimension rather than being inferred from source preservation alone.
 
 Exact-fact increment (2026-10-06): benchmarks/fact_preservation_v1.json binds six real PDF/DOCX/XLSX facts to their expected source and local context. Default chunking preserved every exact fact together with its context (6/6), and isolated PostgreSQL lexical acceptance returned the expected document top-1 for all six exact queries. Coverage includes an identifier, dates, an OKPD2/classification number and monetary amounts; both chunk/context preservation and retrieval top-1 gates are fixed at 1.0.
+
+Semantic retrieval increment (2026-10-06): nDCG now deduplicates repeated result identities before scoring, preventing multiple chunks from the same canonical URI from creating impossible relevance gain above 1.0. Re-run of production_acceptance_v3 scored top-1=1.0, MRR=1.0, recall@5=1.0 and mean nDCG@5=0.9953 against a fixed 0.99 gate. The remaining growth-photo-pixels ordering gap stays visible as benchmark debt instead of being relabeled or hidden.
 
 ### Benchmark-driven adoption gates
 

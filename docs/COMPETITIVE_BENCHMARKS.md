@@ -107,6 +107,18 @@ the security/data-lifecycle invariants from embedding-model variance.
 
 First isolated PostgreSQL acceptance on the Mac mini (2026-10-06) passed 5/5. The isolation case returned one requested-collection hit and zero forbidden hits; the tenant case denied the unauthorized consumer and returned one hit for the authorized consumer; federated duplicate content collapsed to one canonical URI; both conflicting source URIs and their evidence survived retrieval; and the stale case transitioned refresh_error -> stale while preserving the original content hash and searchable last-known evidence. The temporary benchmark database was dropped after the run.
 
+nDCG treats repeated result identities as one document/evidence item. This is
+important when page-level evaluation uses canonical_uri while search returns
+multiple chunks from the same page: duplicate chunks must not create relevance
+gain or allow nDCG to exceed 1.0.
+
+Live production retrieval baseline after duplicate-identity correction
+(2026-10-06): production_acceptance_v3 passed top-1 1.0, MRR 1.0, recall@5
+1.0 and mean nDCG@5 0.9953 against a fixed 0.99 nDCG gate. The remaining
+ranking gap is explicit rather than hidden: growth-photo-pixels has all accepted
+evidence in top-5 but an unrelated result is interleaved before two relevant
+URLs.
+
 ## Exact fact preservation
 
 benchmarks/fact_preservation_v1.json binds exact facts to real frozen public
