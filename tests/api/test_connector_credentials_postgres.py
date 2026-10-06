@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 from arvectum_data.api.app import create_app
 from arvectum_data.api.config import Settings
+from arvectum_data.acquisition import AcquisitionAttempt, AcquisitionResult
 from arvectum_data.api.service import DataPlatformService
 from arvectum_data.connectors import (
     ConnectorHealth,
@@ -19,6 +20,7 @@ from arvectum_data.connectors import (
     DiscoveryPage,
     DiscoveredResource,
 )
+from arvectum_data.engine.models import RawAsset
 from arvectum_data.indexing import HashingEmbeddingProvider
 from arvectum_data.storage.postgres import ConnectorCredentialRow
 
@@ -54,16 +56,36 @@ class CredentialAwareTestConnector:
                     canonical_uri="https://example.com/private",
                     provider=self.name,
                     title=f"authenticated:{query}",
-                    metadata={"authenticated": True},
+                    metadata={"authenticated": True, "path": "private.txt"},
                 ),
             )
+        )
+
+    def fetch(self, resource):
+        if not self.token:
+            raise ValueError("credentials are required")
+        return AcquisitionResult(
+            asset=RawAsset(
+                asset_id="credential-test-private",
+                source_url=resource.canonical_uri,
+                text="private supplier evidence for authenticated research",
+            ),
+            attempts=(
+                AcquisitionAttempt(
+                    method=self.name,
+                    success=True,
+                    reason="credential_test_success",
+                    status_code=200,
+                    final_url=resource.canonical_uri,
+                ),
+            ),
         )
 
     def health(self):
         return ConnectorHealth(
             name=self.name,
             state=ConnectorState.READY,
-            capabilities=("discover", "credentials"),
+            capabilities=("discover", "fetch", "credentials"),
         )
 
 
@@ -110,6 +132,22 @@ def test_encrypted_connector_credential_lifecycle_and_discovery() -> None:
         "X-Arvectum-Consumer-Key": issued.json()["secret"],
     }
 
+    collection_id = f"credential-research:{uuid.uuid4().hex[:12]}"
+    collection = client.post(
+        "/v1/collections",
+        headers=admin,
+        json={
+            "collection_id": collection_id,
+            "owner": "credential-integration",
+            "name": "Credential research",
+            "access_policy": {
+                "tenant_id": tenant_id,
+                "allowed_consumers": [consumer_id],
+            },
+        },
+    )
+    assert collection.status_code == 200
+
     plaintext = "first-super-secret"
     created = client.post(
         "/v1/connectors/credentials",
@@ -147,6 +185,29 @@ def test_encrypted_connector_credential_lifecycle_and_discovery() -> None:
     )
     assert discovered.status_code == 200
     assert discovered.json()["resources"][0]["title"] == "authenticated:supplier"
+
+    research = client.post(
+        "/v1/research",
+        headers=consumer_headers,
+        json={
+            "query": "private supplier evidence",
+            "collection_id": collection_id,
+            "connector": "credential-test",
+            "credential_id": credential_id,
+            "source_limit": 1,
+            "evidence_limit": 3,
+            "execution_mode": "research",
+        },
+    )
+    assert research.status_code == 200
+    assert research.json()["sources"][0]["ingested"] is True
+    assert research.json()["sources"][0]["canonical_uri"] == (
+        "https://example.com/private"
+    )
+    assert research.json()["evidence"]
+    assert research.json()["evidence"][0]["canonical_uri"] == (
+        "https://example.com/private"
+    )
 
     rotated = client.post(
         f"/v1/connectors/credentials/{credential_id}/rotate",
