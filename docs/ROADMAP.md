@@ -544,13 +544,15 @@ Before externalization:
 - [ ] billing/usage metering;
 - [ ] external auth and key lifecycle;
 - [x] retention/deletion/export controls;
-- [ ] deployment/privacy modes including a local/private mode in which documents and model requests never leave customer-controlled infrastructure;
-- [ ] explicit per-capability policy for whether remote LLM/VLM providers are permitted;
+- [x] deployment/privacy modes including a local/private mode in which documents and model requests never leave customer-controlled infrastructure;
+- [x] explicit per-capability policy for whether remote LLM/VLM providers are permitted;
 - [x] operational SLOs and supportability.
 
 Supportability increment (2026-10-06): /v1/status now reports a bounded rolling p95 latency window per operation, while /v1/support/readiness evaluates secret-free p95/error-rate SLOs with an explicit insufficient-data state until at least 20 recent samples exist. The window is capped at 256 requests per operation and remains in-memory; docs/SUPPORTABILITY.md defines targets and the support workflow.
 
 Collection-lifecycle increment (2026-10-06): collection creation now accepts a bounded max_age_days retention policy; retention pruning is dry-run by default and deletes only when dry_run=false; collection export is paginated and omits source/chunk/record content unless include_content=true; hard collection deletion is a preview unless confirm=true. Isolated PostgreSQL acceptance verified export redaction/content opt-in, retention dry-run, cascading resource deletion and confirmed collection deletion. Shared/global entity rows are not removed by collection lifecycle controls. See docs/COLLECTION_LIFECYCLE.md.
+
+Privacy-mode increment (2026-10-06): Settings now supports deployment_mode=local-private as a startup invariant. The service fails closed if the API bind, database or embedding endpoint is non-local, OCR is not local/disabled, or reasoning/vision use anything other than disabled/local-only loopback policies; stale remote allowlists are rejected too. Standard mode keeps the existing explicit per-role disabled/local-only/remote-allowlist controls. /v1/status exposes the active deployment_mode. See docs/PRIVACY_MODES.md.
 
 ## DP-BENCH-002 — competitive benchmark suite
 

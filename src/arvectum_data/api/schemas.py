@@ -332,6 +332,7 @@ class ExecutionModesResponse(BaseModel):
 
 class StatusResponse(BaseModel):
     status: str
+    deployment_mode: str = "standard"
     database_configured: bool
     embedding_provider: str
     embedding_model: str
