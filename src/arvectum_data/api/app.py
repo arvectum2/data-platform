@@ -15,6 +15,7 @@ from fastapi import (
     Form,
     Header,
     HTTPException,
+    Request,
     UploadFile,
 )
 import uvicorn
@@ -41,6 +42,9 @@ from .schemas import (
     CollectionRetentionPruneResponse,
     CollectionStatsResponse,
     ConnectorHealthResponse,
+    ConsumerKeyCreateRequest,
+    ConsumerKeyIssuedResponse,
+    ConsumerKeyResponse,
     ConsumerContractResponse,
     DiscoveryRequest,
     DiscoveryResponse,
@@ -84,6 +88,7 @@ from .schemas import (
 from .service import (
     CollectionAccessDenied,
     CollectionNotFound,
+    ConsumerKeyNotFound,
     DataPlatformService,
     EmbeddingContractMismatch,
     EntityNotFound,
@@ -187,12 +192,39 @@ def create_app(
             "version": _package_version(),
         }
 
-    def require_internal_key(x_arvectum_key: str | None = Header(default=None)) -> None:
+    def require_internal_key(
+        request: Request,
+        x_arvectum_key: str | None = Header(default=None),
+        x_arvectum_consumer: str | None = Header(default=None),
+        x_arvectum_consumer_key: str | None = Header(default=None),
+    ) -> None:
         expected = resolved.internal_api_key
         if not expected:
             return
-        if x_arvectum_key is None or not hmac.compare_digest(x_arvectum_key, expected):
-            raise HTTPException(status_code=401, detail="invalid internal API key")
+        if x_arvectum_key is not None and hmac.compare_digest(
+            x_arvectum_key,
+            expected,
+        ):
+            return
+        external_data_plane = (
+            request.url.path in {
+                "/v1/search",
+                "/v1/answer",
+                "/v1/research",
+                "/v1/memory",
+            }
+            or request.url.path.startswith("/v1/memory/")
+        )
+        if external_data_plane and (
+            x_arvectum_consumer is not None
+            or x_arvectum_consumer_key is not None
+        ):
+            require_consumer_identity(
+                x_arvectum_consumer,
+                x_arvectum_consumer_key,
+            )
+            return
+        raise HTTPException(status_code=401, detail="invalid internal API key")
 
     def require_consumer_identity(
         consumer: str | None,
@@ -204,7 +236,19 @@ def create_app(
                 detail="consumer identity is required for federated or restricted search",
             )
         expected = resolved.consumer_api_keys.get(consumer)
-        if expected is None or not hmac.compare_digest(consumer_key, expected):
+        static_valid = (
+            expected is not None
+            and hmac.compare_digest(consumer_key, expected)
+        )
+        managed_valid = False
+        if not static_valid:
+            platform = runtime()
+            if hasattr(platform, "authenticate_consumer_key"):
+                managed_valid = platform.authenticate_consumer_key(
+                    consumer,
+                    consumer_key,
+                )
+        if not static_valid and not managed_valid:
             raise HTTPException(status_code=403, detail="invalid consumer credentials")
         return consumer
 
@@ -216,6 +260,8 @@ def create_app(
             return HTTPException(status_code=503, detail=str(exc))
         if isinstance(exc, CollectionNotFound):
             return HTTPException(status_code=404, detail="collection not found")
+        if isinstance(exc, ConsumerKeyNotFound):
+            return HTTPException(status_code=404, detail="consumer key not found")
         if isinstance(exc, CollectionAccessDenied):
             return HTTPException(status_code=403, detail="collection access denied")
         if isinstance(exc, TenantQuotaExceeded):
@@ -246,6 +292,69 @@ def create_app(
             version=CONSUMER_CONTRACT_VERSION,
             capabilities=list(CONSUMER_CONTRACT_CAPABILITIES),
         )
+
+    @router.post(
+        "/auth/consumer-keys",
+        response_model=ConsumerKeyIssuedResponse,
+        tags=["auth"],
+    )
+    def create_consumer_key(
+        payload: ConsumerKeyCreateRequest,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.create_consumer_key(
+                consumer_id=payload.consumer_id,
+                tenant_id=payload.tenant_id,
+                label=payload.label,
+                expires_at=payload.expires_at,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.get(
+        "/auth/consumer-keys",
+        response_model=list[ConsumerKeyResponse],
+        tags=["auth"],
+    )
+    def list_consumer_keys(
+        consumer_id: str | None = None,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.list_consumer_keys(
+                consumer_id=consumer_id,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/auth/consumer-keys/{key_id}/revoke",
+        response_model=ConsumerKeyResponse,
+        tags=["auth"],
+    )
+    def revoke_consumer_key(
+        key_id: str,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.revoke_consumer_key(key_id)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/auth/consumer-keys/{key_id}/rotate",
+        response_model=ConsumerKeyIssuedResponse,
+        tags=["auth"],
+    )
+    def rotate_consumer_key(
+        key_id: str,
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.rotate_consumer_key(key_id)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
 
     @router.get(
         "/modes",

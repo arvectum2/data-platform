@@ -457,6 +457,35 @@ class RelevanceFeedbackRow(Base):
         Index("ix_dp_feedback_chunk_label", "chunk_id", "label"),
     )
 
+
+class ConsumerApiKeyRow(Base):
+    __tablename__ = "dp_consumer_api_keys"
+
+    key_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    consumer_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    tenant_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    key_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    key_prefix: Mapped[str] = mapped_column(String(16), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_dp_consumer_api_keys_consumer_status", "consumer_id", "status"),
+        Index("ix_dp_consumer_api_keys_tenant_status", "tenant_id", "status"),
+    )
+
+
 class PipelineRunRow(Base):
     __tablename__ = "dp_pipeline_runs"
 
