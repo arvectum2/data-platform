@@ -4,13 +4,46 @@ from fastapi.testclient import TestClient
 
 from arvectum_data.api.app import create_app
 from arvectum_data.api.config import Settings
-from tests.api.test_v1_contract import FakePlatformService
+from arvectum_data.search import SearchEvidence, SearchHit, SearchScores
 
 
-class UsagePlatformService(FakePlatformService):
+class UsagePlatformService:
     def __init__(self, *, fail_metering: bool = False) -> None:
         self.usage_events: list[dict] = []
         self.fail_metering = fail_metering
+
+    def status(self):
+        return {
+            "status": "ok",
+            "database_configured": True,
+            "embedding_provider": "hashing",
+            "embedding_model": "local-hash-v1",
+            "embedding_dimension": 16,
+            "metrics": {},
+        }
+
+    def search(self, request, *, consumer=None):
+        return [
+            SearchHit(
+                chunk_id="chunk-1",
+                document_id="document-1",
+                resource_id="resource-1",
+                canonical_uri="https://example.com/doc",
+                title="Document",
+                preview="preview",
+                text="full text",
+                scores=SearchScores(lexical=0.5, vector=None, fusion=0.5),
+                evidence=(
+                    SearchEvidence(
+                        resource_id="resource-1",
+                        document_id="document-1",
+                        chunk_id="chunk-1",
+                        canonical_uri="https://example.com/doc",
+                    ),
+                ),
+                metadata={"collection_id": request.collections[0]},
+            )
+        ]
 
     def record_usage_event(self, **kwargs):
         if self.fail_metering:
