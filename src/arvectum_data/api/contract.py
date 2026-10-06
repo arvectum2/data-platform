@@ -9,6 +9,7 @@ CONSUMER_CONTRACT_CAPABILITIES = (
     "connector_credentials",
     "authenticated_connectors",
     "usage_metering",
+    "billing_invoices",
     "document_process",
     "document_ingest",
     "url_ingest",
