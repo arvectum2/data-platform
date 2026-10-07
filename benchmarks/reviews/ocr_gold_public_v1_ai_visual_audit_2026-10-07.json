@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "audit_id": "public-v1-ocr-ai-visual-audit-2026-10-07",
+  "reviewer_kind": "ai",
+  "reviewer": "GPT-5.6 Sol visual inspection via Remote Desktop Commander",
+  "reviewed_at": "2026-10-07",
+  "can_satisfy_human_review_gate": false,
+  "source_review_request": "ocr_gold_public_v1_review_request.json",
+  "items": [
+    {
+      "artifact_id": "procurement-control-notice-scan",
+      "result": "no_substantive_discrepancy_found",
+      "notes": "Visible text, numbers, labels and table values match the pinned candidate reference. Differences observed are layout/spacing/line-flow only.",
+      "proposed_change": null
+    },
+    {
+      "artifact_id": "procurement-technical-spec-scan",
+      "result": "reading_order_marker_mismatch",
+      "notes": "The candidate reference starts with a bullet marker that is not visible before the top “Приложение №…” block. The visible bullet belongs before “Приложение 1. – «Перечень объектов закупки»” under section 1.7.",
+      "proposed_change": "Move the existing leading bullet marker from the start of the candidate text to the “Приложение 1. – «Перечень объектов закупки»” line under section 1.7.",
+      "proposed_candidate_file": "candidates/procurement_technical_spec_scan_ai_visual_candidate.txt",
+      "proposed_candidate_sha256": "b7fd476c18dcc38a4bb193fb8abeff2777b36b1914482c86b9371bb43063db5b"
+    }
+  ],
+  "truth_policy": {
+    "public_v1_mutated": false,
+    "human_attestation_created": false,
+    "promotion_allowed_from_this_audit_alone": false
+  }
+}
