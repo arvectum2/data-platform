@@ -409,6 +409,8 @@ class CollectionServiceMixin:
                 ocr_provider=self.ocr_provider,
                 vision_provider=self.model_router.provider(ModelRole.VISION),
             )
+            processing_metadata = dict(result.document.metadata or {})
+            processing_metadata["file_name"] = filename
             return {
                 "collection_id": result.resource.collection_id,
                 "resource_id": result.resource.resource_id,
@@ -417,6 +419,7 @@ class CollectionServiceMixin:
                 "title": result.document.title,
                 "media_type": result.document.media_type,
                 "extraction_status": result.document.extraction_status,
+                "metadata": processing_metadata,
                 "text": result.document.text,
                 "chunks": [
                     {

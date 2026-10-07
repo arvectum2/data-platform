@@ -107,6 +107,15 @@ def test_process_document_uses_multipart_contract() -> None:
                 "title": "sample",
                 "media_type": "text/plain",
                 "extraction_status": "extracted",
+                "metadata": {
+                    "pdf_pages": [{"page_number": 1, "native_char_count": 0, "needs_ocr": True}],
+                    "ocr": {
+                        "provider": "tesseract",
+                        "page_numbers": [1],
+                        "mean_confidence": 93.16,
+                        "pages": [],
+                    },
+                },
                 "text": "hello",
                 "chunks": [
                     {
@@ -133,6 +142,8 @@ def test_process_document_uses_multipart_contract() -> None:
         min_chunk_chars=1,
     )
     assert payload["extraction_status"] == "extracted"
+    assert payload["metadata"]["ocr"]["provider"] == "tesseract"
+    assert payload["metadata"]["ocr"]["mean_confidence"] == 93.16
     assert payload["chunks"][0]["chunk_id"] == "chunk-1"
 
 

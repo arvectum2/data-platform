@@ -287,6 +287,7 @@ class ProcessDocumentResponse(BaseModel):
     title: str
     media_type: str
     extraction_status: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
     text: str
     chunks: list[ProcessedChunkResponse]
 
