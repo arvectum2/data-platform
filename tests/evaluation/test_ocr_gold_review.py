@@ -84,3 +84,16 @@ def test_accepted_correction_is_hash_pinned(tmp_path: Path) -> None:
         match="accepted gold hash mismatch",
     ):
         validate_ocr_gold_review_packet(candidate, benchmarks_root=ROOT / "benchmarks")
+
+
+def test_accepted_attestation_provenance_is_hash_pinned(tmp_path: Path) -> None:
+    payload = json.loads(ACCEPTED_PACKET.read_text(encoding="utf-8"))
+    payload["supporting_ai_audit_sha256"] = "0" * 64
+    candidate = tmp_path / "accepted-review.json"
+    candidate.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        OcrGoldReviewValidationError,
+        match="supporting AI audit hash mismatch",
+    ):
+        validate_ocr_gold_review_packet(candidate, benchmarks_root=ROOT / "benchmarks")

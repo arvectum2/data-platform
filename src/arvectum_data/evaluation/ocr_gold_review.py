@@ -20,6 +20,29 @@ def _require(condition: bool, message: str) -> None:
         raise OcrGoldReviewValidationError(message)
 
 
+def _validate_optional_pinned_file(
+    packet: Mapping[str, Any],
+    *,
+    root: Path,
+    path_key: str,
+    sha_key: str,
+    label: str,
+) -> None:
+    relative = str(packet.get(path_key) or "").strip()
+    expected_sha = str(packet.get(sha_key) or "").strip()
+    if not relative and not expected_sha:
+        return
+    _require(relative and expected_sha, f"{label} path and SHA-256 must be provided together")
+    _require(
+        len(expected_sha) == 64 and all(ch in "0123456789abcdef" for ch in expected_sha),
+        f"{label} SHA-256 is invalid",
+    )
+    path = (root / relative).resolve()
+    _require(path.is_relative_to(root.resolve()), f"{label} path escapes benchmarks root")
+    _require(path.is_file(), f"{label} file is missing")
+    _require(_sha256(path) == expected_sha, f"{label} hash mismatch")
+
+
 def validate_ocr_gold_review_packet(
     packet_path: Path,
     *,
@@ -49,6 +72,21 @@ def validate_ocr_gold_review_packet(
     _require(
         truth_policy.get("mutate_public_v1") is False,
         "public_v1 must remain immutable",
+    )
+
+    _validate_optional_pinned_file(
+        packet,
+        root=root,
+        path_key="source_review_request",
+        sha_key="source_review_request_sha256",
+        label="source review request",
+    )
+    _validate_optional_pinned_file(
+        packet,
+        root=root,
+        path_key="supporting_ai_audit",
+        sha_key="supporting_ai_audit_sha256",
+        label="supporting AI audit",
     )
 
     source_manifest = root / str(packet["source_corpus"])

@@ -55,23 +55,27 @@ success by format and extraction latency, and can optionally run local
 Tesseract OCR. OCR output is scored with normalized CER/WER against the pinned
 reference text.
 
-The scan reference is explicitly labelled silver rather than human-verified
-gold: it comes from native extraction of the source PDF before rasterization.
+The original `public_v1` scan references remain explicitly labelled silver:
+they came from native extraction of the source PDFs before rasterization.
 Malformed/legacy, mixed Russian/English and product-research coverage were later
-added in the private-v1 slice. Human-reviewed scan gold remains the one manual
-quality gate: engineering preparation now lives in
-`benchmarks/reviews/ocr_gold_public_v1_review_request.json` and
-`docs/OCR_GOLD_HUMAN_REVIEW.md`. The request SHA-pins both scans and their
-candidate silver texts, rejects model-only acceptance, and requires promotion
-through a new corpus revision rather than mutating frozen public-v1.
+added in the private-v1 slice. The manual OCR-gold gate was completed on
+2026-10-07 without mutating `public_v1`: the accepted human attestation is
+`benchmarks/reviews/ocr_gold_public_v1_accepted_2026-10-07.json`, and
+`benchmarks/corpora/public_v2/manifest.json` promotes the two OCR references to
+`human-reviewed`. The control-notice reference was accepted as-is; the
+technical-specification reference carries one accepted reading-order correction
+that moves the existing bullet from the document start to the visible list item
+under section 1.7. Truth was frozen before the live OCR rerun.
 
-The first local Tesseract baseline on the Mac mini (rus+eng, 220 DPI) separates
-two OCR profiles. The linear technical-specification scan measured CER 3.61%,
-WER 5.86% and mean confidence 94.41%. The table/form layout-stress scan
-measured CER 35.78%, WER 74.47% and mean confidence 86.89%. Per-artifact
-regression gates are intentionally different: the linear baseline is capped at
-CER 5% / WER 10%, while the layout-stress case is capped at CER 40% / WER 80%.
-These are regression ceilings, not final product-quality targets.
+The first local Tesseract baseline on the Mac mini (rus+eng, 220 DPI) separated
+two OCR profiles. Re-running against the human-reviewed `public_v2` truth passed
+7/7 artifacts. The linear technical-specification scan measured CER 3.50%, WER
+5.54% and mean confidence 94.41%. The table/form layout-stress scan measured CER
+35.78%, WER 74.47% and mean confidence 86.89%. Per-artifact regression gates
+remain intentionally different: the linear baseline is capped at CER 5% / WER
+10%, while the layout-stress case is capped at CER 40% / WER 80%. These are
+regression ceilings, not final product-quality targets. Evidence:
+`benchmarks/results/data_platform_public_v2_human_gold_2026-10-07.json`.
 
 ## Table and form structure
 
