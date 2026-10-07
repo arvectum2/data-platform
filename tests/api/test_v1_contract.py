@@ -126,6 +126,15 @@ class FakePlatformService:
             "title": title or filename,
             "media_type": "text/plain",
             "extraction_status": "extracted",
+            "metadata": {
+                "pdf_pages": [{"page_number": 1, "native_char_count": 0, "needs_ocr": True}],
+                "ocr": {
+                    "provider": "fake-ocr",
+                    "page_numbers": [1],
+                    "mean_confidence": 91.5,
+                    "pages": [],
+                },
+            },
             "text": "processed text",
             "chunks": [
                 {
@@ -508,6 +517,8 @@ def test_collection_ingest_search_and_extract_contracts() -> None:
     assert processed.status_code == 200
     processed_body = processed.json()
     assert processed_body["extraction_status"] == "extracted"
+    assert processed_body["metadata"]["ocr"]["provider"] == "fake-ocr"
+    assert processed_body["metadata"]["ocr"]["mean_confidence"] == 91.5
     assert processed_body["text"] == "processed text"
     assert processed_body["chunks"][0]["ordinal"] == 0
 
@@ -893,6 +904,7 @@ def test_real_process_document_endpoint_uses_platform_extraction_and_chunking() 
     assert payload["collection_id"] == "tests:processing"
     assert payload["canonical_uri"] == "tender-document://doc-real-1"
     assert payload["extraction_status"] == "extracted"
+    assert payload["metadata"]["file_name"] == "contract.txt"
     assert "Оплата производится после приемки товара." in payload["text"]
     assert len(payload["chunks"]) >= 2
     assert payload["chunks"][0]["ordinal"] == 0

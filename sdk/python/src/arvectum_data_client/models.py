@@ -70,6 +70,7 @@ class ProcessedDocument(TypedDict):
     title: str
     media_type: str
     extraction_status: str
+    metadata: NotRequired[dict[str, Any]]
     text: str
     chunks: list[ProcessedChunk]
 
