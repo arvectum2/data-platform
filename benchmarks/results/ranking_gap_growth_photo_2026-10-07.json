@@ -1,0 +1,88 @@
+{
+  "case_id": "growth-photo-pixels",
+  "benchmark": "production_acceptance_v3",
+  "observed_at": "2026-10-07",
+  "data_platform_main": "e4f0db89a300f0493410474842ee43b7f059acab",
+  "frozen_truth_changed": false,
+  "accepted_ids": [
+    "https://arvectum.com/tools/index.html",
+    "https://arvectum.com/tools/photo-size/index.html",
+    "https://arvectum.com/tools/photo-size/resize-pixels.html"
+  ],
+  "baseline_rrf": {
+    "ndcg_at_5": 0.9060254355346823,
+    "top1_relevant": true,
+    "ranking": [
+      {
+        "canonical_uri": "https://arvectum.com/tools/index.html",
+        "relevant": true,
+        "lexical_score": 0.012500000186264515,
+        "vector_score": 0.7066590575379442,
+        "fusion_score": 0.032018442622950824
+      },
+      {
+        "canonical_uri": "https://arvectum.com/tools/photo-size/compress-to-kb.html",
+        "relevant": false,
+        "lexical_score": 0.0024999999441206455,
+        "vector_score": 0.7170836621646651,
+        "fusion_score": 0.03200204813108039
+      },
+      {
+        "canonical_uri": "https://arvectum.com/tools/photo-size/index.html",
+        "relevant": true,
+        "lexical_score": null,
+        "vector_score": 0.8296337374935672,
+        "fusion_score": 0.01639344262295082
+      },
+      {
+        "canonical_uri": "https://arvectum.com/tools/photo-size/resize-pixels.html",
+        "relevant": true,
+        "lexical_score": null,
+        "vector_score": 0.7488647176800419,
+        "fusion_score": 0.016129032258064516
+      },
+      {
+        "canonical_uri": "https://arvectum.com/tools/photo-size/35x45.html",
+        "relevant": false,
+        "lexical_score": null,
+        "vector_score": 0.6124854039387769,
+        "fusion_score": 0.015384615384615385
+      }
+    ]
+  },
+  "vector_only_diagnostic": {
+    "ndcg_at_5": 0.9674679834891693,
+    "ranking_relevance_positions": [1, 2, 4],
+    "note": "Improves this case but still does not reach perfect nDCG and would discard lexical evidence globally."
+  },
+  "bge_cross_encoder_diagnostic": {
+    "ndcg_at_5": 0.7328286204777911,
+    "ranking_relevance_positions": [2, 3, 4],
+    "latency_ms": 1138.513,
+    "within_standard_latency_budget": true,
+    "note": "The accepted optional BGE reranker ranks compress-to-kb first, so it does not resolve this ambiguity."
+  },
+  "global_fusion_diagnostic": {
+    "scope": "19 single-collection production_acceptance_v3 cases; the federated case was excluded from this diagnostic because it requires consumer-scoped authorization",
+    "current_rrf": {
+      "top1_accuracy": 1.0,
+      "mrr": 1.0,
+      "mean_ndcg_at_5": 0.9951,
+      "nonperfect_cases": ["growth-photo-pixels"]
+    },
+    "score_aware_rrf_minmax": {
+      "top1_accuracy": 0.9474,
+      "mrr": 0.9737,
+      "mean_ndcg_at_5": 0.9806,
+      "regression_case": "yandex-tkp-comparison"
+    },
+    "score_aware_minmax_sum": {
+      "top1_accuracy": 0.9474,
+      "mrr": 0.9737,
+      "mean_ndcg_at_5": 0.9806,
+      "regression_case": "yandex-tkp-comparison"
+    }
+  },
+  "diagnosis": "The gap is an intent ambiguity, not a demonstrated generic fusion defect. The frozen query strongly matches wording on compress-to-kb, vector retrieval prefers the accepted pixel pages, and the independent BGE cross-encoder also prefers compress-to-kb.",
+  "decision": "Do not change the default fusion algorithm for this single case. Keep current RRF and frozen judgments unchanged; require broader or human-adjudicated evidence before promoting a global ranking change."
+}

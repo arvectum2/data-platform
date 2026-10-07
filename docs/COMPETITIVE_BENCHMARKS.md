@@ -119,6 +119,20 @@ ranking gap is explicit rather than hidden: growth-photo-pixels has all accepted
 evidence in top-5 but an unrelated result is interleaved before two relevant
 URLs.
 
+Targeted re-analysis on 2026-10-07 did not justify changing the global fusion
+algorithm for that single case. Baseline RRF keeps a relevant result at top-1
+but scores nDCG@5 0.906 because `compress-to-kb` is second. Vector-only improves
+the case to about 0.967 but still does not make it perfect and would discard the
+lexical channel globally. The accepted BGE cross-encoder does not resolve the
+ambiguity either: it ranks `compress-to-kb` first and lowers the case to about
+0.733 nDCG while staying inside the STANDARD latency budget. Two score-aware
+fusion diagnostics improved this case but regressed the frozen
+`yandex-tkp-comparison` case and reduced the 19 single-collection aggregate from
+top-1/MRR 1.0/1.0 to about 0.947/0.974. The frozen result is
+`benchmarks/results/ranking_gap_growth_photo_2026-10-07.json`. Decision: keep
+current RRF and frozen judgments unchanged until broader or human-adjudicated
+evidence demonstrates a generic ranking defect.
+
 ## Exact fact preservation
 
 benchmarks/fact_preservation_v1.json binds exact facts to real frozen public
