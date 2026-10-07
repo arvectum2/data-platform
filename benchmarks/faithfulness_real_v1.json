@@ -1,0 +1,137 @@
+{
+  "name": "faithfulness-real-v1",
+  "description": "Frozen real-source answer-synthesis faithfulness cases derived only from pre-existing public corpus judgments, without using SUT answer output to define benchmark truth.",
+  "metadata": {
+    "created_at": "2026-10-07",
+    "scope": "local reasoning provider",
+    "synthetic": false,
+    "corpus_manifest": "corpora/public_v1/manifest.json",
+    "truth_basis": [
+      "benchmarks/corpora/public_v1/manifest.json",
+      "benchmarks/fact_preservation_v1.json"
+    ],
+    "sut_output_used_for_truth": false
+  },
+  "cases": [
+    {
+      "id": "real-control-authority-okud",
+      "query": "Какой орган контроля указан в уведомлении и какой код формы по ОКУД?",
+      "evidence": [
+        {
+          "chunk_id": "real-control-notice",
+          "text": "Форма по ОКУД 0506135. Наименование органа контроля: Комитет финансов Санкт-Петербурга. Результат контроля: Финансовый контроль пройден."
+        }
+      ],
+      "expected_abstained": false,
+      "required_claims": [
+        {
+          "terms": ["Комитет финансов Санкт-Петербурга"],
+          "expected_chunk_ids": ["real-control-notice"]
+        },
+        {
+          "terms": ["0506135"],
+          "expected_chunk_ids": ["real-control-notice"]
+        }
+      ],
+      "required_answer_terms": ["Комитет финансов Санкт-Петербурга", "0506135"],
+      "metadata": {
+        "source_artifact_ids": ["procurement-control-notice-pdf"],
+        "truth_source": "public_v1 required_fields + fact_preservation_v1"
+      }
+    },
+    {
+      "id": "real-docx-okpd-nmck",
+      "query": "Какой код ОКПД2 и какая НМЦК указаны для книгоиздательской продукции?",
+      "evidence": [
+        {
+          "chunk_id": "real-nmck-docx-row",
+          "text": "Книгоиздательская продукция. Код ОКПД2: 58.11.19.000. Средняя цена: 297 707,00 руб. НМЦК: 299 967,00 руб."
+        }
+      ],
+      "expected_abstained": false,
+      "required_claims": [
+        {
+          "terms": ["58.11.19.000"],
+          "expected_chunk_ids": ["real-nmck-docx-row"]
+        },
+        {
+          "terms": ["299 967,00"],
+          "expected_chunk_ids": ["real-nmck-docx-row"]
+        }
+      ],
+      "required_answer_terms": ["58.11.19.000", "299 967,00"],
+      "metadata": {
+        "source_artifact_ids": ["procurement-nmck-docx"],
+        "truth_source": "public_v1 required_rows + fact_preservation_v1"
+      }
+    },
+    {
+      "id": "real-photo-local-processing",
+      "query": "Где обрабатывается изображение в сервисе «Фото под размер»?",
+      "evidence": [
+        {
+          "chunk_id": "real-photo-size-html",
+          "text": "Фото под размер. Изображение обрабатывается локально на iPhone."
+        }
+      ],
+      "expected_abstained": false,
+      "required_claims": [
+        {
+          "terms": ["локально", "iPhone"],
+          "expected_chunk_ids": ["real-photo-size-html"]
+        }
+      ],
+      "required_answer_terms": ["локально", "iPhone"],
+      "metadata": {
+        "source_artifact_ids": ["arvectum-photo-size-html"],
+        "truth_source": "public_v1 required_text"
+      }
+    },
+    {
+      "id": "real-multisource-control-and-nmck",
+      "query": "По представленным материалам назовите орган контроля и НМЦК книгоиздательской продукции.",
+      "evidence": [
+        {
+          "chunk_id": "real-control-notice-multi",
+          "text": "Наименование органа контроля: Комитет финансов Санкт-Петербурга. Результат контроля: Финансовый контроль пройден."
+        },
+        {
+          "chunk_id": "real-nmck-docx-multi",
+          "text": "Книгоиздательская продукция. Код ОКПД2: 58.11.19.000. НМЦК: 299 967,00 руб."
+        }
+      ],
+      "expected_abstained": false,
+      "required_claims": [
+        {
+          "terms": ["Комитет финансов Санкт-Петербурга"],
+          "expected_chunk_ids": ["real-control-notice-multi"]
+        },
+        {
+          "terms": ["299 967,00"],
+          "expected_chunk_ids": ["real-nmck-docx-multi"]
+        }
+      ],
+      "required_answer_terms": ["Комитет финансов Санкт-Петербурга", "299 967,00"],
+      "metadata": {
+        "source_artifact_ids": ["procurement-control-notice-pdf", "procurement-nmck-docx"],
+        "truth_source": "public_v1 pre-existing judgments"
+      }
+    },
+    {
+      "id": "real-insufficient-bank-bik",
+      "query": "Какой БИК банка указан в этих материалах?",
+      "evidence": [
+        {
+          "chunk_id": "real-photo-size-insufficient",
+          "text": "Фото под размер. Изображение обрабатывается локально на iPhone."
+        }
+      ],
+      "expected_abstained": true,
+      "max_claims": 0,
+      "metadata": {
+        "source_artifact_ids": ["arvectum-photo-size-html"],
+        "truth_source": "public_v1 required_text"
+      }
+    }
+  ]
+}

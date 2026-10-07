@@ -165,6 +165,28 @@
       }
     },
     {
+      "id": "faithfulness-real-v1",
+      "file": "faithfulness_real_v1.json",
+      "sha256": "5e84f6c76d1f175928d1802464c08323fd4e55845c9b6123fd97ce9ebd6f7a96",
+      "case_count": 5,
+      "visibility": "public",
+      "dimensions": [
+        "real-source-faithfulness",
+        "citation-correctness",
+        "citation-completeness",
+        "claim-support",
+        "abstention"
+      ],
+      "thresholds": {
+        "pass_rate": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "claim_support_rate": 1.0,
+        "abstention_accuracy": 1.0,
+        "answer_term_recall": 1.0
+      }
+    },
+    {
       "id": "sync-efficiency-v1",
       "file": "sync_efficiency_v1.json",
       "sha256": "0852b4c13d9eda71612ff68aa054dec08f813e410a4664124f89087d111ba4ac",
