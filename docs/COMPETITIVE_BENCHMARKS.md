@@ -165,6 +165,8 @@ must pass rather than lowering the gate to its observed behavior.
 
 First local Gemma 4 12B acceptance on 2026-10-06 passed all four cases at the original 1.0 safety thresholds: pass rate 1.0, citation precision 1.0, citation recall 1.0, exact claim-support rate 1.0, abstention accuracy 1.0, contradiction recall 1.0 and required-answer-term recall 1.0. Mean synthesis latency was about 7.4 s and max about 9.8 s. The suite is deliberately small and synthetic; real-source faithfulness expansion remains benchmark backlog.
 
+benchmarks/faithfulness_real_v1.json is the first real-source expansion. Its five frozen cases are derived only from the already accepted public-v1 corpus judgments and fact-preservation truth: procurement control authority/OKUD, procurement OKPD2/NMCK, the Arvectum Photo Size local-processing statement, a two-source citation-completeness case and an insufficient-evidence abstention case. The suite records sut_output_used_for_truth=false; no answer produced by the reasoning model was used to choose or revise benchmark truth. Live model acceptance is intentionally run only after this suite is frozen.
+
 ## Incremental sync efficiency
 
 benchmarks/sync_efficiency_v1.json measures durable URL refresh behavior on an
