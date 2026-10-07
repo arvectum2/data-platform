@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "review_id": "public-v1-ocr-human-gold",
+  "source_corpus": "corpora/public_v1/manifest.json",
+  "source_manifest_sha256": "e0c92b5708213152732f85288408163463261a130827de6451cf07f3d23626ef",
+  "status": "pending_human_review",
+  "truth_policy": {
+    "sut_output_may_define_truth": false,
+    "reviewer_kind_required_for_acceptance": "human",
+    "new_corpus_revision_required_for_promotion": true,
+    "mutate_public_v1": false
+  },
+  "items": [
+    {
+      "artifact_id": "procurement-control-notice-scan",
+      "scan_file": "corpora/public_v1/fixtures/procurement_control_notice_scan.pdf",
+      "scan_sha256": "47fe44ab97205aa64e50219bbf44a01e7fc9afc4dfde40b2d653fb7025692bdb",
+      "candidate_gold_file": "corpora/public_v1/gold/procurement_control_notice_scan.txt",
+      "candidate_gold_sha256": "81e2289a471f4221c3719043e61fcc2d35408cd190f94ebdadddf277651d0914",
+      "source_gold_kind": "native-extraction-silver",
+      "review": {
+        "status": "pending",
+        "reviewer_kind": null,
+        "reviewer": null,
+        "reviewed_at": null,
+        "notes": null
+      }
+    },
+    {
+      "artifact_id": "procurement-technical-spec-scan",
+      "scan_file": "corpora/public_v1/fixtures/procurement_technical_spec_scan.pdf",
+      "scan_sha256": "2e9596fea388c7115ed506cba4fa7e7baab949cb92690ede9851beb7bdfc4559",
+      "candidate_gold_file": "corpora/public_v1/gold/procurement_technical_spec_scan.txt",
+      "candidate_gold_sha256": "798d78d6c2b405eb7bad58ee076b7db8f928999539408afcbea4accd3423696d",
+      "source_gold_kind": "native-extraction-silver",
+      "review": {
+        "status": "pending",
+        "reviewer_kind": null,
+        "reviewer": null,
+        "reviewed_at": null,
+        "notes": null
+      }
+    }
+  ]
+}
