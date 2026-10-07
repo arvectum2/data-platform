@@ -1,0 +1,276 @@
+{
+  "name": "public-real-corpus-v2",
+  "version": 2,
+  "description": "Second shareable DP-BENCH corpus revision. It preserves the public-v1 fixtures and promotes both OCR references to human-reviewed gold after explicit human acceptance; the technical-spec reference carries the accepted list-marker reading-order correction.",
+  "metadata": {
+    "created_at": "2026-10-07",
+    "raw_private_documents_committed": false,
+    "coverage": [
+      "pdf",
+      "scanned-pdf",
+      "docx",
+      "xlsx",
+      "html"
+    ],
+    "artifact_count": 7,
+    "parent_corpus": "public_v1",
+    "parent_manifest_sha256": "e0c92b5708213152732f85288408163463261a130827de6451cf07f3d23626ef",
+    "human_review_attestation": "../../reviews/ocr_gold_public_v1_accepted_2026-10-07.json",
+    "human_review_attestation_sha256": "2a72f980e8d0e4260b5f2a3f226f82d95cdebcd16f767e8cc70f7ead672659dc",
+    "ocr_gold_status": "human-reviewed"
+  },
+  "artifacts": [
+    {
+      "id": "procurement-control-notice-pdf",
+      "file": "fixtures/procurement_control_notice.pdf",
+      "format": "pdf",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "public procurement control notice, 2026",
+      "required_text": [
+        "Уведомление о соответствии контролируемой информации",
+        "Комитет финансов Санкт-Петербурга"
+      ],
+      "min_text_chars": 800,
+      "tags": [
+        "native-pdf",
+        "44-fz",
+        "real-source"
+      ],
+      "sha256": "74ff38e7c6d809973c83bad0a2ab470a022285b0e520242e5cae8b77e877f3f3",
+      "required_fields": [
+        {
+          "label": "Наименование органа контроля:",
+          "value": "Комитет финансов Санкт-Петербурга"
+        },
+        {
+          "label": "Результат контроля:",
+          "value": "Финансовый контроль пройден"
+        },
+        {
+          "label": "Форма по ОКУД",
+          "value": "0506135"
+        }
+      ],
+      "min_structure_score": 1.0,
+      "metadata": {
+        "structure_profile": "native-pdf-form-fields"
+      }
+    },
+    {
+      "id": "procurement-nmck-docx",
+      "file": "fixtures/procurement_nmck.docx",
+      "format": "docx",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "public procurement NMCK attachment, 2026",
+      "required_text": [
+        "Обоснование начальной (максимальной) цены контракта",
+        "02.10.2013 № 567"
+      ],
+      "min_text_chars": 5000,
+      "tags": [
+        "docx",
+        "nmck",
+        "real-source"
+      ],
+      "sha256": "dd14129699141aa15c0b9b59a2be2a6122387f8ec4cb9aca3324ea55eefd5c9d",
+      "required_rows": [
+        [
+          "№ п/п",
+          "Наименование товара, услуги (работы)",
+          "Поставщик 1",
+          "Средняя цена (руб.)",
+          "НМЦК (руб.)"
+        ],
+        [
+          "1",
+          "Книгоиздательская продукция",
+          "58.11.19.000",
+          "297 707,00",
+          "299 967,00"
+        ]
+      ],
+      "min_structure_score": 1.0,
+      "metadata": {
+        "structure_profile": "native-docx-table-rows"
+      }
+    },
+    {
+      "id": "procurement-nmck-xlsx",
+      "file": "fixtures/procurement_nmck.xlsx",
+      "format": "xlsx",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "public procurement NMCK workbook, 2026",
+      "required_text": [
+        "Коэффициент вариации",
+        "Расчет НМЦК"
+      ],
+      "min_text_chars": 3000,
+      "tags": [
+        "xlsx",
+        "table",
+        "nmck",
+        "real-source"
+      ],
+      "sha256": "bee59f89708f539742f7cb00132e76292afe286b3ceac53cf6784a2dc745ac78",
+      "required_rows": [
+        [
+          "№ п/п",
+          "Наименование работ",
+          "Единица измерения",
+          "Количество",
+          "Расчет НМЦК"
+        ],
+        [
+          "2",
+          "Произвести монтаж новой системы АПС дизельгенераторов",
+          "Усл. ед.",
+          "2",
+          "282171.58"
+        ],
+        [
+          "12",
+          "Генератор №1 МСС-82-4",
+          "Усл. ед.",
+          "1",
+          "116109.02"
+        ]
+      ],
+      "min_structure_score": 1.0,
+      "metadata": {
+        "structure_profile": "native-xlsx-rows"
+      }
+    },
+    {
+      "id": "arvectum-photo-size-html",
+      "file": "fixtures/arvectum_photo_size.html",
+      "format": "html",
+      "source_kind": "website",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "arvectum.com/tools/photo-size/",
+      "required_text": [
+        "Фото под размер",
+        "Изображение обрабатывается локально на iPhone"
+      ],
+      "min_text_chars": 500,
+      "tags": [
+        "html",
+        "website",
+        "business",
+        "real-source"
+      ],
+      "sha256": "b8c07b93def9ce4499db074f4049ab5da3e21ef34d29e1ccae1bbce6a1cd554b"
+    },
+    {
+      "id": "procurement-control-notice-scan",
+      "file": "fixtures/procurement_control_notice_scan.pdf",
+      "format": "scanned-pdf",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "rasterized page 1 of procurement-control-notice-pdf",
+      "required_text": [
+        "Уведомление о соответствии контролируемой информации",
+        "Комитет финансов Санкт-Петербурга"
+      ],
+      "min_text_chars": 800,
+      "ocr_required": true,
+      "gold_text_file": "gold/procurement_control_notice_scan.txt",
+      "tags": [
+        "scanned-pdf",
+        "ocr",
+        "real-source-derived",
+        "human-reviewed-gold"
+      ],
+      "metadata": {
+        "gold_kind": "human-reviewed",
+        "scan_generation": "page 1 rasterized at 150 DPI then wrapped as image-only PDF",
+        "ocr_profile": "layout-stress",
+        "regression_gate_kind": "layout-stress-baseline",
+        "structure_profile": "ocr-form-fields-observation",
+        "source_gold_kind": "native-extraction-silver",
+        "human_review_id": "public-v1-ocr-human-gold-accepted-2026-10-07",
+        "human_review_decision": "accepted_as_is"
+      },
+      "sha256": "47fe44ab97205aa64e50219bbf44a01e7fc9afc4dfde40b2d653fb7025692bdb",
+      "gold_sha256": "81e2289a471f4221c3719043e61fcc2d35408cd190f94ebdadddf277651d0914",
+      "max_cer": 0.4,
+      "max_wer": 0.8,
+      "required_fields": [
+        {
+          "label": "Наименование органа контроля",
+          "value": "Комитет финансов Санкт-Петербурга"
+        },
+        {
+          "label": "Результат контроля",
+          "value": "Финансовый контроль пройден"
+        }
+      ]
+    },
+    {
+      "id": "procurement-technical-spec-pdf",
+      "file": "fixtures/procurement_technical_spec.pdf",
+      "format": "pdf",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "public procurement technical specification, 2026",
+      "required_text": [
+        "ТЕХНИЧЕСКОЕ ЗАДАНИЕ",
+        "Поставка электротехнических изделий"
+      ],
+      "min_text_chars": 2000,
+      "tags": [
+        "native-pdf",
+        "technical-specification",
+        "real-source"
+      ],
+      "metadata": {
+        "ocr_profile": "linear-baseline-source"
+      },
+      "sha256": "c094eccab3aba23935a77123bcddb7902b7560e1eb773457dd45e9680ff94861"
+    },
+    {
+      "id": "procurement-technical-spec-scan",
+      "file": "fixtures/procurement_technical_spec_scan.pdf",
+      "format": "scanned-pdf",
+      "source_kind": "procurement",
+      "language": "ru",
+      "visibility": "public",
+      "source_ref": "rasterized page 1 of procurement-technical-spec-pdf",
+      "required_text": [
+        "ТЕХНИЧЕСКОЕ ЗАДАНИЕ",
+        "Поставка электротехнических изделий"
+      ],
+      "min_text_chars": 2000,
+      "ocr_required": true,
+      "gold_text_file": "gold/procurement_technical_spec_scan.txt",
+      "tags": [
+        "scanned-pdf",
+        "ocr",
+        "real-source-derived",
+        "linear-text",
+        "human-reviewed-gold"
+      ],
+      "metadata": {
+        "gold_kind": "human-reviewed",
+        "ocr_profile": "linear-baseline",
+        "scan_generation": "page 1 rasterized at 150 DPI then wrapped as image-only PDF",
+        "regression_gate_kind": "linear-ocr-baseline",
+        "source_gold_kind": "native-extraction-silver",
+        "human_review_id": "public-v1-ocr-human-gold-accepted-2026-10-07",
+        "human_review_decision": "accepted_with_corrections"
+      },
+      "sha256": "2e9596fea388c7115ed506cba4fa7e7baab949cb92690ede9851beb7bdfc4559",
+      "gold_sha256": "b7fd476c18dcc38a4bb193fb8abeff2777b36b1914482c86b9371bb43063db5b",
+      "max_cer": 0.05,
+      "max_wer": 0.1
+    }
+  ]
+}
