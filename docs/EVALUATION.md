@@ -195,3 +195,12 @@ nDCG@5=0.9953. The current frozen nDCG gate is 0.99. The only non-perfect
 case is growth-photo-pixels (nDCG@5 about 0.906): all three accepted relevant
 URLs are in top-5, but one non-relevant page is interleaved before the latter
 two.
+
+The 2026-10-07 ranking-gap diagnostic intentionally kept benchmark truth fixed.
+The query wording has genuine overlap with the interleaved `compress-to-kb`
+page, vector retrieval prefers the accepted pixel pages, and the independent BGE
+cross-encoder also prefers `compress-to-kb`. Score-aware fusion variants fixed
+this local ordering only by regressing `yandex-tkp-comparison` and aggregate
+single-collection top-1/MRR. No default ranking change is therefore promoted
+from this case alone. See
+`benchmarks/results/ranking_gap_growth_photo_2026-10-07.json`.
