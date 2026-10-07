@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "review_id": "public-v1-ocr-human-gold-accepted-2026-10-07",
+  "source_review_request": "reviews/ocr_gold_public_v1_review_request.json",
+  "source_review_request_sha256": "d6b1b3923853c22cd01c21fb932cdb4f19161fe1d57c472533858e2d58f0df5d",
+  "supporting_ai_audit": "reviews/ocr_gold_public_v1_ai_visual_audit_2026-10-07.json",
+  "supporting_ai_audit_sha256": "b826b6c5991991a2512ee57f41afcbd4eaa08420d805a65116a0e116f633d85d",
+  "source_corpus": "corpora/public_v1/manifest.json",
+  "source_manifest_sha256": "e0c92b5708213152732f85288408163463261a130827de6451cf07f3d23626ef",
+  "status": "accepted",
+  "acceptance_context": {
+    "kind": "explicit_human_confirmation",
+    "channel": "project_chat",
+    "reviewed_at": "2026-10-07",
+    "statement_summary": "Product Owner explicitly supplied human acceptance after the completed RDC visual comparison and accepted correction."
+  },
+  "truth_policy": {
+    "sut_output_may_define_truth": false,
+    "reviewer_kind_required_for_acceptance": "human",
+    "new_corpus_revision_required_for_promotion": true,
+    "mutate_public_v1": false
+  },
+  "items": [
+    {
+      "artifact_id": "procurement-control-notice-scan",
+      "scan_file": "corpora/public_v1/fixtures/procurement_control_notice_scan.pdf",
+      "scan_sha256": "47fe44ab97205aa64e50219bbf44a01e7fc9afc4dfde40b2d653fb7025692bdb",
+      "candidate_gold_file": "corpora/public_v1/gold/procurement_control_notice_scan.txt",
+      "candidate_gold_sha256": "81e2289a471f4221c3719043e61fcc2d35408cd190f94ebdadddf277651d0914",
+      "source_gold_kind": "native-extraction-silver",
+      "accepted_gold_file": "corpora/public_v1/gold/procurement_control_notice_scan.txt",
+      "accepted_gold_sha256": "81e2289a471f4221c3719043e61fcc2d35408cd190f94ebdadddf277651d0914",
+      "review": {
+        "status": "accepted",
+        "reviewer_kind": "human",
+        "reviewer": "Product Owner (explicit chat acceptance)",
+        "reviewed_at": "2026-10-07",
+        "decision": "accepted_as_is",
+        "notes": "Human acceptance of the completed visual audit conclusion: no substantive discrepancy was found in the control-notice reference."
+      }
+    },
+    {
+      "artifact_id": "procurement-technical-spec-scan",
+      "scan_file": "corpora/public_v1/fixtures/procurement_technical_spec_scan.pdf",
+      "scan_sha256": "2e9596fea388c7115ed506cba4fa7e7baab949cb92690ede9851beb7bdfc4559",
+      "candidate_gold_file": "corpora/public_v1/gold/procurement_technical_spec_scan.txt",
+      "candidate_gold_sha256": "798d78d6c2b405eb7bad58ee076b7db8f928999539408afcbea4accd3423696d",
+      "source_gold_kind": "native-extraction-silver",
+      "accepted_gold_file": "reviews/candidates/procurement_technical_spec_scan_ai_visual_candidate.txt",
+      "accepted_gold_sha256": "b7fd476c18dcc38a4bb193fb8abeff2777b36b1914482c86b9371bb43063db5b",
+      "review": {
+        "status": "accepted",
+        "reviewer_kind": "human",
+        "reviewer": "Product Owner (explicit chat acceptance)",
+        "reviewed_at": "2026-10-07",
+        "decision": "accepted_with_corrections",
+        "notes": "Human acceptance of the completed visual audit and its correction: move the single bullet marker from the document start to the visible list item before “Приложение 1. – «Перечень объектов закупки»” under section 1.7."
+      }
+    }
+  ]
+}

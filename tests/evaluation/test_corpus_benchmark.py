@@ -36,6 +36,34 @@ def test_repository_public_corpus_is_frozen_and_valid() -> None:
     assert all(item.visibility == "public" for item in manifest.artifacts)
 
 
+def _manifest_v2() -> Path:
+    return (
+        Path(__file__).resolve().parents[2]
+        / "benchmarks"
+        / "corpora"
+        / "public_v2"
+        / "manifest.json"
+    )
+
+
+def test_repository_public_v2_promotes_human_reviewed_ocr_gold() -> None:
+    manifest = validate_corpus_manifest(_manifest_v2())
+
+    assert manifest.version == 2
+    assert len(manifest.artifacts) == 7
+    ocr_artifacts = [item for item in manifest.artifacts if item.ocr_required]
+    assert len(ocr_artifacts) == 2
+    assert all(item.metadata["gold_kind"] == "human-reviewed" for item in ocr_artifacts)
+    decisions = {
+        item.artifact_id: item.metadata["human_review_decision"]
+        for item in ocr_artifacts
+    }
+    assert decisions == {
+        "procurement-control-notice-scan": "accepted_as_is",
+        "procurement-technical-spec-scan": "accepted_with_corrections",
+    }
+
+
 def test_public_corpus_extracts_all_non_ocr_formats() -> None:
     summary = evaluate_corpus(_manifest())
 

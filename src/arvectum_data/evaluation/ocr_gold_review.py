@@ -20,6 +20,29 @@ def _require(condition: bool, message: str) -> None:
         raise OcrGoldReviewValidationError(message)
 
 
+def _validate_optional_pinned_file(
+    packet: Mapping[str, Any],
+    *,
+    root: Path,
+    path_key: str,
+    sha_key: str,
+    label: str,
+) -> None:
+    relative = str(packet.get(path_key) or "").strip()
+    expected_sha = str(packet.get(sha_key) or "").strip()
+    if not relative and not expected_sha:
+        return
+    _require(relative and expected_sha, f"{label} path and SHA-256 must be provided together")
+    _require(
+        len(expected_sha) == 64 and all(ch in "0123456789abcdef" for ch in expected_sha),
+        f"{label} SHA-256 is invalid",
+    )
+    path = (root / relative).resolve()
+    _require(path.is_relative_to(root.resolve()), f"{label} path escapes benchmarks root")
+    _require(path.is_file(), f"{label} file is missing")
+    _require(_sha256(path) == expected_sha, f"{label} hash mismatch")
+
+
 def validate_ocr_gold_review_packet(
     packet_path: Path,
     *,
@@ -49,6 +72,21 @@ def validate_ocr_gold_review_packet(
     _require(
         truth_policy.get("mutate_public_v1") is False,
         "public_v1 must remain immutable",
+    )
+
+    _validate_optional_pinned_file(
+        packet,
+        root=root,
+        path_key="source_review_request",
+        sha_key="source_review_request_sha256",
+        label="source review request",
+    )
+    _validate_optional_pinned_file(
+        packet,
+        root=root,
+        path_key="supporting_ai_audit",
+        sha_key="supporting_ai_audit_sha256",
+        label="supporting AI audit",
     )
 
     source_manifest = root / str(packet["source_corpus"])
@@ -109,6 +147,48 @@ def validate_ocr_gold_review_packet(
             )
             _require(bool(str(review.get("reviewer") or "").strip()), f"{artifact_id} reviewer is required")
             _require(bool(str(review.get("reviewed_at") or "").strip()), f"{artifact_id} reviewed_at is required")
+            decision = review.get("decision")
+            _require(
+                decision in {"accepted_as_is", "accepted_with_corrections"},
+                f"{artifact_id} accepted review decision is invalid",
+            )
+            accepted_gold_file = str(item.get("accepted_gold_file") or "").strip()
+            accepted_gold_sha256 = str(item.get("accepted_gold_sha256") or "").strip()
+            _require(accepted_gold_file, f"{artifact_id} accepted_gold_file is required")
+            _require(
+                len(accepted_gold_sha256) == 64
+                and all(ch in "0123456789abcdef" for ch in accepted_gold_sha256),
+                f"{artifact_id} accepted_gold_sha256 is invalid",
+            )
+            accepted_gold = (root / accepted_gold_file).resolve()
+            _require(
+                accepted_gold.is_relative_to(root.resolve()),
+                f"{artifact_id} accepted gold path escapes benchmarks root",
+            )
+            _require(accepted_gold.is_file(), f"{artifact_id} accepted gold file is missing")
+            accepted_hash = _sha256(accepted_gold)
+            _require(
+                accepted_hash == accepted_gold_sha256,
+                f"{artifact_id} accepted gold hash mismatch",
+            )
+            if decision == "accepted_as_is":
+                _require(
+                    accepted_gold == gold.resolve() and accepted_hash == gold_hash,
+                    f"{artifact_id} accepted_as_is must preserve the pinned candidate",
+                )
+            else:
+                _require(
+                    accepted_gold != gold.resolve(),
+                    f"{artifact_id} corrected gold must be a separate file",
+                )
+                _require(
+                    accepted_hash != gold_hash,
+                    f"{artifact_id} corrected gold must differ from the silver candidate",
+                )
+                _require(
+                    bool(str(review.get("notes") or "").strip()),
+                    f"{artifact_id} corrected acceptance requires notes",
+                )
             accepted += 1
 
     if packet["status"] == "accepted":

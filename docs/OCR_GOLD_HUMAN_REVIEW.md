@@ -1,60 +1,76 @@
 # Human review gate for OCR gold
 
-The public-v1 OCR references are intentionally still **silver**, not human-reviewed
-gold. Their reference text was derived from native extraction before rasterization.
-This document defines the remaining manual quality gate without mutating the frozen
-public-v1 corpus or allowing model output to redefine truth.
+The frozen `public_v1` OCR references remain **silver** and are not rewritten.
+Their reference text was derived from native extraction before rasterization.
+Human acceptance is recorded separately and promoted only through a new corpus
+revision, so benchmark truth remains reproducible.
 
-## Review request
+## Review request and evidence
 
-The canonical pending request is:
+The original immutable request is:
 
 `benchmarks/reviews/ocr_gold_public_v1_review_request.json`
 
-It pins the current public-v1 manifest plus both image-only scan PDFs and their
-candidate reference-text files by SHA-256. Validation is fail-closed through
-`arvectum_data.evaluation.ocr_gold_review`.
+It SHA-pins the `public_v1` manifest, both image-only scan PDFs and both silver
+candidate texts. The independent visual comparison is recorded separately in:
 
-Current items:
+`benchmarks/reviews/ocr_gold_public_v1_ai_visual_audit_2026-10-07.json`
 
-1. `procurement-control-notice-scan` — layout/form stress profile.
-2. `procurement-technical-spec-scan` — linear technical-specification profile.
+That audit found no substantive discrepancy in
+`procurement-control-notice-scan`. For
+`procurement-technical-spec-scan`, it found one reading-order/list-marker
+mismatch: the silver text placed the single bullet at the document start, while
+the visible scan places it before `Приложение 1. – «Перечень объектов закупки»`
+under section 1.7. The proposed correction was frozen separately before human
+acceptance.
 
-## What the human reviewer must do
+## Human acceptance
 
-Open each pinned scan PDF and compare the visible page content to the pinned
-candidate text. Check wording, numbers, punctuation where materially relevant,
-table/form labels and values, and reading order. Record any correction against the
-candidate text rather than judging the OCR engine's output.
+Explicit human acceptance was supplied by the Product Owner in the project chat
+on 2026-10-07. The accepted attestation is:
 
-The reviewer must explicitly provide a human identity/name or stable review label,
-review date, per-item accepted/pending status, and notes for any discrepancy.
-Automated model output, OCR output, native parser output or benchmark results do not
-count as human review.
+`benchmarks/reviews/ocr_gold_public_v1_accepted_2026-10-07.json`
 
-## Acceptance and promotion
+The attestation preserves the original scan and candidate hashes, records
+`reviewer_kind=human`, reviewer/date and per-item decisions, and SHA-pins both
+the source review request and the supporting AI visual audit. The control notice
+is `accepted_as_is`; the technical specification is
+`accepted_with_corrections` and pins the separate corrected candidate.
 
-Do **not** edit the pending request in place. After a human completes the review,
-create a separate accepted attestation file that preserves the same source hashes
-and sets every item to `review.status=accepted`,
-`reviewer_kind=human`, reviewer and reviewed_at.
-
-Then validate it with:
+Validation is fail-closed through:
 
 ```bash
 python -m arvectum_data.evaluation.ocr_gold_review \
-  benchmarks/reviews/<accepted-attestation>.json
+  benchmarks/reviews/ocr_gold_public_v1_accepted_2026-10-07.json
 ```
 
-Human acceptance still does not permit editing `public_v1`. Promotion must create
-a new corpus/benchmark revision (for example public_v2) whose gold files are the
-human-reviewed texts and whose manifest records the review attestation/hash. The
-existing v1 silver corpus remains immutable for reproducibility.
+## Promotion
 
-## Current gate
+`public_v1` remains byte-for-byte unchanged. Human-reviewed OCR gold is promoted
+in `benchmarks/corpora/public_v2/manifest.json`.
 
-Status: **PENDING HUMAN REVIEW**.
+`public_v2` preserves the seven public fixtures and changes only the OCR truth
+status/reference where accepted:
 
-Engineering preparation is complete when the pending packet validates and CI is
-green. The quality claim "human-reviewed OCR gold" remains blocked until an actual
-human performs and records the comparison.
+1. `procurement-control-notice-scan` keeps the same text and is marked
+   `human-reviewed`.
+2. `procurement-technical-spec-scan` uses the accepted bullet-placement
+   correction and is marked `human-reviewed`.
+
+The `public_v2` manifest records the parent manifest SHA-256 and the human
+attestation SHA-256. Truth was frozen in commit
+`e4202d7873ff512fc42032efa782f1bd77119f81` before the live OCR rerun.
+
+## Acceptance result
+
+Status: **ACCEPTED AND PROMOTED TO PUBLIC_V2**.
+
+Live local Tesseract acceptance (`rus+eng`, 220 DPI) passed all 7/7 artifacts
+against the human-reviewed revision. The layout-stress control notice measured
+CER 35.78% / WER 74.47% at 86.89% confidence. The linear technical
+specification measured CER 3.50% / WER 5.54% at 94.41% confidence. Both remain
+inside their frozen per-artifact regression ceilings.
+
+The recorded run is:
+
+`benchmarks/results/data_platform_public_v2_human_gold_2026-10-07.json`

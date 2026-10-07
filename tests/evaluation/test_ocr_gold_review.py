@@ -13,6 +13,7 @@ from arvectum_data.evaluation.ocr_gold_review import (
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKET = ROOT / "benchmarks" / "reviews" / "ocr_gold_public_v1_review_request.json"
+ACCEPTED_PACKET = ROOT / "benchmarks" / "reviews" / "ocr_gold_public_v1_accepted_2026-10-07.json"
 
 
 def test_repository_ocr_gold_review_packet_is_valid_and_pending() -> None:
@@ -53,5 +54,46 @@ def test_packet_cannot_claim_acceptance_while_items_are_pending(tmp_path: Path) 
     with pytest.raises(
         OcrGoldReviewValidationError,
         match="every item",
+    ):
+        validate_ocr_gold_review_packet(candidate, benchmarks_root=ROOT / "benchmarks")
+
+
+def test_repository_accepted_ocr_gold_review_packet_is_valid() -> None:
+    result = validate_ocr_gold_review_packet(ACCEPTED_PACKET)
+
+    assert result["review_id"] == "public-v1-ocr-human-gold-accepted-2026-10-07"
+    assert result["status"] == "accepted"
+    assert result["items"] == 2
+    assert result["accepted_items"] == 2
+    assert result["pending_items"] == 0
+
+
+def test_accepted_correction_is_hash_pinned(tmp_path: Path) -> None:
+    payload = json.loads(ACCEPTED_PACKET.read_text(encoding="utf-8"))
+    technical = next(
+        item
+        for item in payload["items"]
+        if item["artifact_id"] == "procurement-technical-spec-scan"
+    )
+    technical["accepted_gold_sha256"] = "0" * 64
+    candidate = tmp_path / "accepted-review.json"
+    candidate.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        OcrGoldReviewValidationError,
+        match="accepted gold hash mismatch",
+    ):
+        validate_ocr_gold_review_packet(candidate, benchmarks_root=ROOT / "benchmarks")
+
+
+def test_accepted_attestation_provenance_is_hash_pinned(tmp_path: Path) -> None:
+    payload = json.loads(ACCEPTED_PACKET.read_text(encoding="utf-8"))
+    payload["supporting_ai_audit_sha256"] = "0" * 64
+    candidate = tmp_path / "accepted-review.json"
+    candidate.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        OcrGoldReviewValidationError,
+        match="supporting AI audit hash mismatch",
     ):
         validate_ocr_gold_review_packet(candidate, benchmarks_root=ROOT / "benchmarks")
