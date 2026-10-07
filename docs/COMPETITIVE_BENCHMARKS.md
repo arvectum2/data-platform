@@ -57,8 +57,13 @@ reference text.
 
 The scan reference is explicitly labelled silver rather than human-verified
 gold: it comes from native extraction of the source PDF before rasterization.
-A later corpus revision should add human-reviewed scan gold, malformed/legacy
-documents, mixed Russian/English cases and product-research source material.
+Malformed/legacy, mixed Russian/English and product-research coverage were later
+added in the private-v1 slice. Human-reviewed scan gold remains the one manual
+quality gate: engineering preparation now lives in
+`benchmarks/reviews/ocr_gold_public_v1_review_request.json` and
+`docs/OCR_GOLD_HUMAN_REVIEW.md`. The request SHA-pins both scans and their
+candidate silver texts, rejects model-only acceptance, and requires promotion
+through a new corpus revision rather than mutating frozen public-v1.
 
 The first local Tesseract baseline on the Mac mini (rus+eng, 220 DPI) separates
 two OCR profiles. The linear technical-specification scan measured CER 3.61%,
