@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-10-08T22:27:35.924982+00:00",
+  "input": [
+    "Найдите срок исполнения муниципального контракта на поставку оборудования.",
+    "В техническом задании указаны требования к обеспечению заявки и банковской гарантии.",
+    "Сопоставьте стоимость работ по проектированию сайта с начальной максимальной ценой закупки."
+  ],
+  "weights": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+  "samples_per_server": 6,
+  "servers": [
+    {
+      "name": "llama.cpp",
+      "status": "ok",
+      "dimension": 1024,
+      "warmup_ms": 78.8,
+      "p50_ms": 44.0,
+      "mean_ms": 43.9,
+      "p95_ms": 45.1,
+      "individual_ms": [
+        44.6,
+        45.1,
+        45.0,
+        43.5,
+        42.8,
+        42.3
+      ]
+    },
+    {
+      "name": "Ollama",
+      "status": "ok",
+      "dimension": 1024,
+      "warmup_ms": 64.7,
+      "p50_ms": 48.2,
+      "mean_ms": 48.0,
+      "p95_ms": 49.1,
+      "individual_ms": [
+        49.3,
+        46.3,
+        47.6,
+        47.7,
+        48.7,
+        48.7
+      ]
+    },
+    {
+      "name": "LM Studio",
+      "status": "ok",
+      "dimension": 1024,
+      "warmup_ms": 120.5,
+      "p50_ms": 47.8,
+      "mean_ms": 48.0,
+      "p95_ms": 48.9,
+      "individual_ms": [
+        48.1,
+        47.4,
+        47.2,
+        47.6,
+        48.8,
+        49.0
+      ]
+    }
+  ],
+  "cosines_against_llama": {
+    "Ollama": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "LM Studio": [
+      1.0,
+      1.0,
+      1.0
+    ]
+  },
+  "environment": {
+    "host": "Mac mini Apple Silicon",
+    "unified_memory_gib": 24,
+    "weights": "Qwen3-Embedding-0.6B Q8_0 GGUF",
+    "concurrent_requests": 1,
+    "model_loaded_and_warmed": true,
+    "repetitions": 6,
+    "russian_inputs": 3,
+    "comparison_scope": "serving runtime smoke, NOT quality promotion",
+    "quantization": "Q8_0"
+  },
+  "note": "p95 is interpolated from six samples; small-sample descriptive data only. Ollama keep_alive=2m; llama.cpp and LM Studio on separate loopback ports. LLM/VLM/OCR model quality not evaluated by this server smoke."
+}

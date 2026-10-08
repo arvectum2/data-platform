@@ -55,3 +55,54 @@ redistribution. The `manifest.json` is the source of truth for weight availabili
 
 Decision deferred until after core product delivery, consistent with the
 existing benchmark-driven architecture and postponed optimization phase.
+
+## Download and file integrity outcome — 2026-10-09
+
+All **18 of 18** candidate variants registered ready on ArvectumSSD.
+The independent offline audit reported **PASS** for 24 model-weight files
+representing approximately **74.92 GB** of logical model weights.
+All 24 files have locally calculated SHA-256 digests; 20 upstream
+content-addressed blobs were additionally checked against their named
+SHA-256 and all 20 matched. There were no broken links or mismatches.
+The original production Qwen3-Embedding-4B GGUF was copied and source/destination
+SHA-256 matched. Manifests and individual hashes remain at
+`/Volumes/ArvectumSSD/Models/data-platform-benchmarks/{manifest.json,audit_results.json}`.
+No production model was replaced.
+
+## Three-runtime GGUF serving smoke — 2026-10-09
+
+Same Qwen3-Embedding-0.6B **Q8_0 GGUF**, three Russian-language input strings,
+one batch of three per request, six timed runs after warm-up, single client,
+independent loopback ports, 24-GB Apple Silicon Mac mini:
+
+| Runtime | 1024-dim embeddings | p50/request | p95/request | Cosine similarity to llama.cpp |
+|---|---|---:|---:|---:|
+| llama.cpp | PASS | 44.0 ms | 45.1 ms | reference |
+| Ollama | PASS | 48.2 ms | 49.1 ms | 1.0 (all 3) |
+| LM Studio | PASS | 47.8 ms | 48.9 ms | 1.0 (all 3) |
+
+Ollama used `keep_alive=2m` for a warm comparison. The first run using
+`OLLAMA_KEEP_ALIVE=0` excluded model residency and was **not** used in these
+results. This is a short **runtime compatibility** smoke, not a rigorous
+throughput/long-context benchmark or model quality decision. Only llama.cpp
+and LM Studio were explicitly set to 2048 context; no long-context workloads
+were compared. Exact raw requests and timing:
+`benchmarks/results/model_runtime_comparison_2026-10-09.json`, reproducible
+runner `/Volumes/ArvectumSSD/Models/data-platform-benchmarks/runtime-comparison/compare_embedding_servers.py`.
+
+Native MLX smoke using cached `Qwen3.5-4B-MLX-4bit` also completed without
+error, generating 32 tokens with 2.528 GB reported peak memory and about
+87.9 tokens/s decode in that single short run. The 32-token limit cut off the
+thinking output; **no answer accuracy** was scored. Full log:
+`/Volumes/ArvectumSSD/Models/data-platform-benchmarks/runtime-comparison/mlx_smoke.log`.
+
+**Recommended production architecture:** stay with existing headless llama.cpp
+for GGUF-based embeddings/reasoning/vision endpoints; native MLX where actual
+MLX weights have a supported runner; native PaddleOCR/Transformers sidecars
+for structure-aware OCR and cross-encoder scoring. Ollama is convenient for
+rapid development but does not simplify structured OCR and native rerank
+adapters. LM Studio is most useful for manual diagnostics and visual
+comparison; its headless API is valid but the GUI adds no value to always-on
+Data Platform. All working production endpoints and models remain unchanged.
+All model quality/promotion decisions stay deferred to the separately
+defined frozen Russian document corpus gate.

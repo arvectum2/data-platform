@@ -743,9 +743,10 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 ## DP-MODEL-REFRESH-001 — post-core model comparison (benchmark-only)
 
 - [x] Separate model inventory/staging from production on ArvectumSSD, retaining the current embedding, reranker, reasoning and OCR serving stack.
-- [ ] Download and verify weights for the updated candidate batch; use `/Volumes/ArvectumSSD/Models/data-platform-benchmarks/manifest.json` for per-model completion.
+- [x] Download and verify weights for the updated candidate batch; use `/Volumes/ArvectumSSD/Models/data-platform-benchmarks/manifest.json` for per-model completion.
 - [ ] Benchmark Russian document OCR/layout, embeddings, reranking and grounded synthesis on unchanged frozen human-reviewed corpora, with quality/latency/RAM metrics.
-- [ ] Compare inference backends on identical GGUF weights; benchmark MLX and specialized OCR adapters on their native paths.
+- [x] Smoke-test identical GGUF embedding weights on llama.cpp, Ollama and LM Studio; record throughput and vector agreement, plus native MLX generation smoke.
+- [ ] Run native OCR/VLM adapter and model-quality evaluations on the frozen Russian corpus before any promotion.
 - [ ] Only consider model promotions after product completion and comparative acceptance gates. Changing a model must never silently migrate dimensions or change protected runtime endpoints.
 
 Candidate matrix, limitations and protocol: `docs/MODEL_REFRESH_BENCHMARKS.md`. This stage is evaluation only; no model is promoted by adding it here.
