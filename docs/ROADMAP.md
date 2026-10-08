@@ -740,6 +740,16 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 - [x] query expansion only if recall improves without unacceptable precision/latency regression;
 - [x] answer synthesis only if groundedness/citation benchmarks meet the required threshold.
 
+## DP-MODEL-REFRESH-001 — post-core model comparison (benchmark-only)
+
+- [x] Separate model inventory/staging from production on ArvectumSSD, retaining the current embedding, reranker, reasoning and OCR serving stack.
+- [ ] Download and verify weights for the updated candidate batch; use `/Volumes/ArvectumSSD/Models/data-platform-benchmarks/manifest.json` for per-model completion.
+- [ ] Benchmark Russian document OCR/layout, embeddings, reranking and grounded synthesis on unchanged frozen human-reviewed corpora, with quality/latency/RAM metrics.
+- [ ] Compare inference backends on identical GGUF weights; benchmark MLX and specialized OCR adapters on their native paths.
+- [ ] Only consider model promotions after product completion and comparative acceptance gates. Changing a model must never silently migrate dimensions or change protected runtime endpoints.
+
+Candidate matrix, limitations and protocol: `docs/MODEL_REFRESH_BENCHMARKS.md`. This stage is evaluation only; no model is promoted by adding it here.
+
 ## Post-v1 backlog
 
 Only after three real consumers are integrated:
