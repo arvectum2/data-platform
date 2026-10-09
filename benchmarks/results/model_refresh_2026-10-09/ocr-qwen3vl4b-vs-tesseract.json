@@ -1,0 +1,83 @@
+{
+  "suite": "public_v2_human_reviewed_scans",
+  "suite_sha256": "088e1b0f6daa80d16832f3577e6db6856d029071a7f3ccf8e766f9d54540499e",
+  "model": "Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+  "backend": "llama.cpp",
+  "policy": "candidate-only-no-production-change",
+  "cases": [
+    {
+      "id": "procurement-control-notice-scan",
+      "tesseract": {
+        "model": "Tesseract rus+eng",
+        "latency_s": 0.543,
+        "cer": 0.405751,
+        "wer": 0.546099,
+        "required_text_passed": true,
+        "output_chars": 1256,
+        "gold_chars": 1252
+      },
+      "qwen3vl": {
+        "model": "Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+        "latency_s": 16.586,
+        "cer": 0.29393,
+        "wer": 0.432624,
+        "required_text_passed": true,
+        "output_chars": 1253,
+        "gold_chars": 1252,
+        "usage": {
+          "completion_tokens": 636,
+          "prompt_tokens": 2238,
+          "total_tokens": 2874,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "procurement-technical-spec-scan",
+      "tesseract": {
+        "model": "Tesseract rus+eng",
+        "latency_s": 1.126,
+        "cer": 0.022299,
+        "wer": 0.04886,
+        "required_text_passed": true,
+        "output_chars": 2554,
+        "gold_chars": 2601
+      },
+      "qwen3vl": {
+        "model": "Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+        "latency_s": 22.323,
+        "cer": 0.014994,
+        "wer": 0.026059,
+        "required_text_passed": true,
+        "output_chars": 2566,
+        "gold_chars": 2601,
+        "usage": {
+          "completion_tokens": 954,
+          "prompt_tokens": 2238,
+          "total_tokens": 3192,
+          "prompt_tokens_details": {
+            "cached_tokens": 87
+          }
+        }
+      }
+    }
+  ],
+  "summary": {
+    "tesseract": {
+      "cases": 2,
+      "mean_cer": 0.214025,
+      "mean_wer": 0.2974795,
+      "mean_latency_s": 0.8345,
+      "required_text_pass_rate": 1.0
+    },
+    "qwen3vl": {
+      "cases": 2,
+      "mean_cer": 0.15446200000000002,
+      "mean_wer": 0.2293415,
+      "mean_latency_s": 19.4545,
+      "required_text_pass_rate": 1.0
+    }
+  }
+}

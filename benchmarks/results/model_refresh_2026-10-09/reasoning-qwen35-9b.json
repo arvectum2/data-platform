@@ -1,0 +1,127 @@
+{
+  "suite": "faithfulness_real_v1",
+  "suite_sha256": "5e84f6c76d1f175928d1802464c08323fd4e55845c9b6123fd97ce9ebd6f7a96",
+  "model": "Qwen3.5-9b-MLX-4bit",
+  "engine": "mlx-lm",
+  "load_s": 9.25,
+  "method": "Exploratory standalone prompt; not the same as official DP faithfulness scorer or Gemma 4 baseline",
+  "results": [
+    {
+      "id": "real-control-authority-okud",
+      "expected_abstained": false,
+      "detected_abstention": false,
+      "suspicious_bik": false,
+      "required_terms_present": [
+        "Комитет финансов Санкт-Петербурга",
+        "0506135"
+      ],
+      "required_terms_total": 2,
+      "expected_citation_ids": [
+        "real-control-notice"
+      ],
+      "citation_ids_present": [
+        "real-control-notice"
+      ],
+      "time_s": 2.013,
+      "answer": "Орган контроля: Комитет финансов Санкт-Петербурга. Код формы по ОКУД: 0506135.\nИсточники: [real-control-notice]",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true
+    },
+    {
+      "id": "real-docx-okpd-nmck",
+      "expected_abstained": false,
+      "detected_abstention": false,
+      "suspicious_bik": false,
+      "required_terms_present": [
+        "58.11.19.000",
+        "299 967,00"
+      ],
+      "required_terms_total": 2,
+      "expected_citation_ids": [
+        "real-nmck-docx-row"
+      ],
+      "citation_ids_present": [
+        "real-nmck-docx-row"
+      ],
+      "time_s": 1.8,
+      "answer": "Код ОКПД2: 58.11.19.000, НМЦК: 299 967,00 руб.\nИсточники: [real-nmck-docx-row]",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true
+    },
+    {
+      "id": "real-photo-local-processing",
+      "expected_abstained": false,
+      "detected_abstention": false,
+      "suspicious_bik": false,
+      "required_terms_present": [
+        "локально",
+        "iPhone"
+      ],
+      "required_terms_total": 2,
+      "expected_citation_ids": [
+        "real-photo-size-html"
+      ],
+      "citation_ids_present": [
+        "real-photo-size-html"
+      ],
+      "time_s": 1.013,
+      "answer": "Изображение обрабатывается локально на iPhone.\nИсточники: [real-photo-size-html]",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true
+    },
+    {
+      "id": "real-multisource-control-and-nmck",
+      "expected_abstained": false,
+      "detected_abstention": false,
+      "suspicious_bik": false,
+      "required_terms_present": [
+        "Комитет финансов Санкт-Петербурга",
+        "299 967,00"
+      ],
+      "required_terms_total": 2,
+      "expected_citation_ids": [
+        "real-control-notice-multi",
+        "real-nmck-docx-multi"
+      ],
+      "citation_ids_present": [
+        "real-control-notice-multi",
+        "real-nmck-docx-multi"
+      ],
+      "time_s": 1.969,
+      "answer": "Орган контроля: Комитет финансов Санкт-Петербурга. НМЦК книгоиздательской продукции: 299 967,00 руб.\nИсточники: [real-control-notice-multi], [real-nmck-docx-multi]",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true
+    },
+    {
+      "id": "real-insufficient-bank-bik",
+      "expected_abstained": true,
+      "detected_abstention": true,
+      "suspicious_bik": false,
+      "required_terms_present": [],
+      "required_terms_total": 0,
+      "expected_citation_ids": [
+        "real-photo-size-insufficient"
+      ],
+      "citation_ids_present": [
+        "real-photo-size-insufficient"
+      ],
+      "time_s": 0.979,
+      "answer": "Недостаточно данных в источниках.\nИсточники: [real-photo-size-insufficient]",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true
+    }
+  ],
+  "summary": {
+    "cases": 5,
+    "required_terms_pass_rate": 1.0,
+    "citation_pass_rate": 1.0,
+    "abstention_pass_rate": 1.0,
+    "combined_pass_rate": 1.0,
+    "mean_time_s": 1.555
+  }
+}

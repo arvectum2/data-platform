@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-09",
+  "status": "exploratory_benchmark_complete_no_model_promotion",
+  "host": "Mac mini Apple Silicon 24 GB unified RAM",
+  "production_changes": false,
+  "site_source_checkout": "arvectum-site",
+  "site_source_commit": "cf1261e",
+  "source_corpus": {
+    "site_pages": 45,
+    "frozen_gsc_queries": 12,
+    "human_gold_ocr_scans": 2,
+    "frozen_faithfulness_cases": 5
+  },
+  "embeddings": [
+    {
+      "variant": "embedding-0.6b",
+      "dimension": 1024,
+      "top1": 0.5833333333333334,
+      "mrr": 0.7259259259259259,
+      "recall_at5": 0.8333333333333334,
+      "ndcg_at5": 0.7410657717261978,
+      "embedding_time_s": 6.37,
+      "suite_sha256": "a310f69fcd58da3bf0fbd485bf9931e44f61895151a2f7db584923ab1251c976",
+      "site_corpus_hash": "01b01897b60f300e0284b0a5aafa01a49cb944cfa0231b3cd40d736da100b0e7"
+    },
+    {
+      "variant": "embedding-4b",
+      "dimension": 2560,
+      "top1": 0.6666666666666666,
+      "mrr": 0.7847222222222222,
+      "recall_at5": 0.9166666666666666,
+      "ndcg_at5": 0.8077113387680256,
+      "embedding_time_s": 35.5,
+      "suite_sha256": "a310f69fcd58da3bf0fbd485bf9931e44f61895151a2f7db584923ab1251c976",
+      "site_corpus_hash": "01b01897b60f300e0284b0a5aafa01a49cb944cfa0231b3cd40d736da100b0e7"
+    },
+    {
+      "variant": "embedding-8b",
+      "dimension": 4096,
+      "top1": 0.5833333333333334,
+      "mrr": 0.7319444444444444,
+      "recall_at5": 1.0,
+      "ndcg_at5": 0.7982824060375707,
+      "embedding_time_s": 71.39,
+      "suite_sha256": "a310f69fcd58da3bf0fbd485bf9931e44f61895151a2f7db584923ab1251c976",
+      "site_corpus_hash": "01b01897b60f300e0284b0a5aafa01a49cb944cfa0231b3cd40d736da100b0e7"
+    }
+  ],
+  "ocr": {
+    "tesseract": {
+      "cases": 2,
+      "mean_cer": 0.214025,
+      "mean_wer": 0.2974795,
+      "mean_latency_s": 0.8345,
+      "required_text_pass_rate": 1.0
+    },
+    "qwen3vl": {
+      "cases": 2,
+      "mean_cer": 0.15446200000000002,
+      "mean_wer": 0.2293415,
+      "mean_latency_s": 19.4545,
+      "required_text_pass_rate": 1.0
+    }
+  },
+  "reranker": {
+    "dense_baseline": {
+      "top1": 0.6666666666666666,
+      "mrr": 0.7708333333333334,
+      "recall_at5": 0.9166666666666666,
+      "ndcg_at5": 0.8077113387680256
+    },
+    "bge_v2_m3": {
+      "top1": 0.6666666666666666,
+      "mrr": 0.7777777777777778,
+      "recall_at5": 0.9166666666666666,
+      "ndcg_at5": 0.8134882922619097,
+      "p50_s": 0.279
+    },
+    "qwen3_reranker_0.6b": {
+      "top1": 0.6666666666666666,
+      "mrr": 0.7458333333333332,
+      "recall_at5": 0.9166666666666666,
+      "ndcg_at5": 0.7873715932399493,
+      "p50_s": 7.588
+    }
+  },
+  "reasoning": {
+    "qwen3.5-4b": {
+      "cases": 5,
+      "required_terms_pass_rate": 1.0,
+      "citation_pass_rate": 1.0,
+      "abstention_pass_rate": 1.0,
+      "combined_pass_rate": 1.0,
+      "mean_time_s": 0.925
+    },
+    "qwen3.5-9b": {
+      "cases": 5,
+      "required_terms_pass_rate": 1.0,
+      "citation_pass_rate": 1.0,
+      "abstention_pass_rate": 1.0,
+      "combined_pass_rate": 1.0,
+      "mean_time_s": 1.555
+    }
+  },
+  "limitations": [
+    "Site retrieval is pure dense ranking with 1700-character page prefixes; not current hybrid index and not a production migration test.",
+    "Only 12 labeled site queries; no statistical significance claim, no training-set leakage audit.",
+    "Embedding variants differ in size and quantization: 0.6B/4B Q8_0 versus 8B Q4_K_M.",
+    "Reranking results use the same local 4B dense top-five; cannot recover results outside top-five. BGE uses deployed sidecar, Qwen3 0.6B runs on CPU; latency is NOT same-runtime comparison.",
+    "OCR compares two human-reviewed scans on GGUF VLM and Tesseract PSM3. The VLM is not tested on larger layouts; no structural human validation on model output.",
+    "Qwen3.5 reasoning uses a new uniform prompt and heuristic term/citation/abstention checks; not equivalent to the previously frozen full Gemma faithfulness scorer.",
+    "No native execution of BGE-M3, Qwen3-Reranker-4B, PaddleOCR-VL, dots.ocr, DeepSeek-OCR, or Qwen3-VL-8B yet.",
+    "All 18 weight variants are downloaded and audited; successful download does not mean 18 quality evaluations."
+  ],
+  "promotion_decision": "retain existing Qwen3-Embedding-4B + BGE reranker + Gemma 4 + Tesseract; VLM on explicit escalation only"
+}

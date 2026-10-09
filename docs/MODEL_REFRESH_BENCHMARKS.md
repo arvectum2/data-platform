@@ -106,3 +106,11 @@ comparison; its headless API is valid but the GUI adds no value to always-on
 Data Platform. All working production endpoints and models remain unchanged.
 All model quality/promotion decisions stay deferred to the separately
 defined frozen Russian document corpus gate.
+
+## First frozen Russian comparative results — 2026-10-09
+
+A full report and original per-case machine-readable results from the first local
+round are at `docs/MODEL_REFRESH_QUALITY_2026-10-09.md` and
+`benchmarks/results/model_refresh_2026-10-09/`. All production model services
+remain unchanged. Downloads remain 18/18, but only a subset has undergone
+quality evaluation; the rest stay benchmark candidates.

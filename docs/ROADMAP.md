@@ -744,9 +744,11 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 
 - [x] Separate model inventory/staging from production on ArvectumSSD, retaining the current embedding, reranker, reasoning and OCR serving stack.
 - [x] Download and verify weights for the updated candidate batch; use `/Volumes/ArvectumSSD/Models/data-platform-benchmarks/manifest.json` for per-model completion.
-- [ ] Benchmark Russian document OCR/layout, embeddings, reranking and grounded synthesis on unchanged frozen human-reviewed corpora, with quality/latency/RAM metrics.
+- [x] Initial local Russian quality comparison: Qwen3 Embedding 0.6/4/8B, Qwen3-VL-4B OCR vs Tesseract, BGE vs Qwen3 Reranker 0.6B, and Qwen3.5 4/9B grounded-answer smoke on pinned existing labels, with isolated endpoints and no production promotion. See `docs/MODEL_REFRESH_QUALITY_2026-10-09.md`.
+- [ ] Complete a larger frozen Russian quality corpus with independently adjudicated document facts and field/table structure, plus simultaneous memory and throughput telemetry; repeat the official faithfulness/production-adoption gates.
 - [x] Smoke-test identical GGUF embedding weights on llama.cpp, Ollama and LM Studio; record throughput and vector agreement, plus native MLX generation smoke.
-- [ ] Run native OCR/VLM adapter and model-quality evaluations on the frozen Russian corpus before any promotion.
+- [x] Run Qwen3-VL-4B GGUF against two previously human-reviewed Russian scans with OCR CER/WER, required-text and latency checks.
+- [ ] Run native PaddleOCR-VL/dots.ocr/DeepSeek-OCR and Qwen3-VL-8B, BGE-M3, Qwen3-Reranker-4B; validate platform-specific compatibility and larger corpus before any production switch.
 - [ ] Only consider model promotions after product completion and comparative acceptance gates. Changing a model must never silently migrate dimensions or change protected runtime endpoints.
 
 Candidate matrix, limitations and protocol: `docs/MODEL_REFRESH_BENCHMARKS.md`. This stage is evaluation only; no model is promoted by adding it here.
