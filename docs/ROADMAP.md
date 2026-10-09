@@ -744,11 +744,12 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 
 - [x] Restore Russian-market model candidates omitted from the previous 18-model inventory; distinguish official open weights (ai-sage) from Sber/Yandex hosted APIs. Reference: `docs/RUSSIAN_MODEL_BENCHMARKS_2026-10-09.md`.
 - [x] Prepare resumable, revision-pinned local SSD acquisition script `scripts/download_russian_model_candidates.py`; do not substitute the internal Mac disk when SSD authorization fails.
-- [ ] Restore macOS Remote Desktop Commander file access to `/Volumes/ArvectumSSD` (currently EPERM), then download Giga-Embeddings 0826 480M and 3B plus GigaChat 3.1 Lightning Q4; archive optional legacy 3B / new 10B via `--all`.
+- [x] Restart Remote Desktop Commander launchd service after Node update and verify restored macOS SSD access (2026-10-09). 
+- [ ] Download Giga-Embeddings 0826 480M/3B and GigaChat 3.1 Lightning Q4; optionally archive legacy 3B and 10B via `--all`. Currently **blocked by remote command execution safety gate**, not macOS SSD permissions.
 - [ ] Run these Russian-native models on the same frozen Russian retrieval, OCR/layout and faithfulness benchmarks used for the original candidates, without modifying production indexes or model providers.
 - [ ] Compare hosted GigaChat / Giga Embeddings and Yandex Text Embeddings v2 / Alice AI / YandexGPT only after API credentials, costs and data-processing rules are approved; use public corpus first. Do not claim hosted weights were downloaded.
 
-Status 2026-10-09: **Not downloaded**, original completed 18-model batch stays unchanged, Russian expansion open until SSD access is restored.
+Status 2026-10-09: **Not downloaded**. SSD access restored after RDC restart, but remote execution of downloader was blocked by the remote action security layer. Original 18-model batch stays unchanged.
 
 ## DP-MODEL-REFRESH-001 — post-core model comparison (benchmark-only)
 
