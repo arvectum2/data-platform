@@ -1,0 +1,209 @@
+{
+  "model": "ai-sage/Giga-Embeddings-instruct-3B-0826",
+  "revision": "b71168088212f0a13688514e4fc288a86106c4e4",
+  "model_path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/russian-models/giga-embeddings-0826-3b",
+  "backend": "sentence-transformers",
+  "device": "mps",
+  "dtype": "bfloat16 original weights",
+  "pooling": "mean and L2 normalized, from model SentenceTransformer config",
+  "query_instruction": "Given a web search query, retrieve relevant passages that answer the query",
+  "document_instruction": null,
+  "suite": "growth_search_console_v1",
+  "suite_sha256": "a310f69fcd58da3bf0fbd485bf9931e44f61895151a2f7db584923ab1251c976",
+  "site_corpus_hash": "01b01897b60f300e0284b0a5aafa01a49cb944cfa0231b3cd40d736da100b0e7",
+  "docs": 45,
+  "queries": 12,
+  "dimension": 2048,
+  "load_s": 14.346,
+  "documents_encode_s": 19.286,
+  "queries_encode_s": 0.605,
+  "total_encode_s": 19.891,
+  "top1": 0.5833333333333334,
+  "mrr": 0.7416666666666667,
+  "recall_at5": 1.0,
+  "ndcg_at5": 0.8055412395986213,
+  "case_results": [
+    {
+      "id": "gsc-automate-procurement",
+      "rank": 1,
+      "expected": [
+        "https://arvectum.com/solutions/procurement.html"
+      ],
+      "top5": [
+        "https://arvectum.com/solutions/procurement.html",
+        "https://arvectum.com/materials.html",
+        "https://arvectum.com/materials/rfq-automation-guide.html",
+        "https://arvectum.com/solutions/procurement-ai-agents.html",
+        "https://arvectum.com/"
+      ],
+      "top1": "https://arvectum.com/solutions/procurement.html"
+    },
+    {
+      "id": "gsc-tender-automation",
+      "rank": 5,
+      "expected": [
+        "https://arvectum.com/services/ai-tender-agent.html"
+      ],
+      "top5": [
+        "https://arvectum.com/solutions/procurement.html",
+        "https://arvectum.com/materials/rfq-automation-guide.html",
+        "https://arvectum.com/services/tender-documents-automation.html",
+        "https://arvectum.com/materials.html",
+        "https://arvectum.com/services/ai-tender-agent.html"
+      ],
+      "top1": "https://arvectum.com/solutions/procurement.html"
+    },
+    {
+      "id": "gsc-ai-document-check",
+      "rank": 1,
+      "expected": [
+        "https://arvectum.com/solutions/ai-document-checks.html"
+      ],
+      "top5": [
+        "https://arvectum.com/solutions/ai-document-checks.html",
+        "https://arvectum.com/services/contract-risk-review.html",
+        "https://arvectum.com/solutions/closed-loop-ai-documents.html",
+        "https://arvectum.com/solutions.html",
+        "https://arvectum.com/materials/contract-risk-checklist.html"
+      ],
+      "top1": "https://arvectum.com/solutions/ai-document-checks.html"
+    },
+    {
+      "id": "gsc-ai-agent-procurement",
+      "rank": 1,
+      "expected": [
+        "https://arvectum.com/solutions/procurement-ai-agents.html"
+      ],
+      "top5": [
+        "https://arvectum.com/solutions/procurement-ai-agents.html",
+        "https://arvectum.com/materials/ai-procurement-guide.html",
+        "https://arvectum.com/solutions.html",
+        "https://arvectum.com/",
+        "https://arvectum.com/materials.html"
+      ],
+      "top1": "https://arvectum.com/solutions/procurement-ai-agents.html"
+    },
+    {
+      "id": "gsc-supplier-selection",
+      "rank": 2,
+      "expected": [
+        "https://arvectum.com/solutions/procurement.html"
+      ],
+      "top5": [
+        "https://arvectum.com/materials/rfq-automation-guide.html",
+        "https://arvectum.com/solutions/procurement.html",
+        "https://arvectum.com/materials.html",
+        "https://arvectum.com/services/rfq-automation.html",
+        "https://arvectum.com/materials/tkp-comparison-guide.html"
+      ],
+      "top1": "https://arvectum.com/materials/rfq-automation-guide.html"
+    },
+    {
+      "id": "gsc-closed-loop-ai",
+      "rank": 1,
+      "expected": [
+        "https://arvectum.com/solutions/closed-loop-ai-documents.html"
+      ],
+      "top5": [
+        "https://arvectum.com/solutions/closed-loop-ai-documents.html",
+        "https://arvectum.com/security/local-ai-procurement.html",
+        "https://arvectum.com/security-control.html",
+        "https://arvectum.com/solutions.html",
+        "https://arvectum.com/materials/ai-procurement-guide.html"
+      ],
+      "top1": "https://arvectum.com/solutions/closed-loop-ai-documents.html"
+    },
+    {
+      "id": "gsc-rfq-system",
+      "rank": 2,
+      "expected": [
+        "https://arvectum.com/services/rfq-automation.html"
+      ],
+      "top5": [
+        "https://arvectum.com/materials/rfq-automation-guide.html",
+        "https://arvectum.com/services/rfq-automation.html",
+        "https://arvectum.com/solutions/rfq-tkp-comparison.html",
+        "https://arvectum.com/solutions/procurement.html",
+        "https://arvectum.com/services/ai-tender-agent.html"
+      ],
+      "top1": "https://arvectum.com/materials/rfq-automation-guide.html"
+    },
+    {
+      "id": "yandex-rfq-tender",
+      "rank": 2,
+      "expected": [
+        "https://arvectum.com/services/rfq-automation.html"
+      ],
+      "top5": [
+        "https://arvectum.com/materials/rfq-automation-guide.html",
+        "https://arvectum.com/services/rfq-automation.html",
+        "https://arvectum.com/solutions/rfq-tkp-comparison.html",
+        "https://arvectum.com/cases/tender-operator-demo.html",
+        "https://arvectum.com/services/ai-tender-agent.html"
+      ],
+      "top1": "https://arvectum.com/materials/rfq-automation-guide.html"
+    },
+    {
+      "id": "yandex-rfq-what-is",
+      "rank": 1,
+      "expected": [
+        "https://arvectum.com/materials/rfq-automation-guide.html"
+      ],
+      "top5": [
+        "https://arvectum.com/materials/rfq-automation-guide.html",
+        "https://arvectum.com/services/rfq-automation.html",
+        "https://arvectum.com/solutions/procurement.html",
+        "https://arvectum.com/solutions/rfq-tkp-comparison.html",
+        "https://arvectum.com/solutions/procurement-ai-agents.html"
+      ],
+      "top1": "https://arvectum.com/materials/rfq-automation-guide.html"
+    },
+    {
+      "id": "yandex-tkp-comparison",
+      "rank": 1,
+      "expected": [
+        "https://arvectum.com/services/tkp-comparison.html"
+      ],
+      "top5": [
+        "https://arvectum.com/services/tkp-comparison.html",
+        "https://arvectum.com/materials/tkp-comparison-guide.html",
+        "https://arvectum.com/solutions/rfq-tkp-comparison.html",
+        "https://arvectum.com/solutions/procurement.html",
+        "https://arvectum.com/services/ai-tender-agent.html"
+      ],
+      "top1": "https://arvectum.com/services/tkp-comparison.html"
+    },
+    {
+      "id": "yandex-tkp-analysis",
+      "rank": 1,
+      "expected": [
+        "https://arvectum.com/services/tkp-comparison.html"
+      ],
+      "top5": [
+        "https://arvectum.com/services/tkp-comparison.html",
+        "https://arvectum.com/materials/tkp-comparison-guide.html",
+        "https://arvectum.com/solutions/rfq-tkp-comparison.html",
+        "https://arvectum.com/services/ai-tender-agent.html",
+        "https://arvectum.com/solutions/procurement.html"
+      ],
+      "top1": "https://arvectum.com/services/tkp-comparison.html"
+    },
+    {
+      "id": "yandex-brand",
+      "rank": 5,
+      "expected": [
+        "https://arvectum.com/"
+      ],
+      "top5": [
+        "https://arvectum.com/about.html",
+        "https://arvectum.com/thank-you.html",
+        "https://arvectum.com/privacy.html",
+        "https://arvectum.com/personal-data-consent.html",
+        "https://arvectum.com/"
+      ],
+      "top1": "https://arvectum.com/about.html"
+    }
+  ],
+  "limitations": "12 site-search queries, pure dense, model-native query instruction versus original Qwen baseline (no instruction), hardware and backend differ",
+  "source_site_commit": "cf1261e"
+}

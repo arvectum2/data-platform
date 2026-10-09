@@ -79,3 +79,37 @@ privacy and region review, and do **not** have downloadable hosted weights.
 
 **Decision:** no production provider change, no embedding dimension change,
 no changes to accepted runtime endpoints.
+
+## Follow-up: Giga-Embeddings 3B BF16 is now verified and benchmarked
+
+The `ai-sage/Giga-Embeddings-instruct-3B-0826` revision
+`b71168088212f0a13688514e4fc288a86106c4e4` has finished downloading.
+The downloader verified its **6,301 MB** weight-file byte count, computed
+SHA-256 and marked the snapshot **ready**. Unlike the smaller 480M model,
+the 3B output dimension is **2048**. It ran successfully with PyTorch MPS
+using the same model-native query instruction and mean/L2 pooling.
+
+| Model | Dim | Top-1 | MRR | Recall@5 | nDCG@5 | Total encode time |
+|---|---:|---:|---:|---:|---:|---:|
+| Giga-Embeddings 480M BF16 | 1024 | 0.500 | 0.711 | 1.000 | 0.784 | 4.58 s |
+| **Giga-Embeddings 3B BF16** | 2048 | 0.583 | 0.742 | **1.000** | **0.806** | 19.89 s |
+| Qwen3-Embedding 4B Q8 GGUF (incumbent) | 2560 | **0.667** | **0.785** | 0.917 | **0.808** | 35.50 s |
+
+The Giga 3B score is **nearly tied with incumbent 4B on nDCG@5**,
+but Qwen3 4B has higher MRR and top-1. The 3B achieved full recall
+within the first five in this small evaluation. Different engine/format
+and query-instruction caveats above still apply.
+
+Both Russian embeddings were evaluated on *exactly* the same site and
+accepted query labels (verified equal corpus and suite SHA-256 hashes).
+Per-case scores are stored at
+`benchmarks/results/model_refresh_2026-10-09/giga-embeddings-0826-3b.json`.
+The combined machine-readable five-model table lives at
+`benchmarks/results/model_refresh_2026-10-09/russian_embeddings_comparison.json`.
+
+**Download recovery:** The first 3B transfer stopped advancing after
+2.31 GiB. The stalled process was gracefully stopped, and a new
+Hugging Face HTTP (non-XET) transfer completed and validated the
+3B file. The downloader is continuing through its remaining queue.
+Do not treat the downloading GigaChat checkpoint as ready before the
+manifest confirms full file and checksum validation.

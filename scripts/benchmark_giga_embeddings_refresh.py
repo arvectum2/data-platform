@@ -17,6 +17,10 @@ from pathlib import Path
 from benchmark_embedding_refresh import site_corpus
 
 DEFAULT_MODEL = Path("/Volumes/ArvectumSSD/Models/data-platform-benchmarks/russian-models/giga-embeddings-0826-480m")
+MODEL_SPECS = {
+    "giga-embeddings-0826-480m": ("ai-sage/Giga-Embeddings-instruct-480M-0826", "1763d603adac8057bd6482a708001b0ed2e0a903", 1024),
+    "giga-embeddings-0826-3b": ("ai-sage/Giga-Embeddings-instruct-3B-0826", "b71168088212f0a13688514e4fc288a86106c4e4", 2048),
+}
 DEFAULT_SITE = Path("/Volumes/ArvectumSSD/Arvectum/repos/arvectum-site/public")
 INSTRUCTION = "Given a web search query, retrieve relevant passages that answer the query"
 
@@ -41,6 +45,7 @@ def main() -> int:
     assert baseline["site_corpus_hash"]==corpus_hash, "site corpus differs from prior benchmark!"
     assert baseline["suite_sha256"]==hashlib.sha256(suite_data).hexdigest()
     from sentence_transformers import SentenceTransformer
+    model_repo, revision, expected_dim = MODEL_SPECS[a.model.name]
     print("LOAD",a.model,a.device,flush=True)
     before=time.perf_counter()
     model=SentenceTransformer(str(a.model),trust_remote_code=True,device=a.device,local_files_only=True)
@@ -56,7 +61,7 @@ def main() -> int:
     query_sec=round(time.perf_counter()-started,3)
     import numpy as np
     print("ENCODE_DONE",len(embeddings),len(qvectors),"DIM",embeddings.shape[1],flush=True)
-    assert embeddings.shape==(45,1024) and qvectors.shape==(12,1024), "Unexpected embedding dimensions"
+    assert embeddings.shape==(45,expected_dim) and qvectors.shape==(12,expected_dim), "Unexpected embedding dimensions"
     sim=np.asarray(qvectors,dtype=np.float32)@np.asarray(embeddings,dtype=np.float32).T
     results=[]
     ranks=[]
@@ -67,7 +72,7 @@ def main() -> int:
         ranks.append(rank)
         results.append({"id":c["id"],"rank":rank,"expected":c["expected_ids"],"top5":uris[:5],"top1":uris[0]})
         print("CASE",c["id"],rank,flush=True)
-    result={"model":"ai-sage/Giga-Embeddings-instruct-480M-0826","revision":"1763d603adac8057bd6482a708001b0ed2e0a903",
+    result={"model":model_repo,"revision":revision,
             "model_path":str(a.model),"backend":"sentence-transformers","device":a.device,
             "dtype":"bfloat16 original weights","pooling":"mean and L2 normalized, from model SentenceTransformer config",
             "query_instruction":INSTRUCTION,"document_instruction":None,
