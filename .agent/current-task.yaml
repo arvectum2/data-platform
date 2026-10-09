@@ -1,0 +1,33 @@
+version: 2
+repository: arvectum2/data-platform
+task_id: TDP-REFACTOR-20261009
+status: in_progress
+authority: OWNER_DIRECTIVE
+goal: 'Refactor shared Data Platform without duplicating Tender Agent product logic or breaking the consumer contract.'
+definition_of_done:
+  - 'Review capability ownership and SDK 0.3.0 vs DP 0.6.0 compatibility and runtime.'
+  - 'Generic ingestion/extraction and source evidence retained or promoted once in Data Platform; typed error/availability contracts exposed.'
+  - 'Preserve versioned consumer API, tenant isolation, security, and Russian document quality.'
+  - 'Focused and full DP tests plus CI; Tender Agent consumer E2E acceptance.'
+completed:
+  - 'Identified canonical Data Platform repository on ArvectumSSD, main 6f31a98, package version 0.6.0; existing hybrid search and consumer SDK canonical.'
+  - 'Mapped canonical generic ownership and frozen existing SDK 0.3.0 / consumer contract 1.0 compatibility.'
+  - 'Added strict ProcessedChunkResponse offsets/IDs validation without changing existing v1 wire schema.'
+  - 'Added 8 negative/positive chunk source contract cases and product boundary AST regression tests.'
+  - 'Local full Data Platform pytest suite reached 100% with existing local SDK via PYTHONPATH matching CI install; Ruff passed after fixing unused legacy test import.'
+
+current: 'First backward-compatible source contract and product-boundary tests green; proceed with PR+exact-head CI and later generic OCR/provenance checks.'
+pending:
+  - 'Baseline overlap and verify existing DP service and model/SDK contract.'
+  - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
+  - 'Verify with Tender Agent consumers and exact-head CI.'
+last_verified_commit: '6f31a98e4f99f9c11ca267d79775b6f19c6b0d86'
+test_results:
+  - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
+  - 'Ruff src tests sdk/python/src passed.'
+
+resume_instruction: 'Data Platform worktree /Volumes/ArvectumSSD/Arvectum/worktrees/data-platform-crossplatform-refactor-20261009 has backward-compatible chunk source validation and AST anti-product dependency tests. Finish PR/CI and coordinate with Tender Agent sibling worktree. Continue R2 generic extraction/OCR provenance frozen Russian files, then R3/R4 dependency consolidation and performance QA. Do not migrate schema or deploy without separate checked gates.'
+execution:
+  branch: refactor/platform-contract-cleanup-20261009
+  manual_override: true
+  lease_until: null
