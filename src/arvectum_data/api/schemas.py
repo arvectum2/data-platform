@@ -270,13 +270,21 @@ class IngestResponse(BaseModel):
 
 
 class ProcessedChunkResponse(BaseModel):
-    chunk_id: str
-    ordinal: int
+    """Version-1 generic chunk locator; rejects corrupt source coordinates."""
+
+    chunk_id: str = Field(min_length=1)
+    ordinal: int = Field(ge=0)
     text: str
-    content_hash: str
-    char_start: int
-    char_end: int
-    token_estimate: int
+    content_hash: str = Field(min_length=1)
+    char_start: int = Field(ge=0)
+    char_end: int = Field(ge=0)
+    token_estimate: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_source_span(self):
+        if self.char_end < self.char_start:
+            raise ValueError("source chunk char_end cannot precede char_start")
+        return self
 
 
 class ProcessDocumentResponse(BaseModel):

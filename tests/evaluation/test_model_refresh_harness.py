@@ -6,7 +6,7 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-from benchmark_embedding_refresh import HtmlText, cosine, site_corpus  # noqa: E402
+from benchmark_embedding_refresh import cosine, site_corpus  # noqa: E402
 from benchmark_ocr_refresh import distance, normalize, score  # noqa: E402
 
 
