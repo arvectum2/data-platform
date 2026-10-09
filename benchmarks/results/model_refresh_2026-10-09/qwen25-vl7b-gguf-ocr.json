@@ -1,0 +1,83 @@
+{
+  "suite": "public_v2_human_reviewed_scans",
+  "suite_sha256": "088e1b0f6daa80d16832f3577e6db6856d029071a7f3ccf8e766f9d54540499e",
+  "model": "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+  "backend": "llama.cpp",
+  "policy": "candidate-only-no-production-change",
+  "cases": [
+    {
+      "id": "procurement-control-notice-scan",
+      "tesseract": {
+        "model": "Tesseract rus+eng",
+        "latency_s": 0.609,
+        "cer": 0.405751,
+        "wer": 0.546099,
+        "required_text_passed": true,
+        "output_chars": 1256,
+        "gold_chars": 1252
+      },
+      "qwen25vl7b": {
+        "model": "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+        "latency_s": 27.55,
+        "cer": 0.289936,
+        "wer": 0.411348,
+        "required_text_passed": true,
+        "output_chars": 1253,
+        "gold_chars": 1252,
+        "usage": {
+          "completion_tokens": 628,
+          "prompt_tokens": 2876,
+          "total_tokens": 3504,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "procurement-technical-spec-scan",
+      "tesseract": {
+        "model": "Tesseract rus+eng",
+        "latency_s": 1.122,
+        "cer": 0.022299,
+        "wer": 0.04886,
+        "required_text_passed": true,
+        "output_chars": 2554,
+        "gold_chars": 2601
+      },
+      "qwen25vl7b": {
+        "model": "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+        "latency_s": 37.243,
+        "cer": 0.019992,
+        "wer": 0.029316,
+        "required_text_passed": true,
+        "output_chars": 2551,
+        "gold_chars": 2601,
+        "usage": {
+          "completion_tokens": 951,
+          "prompt_tokens": 2876,
+          "total_tokens": 3827,
+          "prompt_tokens_details": {
+            "cached_tokens": 98
+          }
+        }
+      }
+    }
+  ],
+  "summary": {
+    "tesseract": {
+      "cases": 2,
+      "mean_cer": 0.214025,
+      "mean_wer": 0.2974795,
+      "mean_latency_s": 0.8655,
+      "required_text_pass_rate": 1.0
+    },
+    "qwen25vl7b": {
+      "cases": 2,
+      "mean_cer": 0.15496400000000002,
+      "mean_wer": 0.220332,
+      "mean_latency_s": 32.3965,
+      "required_text_pass_rate": 1.0
+    }
+  }
+}

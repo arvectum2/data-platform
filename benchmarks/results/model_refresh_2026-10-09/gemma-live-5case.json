@@ -1,0 +1,98 @@
+{
+  "model": "arvectum-gemma4-12b-it-qat-q4_0",
+  "engine": "llama.cpp",
+  "endpoint": "existing live production :8081 read-only",
+  "suite": "faithfulness_real_v1",
+  "suite_sha256": "5e84f6c76d1f175928d1802464c08323fd4e55845c9b6123fd97ce9ebd6f7a96",
+  "method": "same prompt/content as GigaChat and Qwen3.5; heuristic not official acceptance",
+  "cases": [
+    {
+      "id": "real-control-authority-okud",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "seconds": 21.892,
+      "answer": "Орган контроля: Комитет финансов Санкт-Петербурга. Код формы по ОКУД: 0506135.\nИсточники: [real-control-notice]",
+      "usage": {
+        "completion_tokens": 43,
+        "prompt_tokens": 184,
+        "total_tokens": 227,
+        "prompt_tokens_details": {
+          "cached_tokens": 1
+        }
+      }
+    },
+    {
+      "id": "real-docx-okpd-nmck",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "seconds": 2.781,
+      "answer": "Код ОКПД2: 58.11.19.000. НМЦК: 299 967,00 руб.\nИсточники: [real-nmck-docx-row]",
+      "usage": {
+        "completion_tokens": 54,
+        "prompt_tokens": 216,
+        "total_tokens": 270,
+        "prompt_tokens_details": {
+          "cached_tokens": 88
+        }
+      }
+    },
+    {
+      "id": "real-photo-local-processing",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "seconds": 1.689,
+      "answer": "Изображение обрабатывается локально на iPhone.\nИсточники: [real-photo-size-html]",
+      "usage": {
+        "completion_tokens": 25,
+        "prompt_tokens": 155,
+        "total_tokens": 180,
+        "prompt_tokens_details": {
+          "cached_tokens": 88
+        }
+      }
+    },
+    {
+      "id": "real-multisource-control-and-nmck",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "seconds": 3.172,
+      "answer": "Орган контроля: Комитет финансов Санкт-Петербурга. НМЦК книгоиздательской продукции: 299 967,00 руб.\nИсточники: [real-control-notice-multi], [real-nmck-docx-multi]",
+      "usage": {
+        "completion_tokens": 62,
+        "prompt_tokens": 236,
+        "total_tokens": 298,
+        "prompt_tokens_details": {
+          "cached_tokens": 88
+        }
+      }
+    },
+    {
+      "id": "real-insufficient-bank-bik",
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "seconds": 0.823,
+      "answer": "Недостаточно данных в источниках.",
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 154,
+        "total_tokens": 163,
+        "prompt_tokens_details": {
+          "cached_tokens": 88
+        }
+      }
+    }
+  ],
+  "summary": {
+    "cases": 5,
+    "terms_pass": 1.0,
+    "citations_pass": 1.0,
+    "abstention_pass": 1.0,
+    "combined_pass": 1.0,
+    "mean_time_s": 6.071
+  }
+}

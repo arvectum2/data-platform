@@ -1,0 +1,33 @@
+{
+  "pipeline": "public PDF native + DOCX XML + scanned PDF Tesseract -> Qwen 4B vector -> BGE rerank -> Gemma cited answer",
+  "durable_production_writes": false,
+  "model_chain_only": true,
+  "files": 3,
+  "query": "Какой орган контроля указан в документе и какой код формы по ОКУД?",
+  "dense_order": [
+    "native-control-pdf",
+    "scanned-control-pdf",
+    "docx-nmck"
+  ],
+  "rerank_order": [
+    "native-control-pdf",
+    "scanned-control-pdf",
+    "docx-nmck"
+  ],
+  "answer": "Орган контроля: Комитет финансов Санкт-Петербурга [native-control-pdf, scanned-control-pdf].\nКод формы по ОКУД: 0506135 [native-control-pdf, scanned-control-pdf].",
+  "checks": {
+    "source_retrieved": true,
+    "name_present": true,
+    "okud_present": true,
+    "citation_present": true
+  },
+  "all_passed": true,
+  "latency_s": {
+    "extract": 0.8,
+    "embedding": 17.396,
+    "rerank": 8.083,
+    "generation": 8.292,
+    "total": 34.571
+  },
+  "citation_check_note": "Rescored original completed model-chain response: accepted comma-separated source IDs within one bracket; no new model call."
+}

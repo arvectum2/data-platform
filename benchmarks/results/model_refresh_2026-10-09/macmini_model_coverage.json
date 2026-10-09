@@ -1,0 +1,201 @@
+{
+  "date": "2026-10-09",
+  "mac_ram_bytes": 25769803776,
+  "variants": [
+    {
+      "name": "bge-m3",
+      "role": "embedding",
+      "weights_bytes": 2271145830,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/bge-m3"
+    },
+    {
+      "name": "bge-reranker-v2-m3",
+      "role": "reranker",
+      "weights_bytes": 2271071852,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/bge-reranker-v2-m3"
+    },
+    {
+      "name": "deepseek-ocr",
+      "role": "ocr-layout",
+      "weights_bytes": 6672547120,
+      "download": "ready",
+      "eval": "no_compatible_adapter",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/deepseek-ocr"
+    },
+    {
+      "name": "dots-ocr",
+      "role": "ocr-layout",
+      "weights_bytes": 6078431736,
+      "download": "ready",
+      "eval": "resource_stopped",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/dots-ocr"
+    },
+    {
+      "name": "gemma4-12b-qat-q4",
+      "role": "reasoning",
+      "weights_bytes": 6975879296,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/gemma4-12b-qat-q4"
+    },
+    {
+      "name": "paddleocr-vl-1.6",
+      "role": "ocr-layout",
+      "weights_bytes": 1917255968,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/paddleocr-vl-1.6"
+    },
+    {
+      "name": "qwen2.5-vl-3b-mlx-4bit",
+      "role": "vision",
+      "weights_bytes": 3073720461,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen2.5-vl-3b-mlx-4bit"
+    },
+    {
+      "name": "qwen2.5-vl-7b-gguf",
+      "role": "vision",
+      "weights_bytes": 6037235424,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen2.5-vl-7b-gguf"
+    },
+    {
+      "name": "qwen3-embedding-0.6b-q8",
+      "role": "embedding",
+      "weights_bytes": 639150592,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3-embedding-0.6b-q8"
+    },
+    {
+      "name": "qwen3-embedding-4b-q8",
+      "role": "embedding",
+      "weights_bytes": 4279660224,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3-embedding-4b-q8"
+    },
+    {
+      "name": "qwen3-embedding-8b-q4",
+      "role": "embedding",
+      "weights_bytes": 4676804928,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3-embedding-8b-q4"
+    },
+    {
+      "name": "qwen3-reranker-0.6b",
+      "role": "reranker",
+      "weights_bytes": 1191588280,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3-reranker-0.6b"
+    },
+    {
+      "name": "qwen3-reranker-4b",
+      "role": "reranker",
+      "weights_bytes": 8043614960,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3-reranker-4b"
+    },
+    {
+      "name": "qwen3-vl-4b-gguf",
+      "role": "vision",
+      "weights_bytes": 2951255968,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3-vl-4b-gguf"
+    },
+    {
+      "name": "qwen3-vl-4b-mlx-4bit",
+      "role": "vision",
+      "weights_bytes": 3093767283,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3-vl-4b-mlx-4bit"
+    },
+    {
+      "name": "qwen3-vl-8b-mlx-4bit",
+      "role": "vision",
+      "weights_bytes": 5760665246,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3-vl-8b-mlx-4bit"
+    },
+    {
+      "name": "qwen3.5-4b-mlx-4bit",
+      "role": "reasoning",
+      "weights_bytes": 3034300695,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3.5-4b-mlx-4bit"
+    },
+    {
+      "name": "qwen3.5-9b-mlx-4bit",
+      "role": "reasoning",
+      "weights_bytes": 5950221072,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/qwen3.5-9b-mlx-4bit"
+    },
+    {
+      "name": "giga-embeddings-0826-480m",
+      "role": "embedding",
+      "weights_bytes": 967470272,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/russian-models/giga-embeddings-0826-480m"
+    },
+    {
+      "name": "giga-embeddings-0826-3b",
+      "role": "embedding",
+      "weights_bytes": 6301256584,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/russian-models/giga-embeddings-0826-3b"
+    },
+    {
+      "name": "gigachat-3.1-lightning-q4",
+      "role": "generation",
+      "weights_bytes": 6474702976,
+      "download": "ready",
+      "eval": "smoke_scored",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/russian-models/gigachat-3.1-lightning-q4"
+    },
+    {
+      "name": "giga-embeddings-2025-3b",
+      "role": "embedding",
+      "weights_bytes": 13798557672,
+      "download": "ready",
+      "eval": "unscored_ram_or_runtime_gate",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/russian-models/giga-embeddings-2025-3b"
+    },
+    {
+      "name": "giga-embeddings-0826-10b",
+      "role": "embedding",
+      "weights_bytes": 20951703224,
+      "download": "ready",
+      "eval": "unscored_ram_or_runtime_gate",
+      "path": "/Volumes/ArvectumSSD/Models/data-platform-benchmarks/russian-models/giga-embeddings-0826-10b"
+    }
+  ],
+  "summary": {
+    "total_variants": 23,
+    "smoke_scored_variants": 19,
+    "unscored": 4
+  },
+  "notes": [
+    "Every variant verified by downloaded model manifest; score means at least one exploratory quality case, not full acceptance",
+    "Dots OCR was loaded but its BF16 inference was terminated for 24GiB memory safety",
+    "Legacy Giga 2025 F32 and 10B BF16 are downloaded but not run concurrently with production",
+    "DeepSeek OCR original weights have no tested macOS-metal adapter"
+  ]
+}

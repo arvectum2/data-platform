@@ -740,6 +740,23 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 - [x] query expansion only if recall improves without unacceptable precision/latency regression;
 - [x] answer synthesis only if groundedness/citation benchmarks meet the required threshold.
 
+## DP-MACMINI-E2E-STACK-001 — chosen testbed stack and VPS portability
+
+- [x] Audit all **23/23** downloaded variants and benchmark/feasibility-score **19/23** locally, with four bounded deferrals; preserve original results and inventory. Report: `docs/MACMINI_MODEL_STACK_COMPARISON_2026-10-09.md`.
+- [x] Compare six embedding candidates on identical 45-page/12-RU-query frozen corpus including BGE-M3, Giga 480M/3B and Qwen 0.6/4/8B; retain Qwen3-Embedding-4B Q8 in production.
+- [x] Compare Qwen 0.6B/4B rerankers on Apple MPS against existing BGE; keep BGE as the 24GiB rerank choice.
+- [x] Compare Tesseract, five Qwen VLM GGUF/MLX variants and native PaddleOCR-VL-1.6 MLX on identical two human-reviewed Russian scans; choose Qwen3-VL-4B MLX as **benchmark-only targeted fallback** candidate, Qwen3-VL-8B MLX for exceptional quality escalation.
+- [x] Compare Gemma 4 / Qwen3.5 4/9B / GigaChat 3.1 on frozen five-source Russian QA; keep production Gemma 4, shortlist Qwen3.5 4B for accelerated optional generation only.
+- [x] Run a read-only public procurement **model-chain smoke** (native PDF / DOCX / scanned PDF -> production embedding -> BGE rerank -> production Gemma cited answer), four semantic checks passed after recognizing valid comma-separated citation IDs. Selected API/search/indexing/document/evaluation tests also passed. No production DB writes.
+- [ ] Integrate VLM selection behind a neutral `transcribe_page` sidecar contract; include fallback triggers and structured field/layout confidence. Do not promote before acceptance tests.
+- [ ] Build independently adjudicated **>=100 RU procurement queries** and **>=30 challenging multi-page RU procurement documents** with gold source anchors, tables, legal entity names, amounts, identifiers and page order.
+- [ ] Run **full persisted Data Platform 8094 E2E** in isolated database namespace: ingest/index/hybrid retrieval/ACL/evidence/answer/rollback/restart, with zero changes to production customer data.
+- [ ] Run 24GiB Mac mini shared-load soak with Docker/iOS simulator: memory pressure, swap, p95, concurrency, automatic VLM unload/recovery; set a strict single-heavy-job queue. BF16 dots.ocr was terminated at the memory safety limit.
+- [ ] Define versioned provider adapters for CUDA VPS, frozen vector dimensions per index revision, and RU-resident data/secret/storage policy. CPU-only VPS is not equivalent to Metal-accelerated local inference.
+- [ ] Optional next download queue (no downloads requested yet): `mlx-community/PaddleOCR-VL-1.6-4bit` (P0, Apache), `microsoft/harrier-oss-v1-0.6b` (P1, MIT), `ai-forever/FRIDA` (P1, MIT, 512 tokens). Keep Jina v5/v3.5 out of commercial rollout pending CC-BY-NC licensing.
+
+**Frozen decision (2026-10-09):** keep Qwen3-Embedding-4B Q8 + PostgreSQL hybrid FTS/pgvector + BGE-reranker-v2-m3 + Gemma 4 12B QAT Q4 + Tesseract rus+eng, and test *on-demand* Qwen3-VL-4B MLX 4bit fallback. This is a serving-stack recommendation, not an automatic production model change.
+
 ## DP-MODEL-REFRESH-RU-001 — native Russian models and hosted Russian providers
 
 - [x] Restore Russian-market model candidates omitted from the previous 18-model inventory; distinguish official open weights (ai-sage) from Sber/Yandex hosted APIs. Reference: `docs/RUSSIAN_MODEL_BENCHMARKS_2026-10-09.md`.
