@@ -1,0 +1,116 @@
+{
+  "model": "ai-sage/GigaChat3.1-10B-A1.8B-GGUF",
+  "revision": "97045b260251cfa86f5ad25638fa2dd074153446",
+  "quantization": "Q4_K_M",
+  "engine": "llama.cpp",
+  "port": 18099,
+  "load_s": 3.022,
+  "suite": "faithfulness_real_v1",
+  "suite_sha256": "5e84f6c76d1f175928d1802464c08323fd4e55845c9b6123fd97ce9ebd6f7a96",
+  "cases": [
+    {
+      "id": "real-control-authority-okud",
+      "expected_abstained": false,
+      "detected_abstention": false,
+      "suspicious_bik": false,
+      "terms_pass": false,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "time_s": 2.153,
+      "answer": "Орган контроля: Комитет финансов Санкт- Петербурга. Код формы по ОКУД: 0506135.\nИсточники: [real-control-notice]",
+      "usage": {
+        "completion_tokens": 35,
+        "prompt_tokens": 1241,
+        "total_tokens": 1276,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "real-docx-okpd-nmck",
+      "expected_abstained": false,
+      "detected_abstention": false,
+      "suspicious_bik": false,
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "time_s": 1.023,
+      "answer": "Книгоиздательская продукция. Код ОКПД2: 58.11.19.000. Средняя цена: 297 707,00 руб. НМЦК: 299 967,00 руб.\nИсточники: [real-nmck-docx-row]",
+      "usage": {
+        "completion_tokens": 78,
+        "prompt_tokens": 1278,
+        "total_tokens": 1356,
+        "prompt_tokens_details": {
+          "cached_tokens": 1167
+        }
+      }
+    },
+    {
+      "id": "real-photo-local-processing",
+      "expected_abstained": false,
+      "detected_abstention": false,
+      "suspicious_bik": false,
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "time_s": 0.37,
+      "answer": "Изображение обрабатывается локально на iPhone.  \nИсточники: [real-photo-size-html]",
+      "usage": {
+        "completion_tokens": 24,
+        "prompt_tokens": 1217,
+        "total_tokens": 1241,
+        "prompt_tokens_details": {
+          "cached_tokens": 1166
+        }
+      }
+    },
+    {
+      "id": "real-multisource-control-and-nmck",
+      "expected_abstained": false,
+      "detected_abstention": false,
+      "suspicious_bik": false,
+      "terms_pass": false,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "time_s": 0.771,
+      "answer": "Орган контроля: Комитет финансов Санкт- Петербурга. НМЦК: 299 967,00 руб.\nИсточники: [real-control-notice-multi], [real-nmck-docx-multi]",
+      "usage": {
+        "completion_tokens": 51,
+        "prompt_tokens": 1296,
+        "total_tokens": 1347,
+        "prompt_tokens_details": {
+          "cached_tokens": 1166
+        }
+      }
+    },
+    {
+      "id": "real-insufficient-bank-bik",
+      "expected_abstained": true,
+      "detected_abstention": true,
+      "suspicious_bik": false,
+      "terms_pass": true,
+      "citation_pass": true,
+      "abstention_pass": true,
+      "time_s": 0.332,
+      "answer": "Недостаточно данных в источниках.\nИсточники: [real-photo-size-insufficient]",
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 1215,
+        "total_tokens": 1235,
+        "prompt_tokens_details": {
+          "cached_tokens": 1166
+        }
+      }
+    }
+  ],
+  "method": "Exploratory lexical/structural checks with same system/user content as Qwen3.5 MLX smoke, not production Gemma claim-support suite",
+  "summary": {
+    "cases": 5,
+    "terms_pass": 0.6,
+    "citations_pass": 1.0,
+    "abstention_pass": 1.0,
+    "combined_pass": 0.6,
+    "mean_time_s": 0.9298
+  }
+}

@@ -747,11 +747,12 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 - [x] Restart Remote Desktop Commander launchd service after Node update and verify restored macOS SSD access (2026-10-09).
 - [x] Download, verify SHA-256 and quality-smoke Giga-Embeddings 0826 480M on the frozen 45-page/12-query Russian site corpus. See `docs/GIGA_EMBEDDINGS_FIRST_BENCHMARK_2026-10-09.md`.
 - [x] Download and benchmark Giga-Embeddings 0826 3B BF16 on the same frozen Russian test corpus; keep its separate 2048-dimensional vector results isolated from the incumbent index.
-- [ ] Complete GigaChat 3.1 and optional larger-model downloads; HTTP/non-XET transfer resumed successfully after the initial stall, but remaining weights are not yet marked ready.
+- [x] Download, checksum-verify and run first Russian 5-case grounded-answer smoke for GigaChat 3.1 Lightning Q4 GGUF; see `docs/GIGACHAT31_RUSSIAN_FAITHFULNESS_2026-10-09.md`.
+- [ ] Complete remaining optional Giga Embeddings 2025/10B archive downloads and larger human-adjudicated Russian evaluations before adoption.
 - [ ] Run these Russian-native models on the same frozen Russian retrieval, OCR/layout and faithfulness benchmarks used for the original candidates, without modifying production indexes or model providers.
 - [ ] Compare hosted GigaChat / Giga Embeddings and Yandex Text Embeddings v2 / Alice AI / YandexGPT only after API credentials, costs and data-processing rules are approved; use public corpus first. Do not claim hosted weights were downloaded.
 
-Status 2026-10-09: **480M and 3B fully downloaded, SHA-256 verified, and benchmarked**. SSD access restored after RDC restart. Other open-weight Russian candidates still pending. Original 18-model batch stays unchanged.
+Status 2026-10-09: **Giga Embeddings 480M/3B and GigaChat 3.1 Lightning Q4 downloaded, SHA-256 checked and smoke-tested**. SSD access restored after RDC restart. Other open-weight Russian candidates still pending. Original 18-model batch stays unchanged.
 
 ## DP-MODEL-REFRESH-001 — post-core model comparison (benchmark-only)
 
