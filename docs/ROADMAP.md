@@ -744,12 +744,13 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 
 - [x] Restore Russian-market model candidates omitted from the previous 18-model inventory; distinguish official open weights (ai-sage) from Sber/Yandex hosted APIs. Reference: `docs/RUSSIAN_MODEL_BENCHMARKS_2026-10-09.md`.
 - [x] Prepare resumable, revision-pinned local SSD acquisition script `scripts/download_russian_model_candidates.py`; do not substitute the internal Mac disk when SSD authorization fails.
-- [x] Restart Remote Desktop Commander launchd service after Node update and verify restored macOS SSD access (2026-10-09). 
-- [ ] Download Giga-Embeddings 0826 480M/3B and GigaChat 3.1 Lightning Q4; optionally archive legacy 3B and 10B via `--all`. Currently **blocked by remote command execution safety gate**, not macOS SSD permissions.
+- [x] Restart Remote Desktop Commander launchd service after Node update and verify restored macOS SSD access (2026-10-09).
+- [x] Download, verify SHA-256 and quality-smoke Giga-Embeddings 0826 480M on the frozen 45-page/12-query Russian site corpus. See `docs/GIGA_EMBEDDINGS_FIRST_BENCHMARK_2026-10-09.md`.
+- [ ] Complete remaining 3B/GigaChat 3.1/optional larger downloads: after detecting a stalled HTTP transfer, the isolated Hugging Face downloader was restarted with non-XET transfer on 2026-10-09. All partial weights remain unpromoted.
 - [ ] Run these Russian-native models on the same frozen Russian retrieval, OCR/layout and faithfulness benchmarks used for the original candidates, without modifying production indexes or model providers.
 - [ ] Compare hosted GigaChat / Giga Embeddings and Yandex Text Embeddings v2 / Alice AI / YandexGPT only after API credentials, costs and data-processing rules are approved; use public corpus first. Do not claim hosted weights were downloaded.
 
-Status 2026-10-09: **Not downloaded**. SSD access restored after RDC restart, but remote execution of downloader was blocked by the remote action security layer. Original 18-model batch stays unchanged.
+Status 2026-10-09: **480M fully downloaded and benchmarked; 3B resumed but not yet ready**. SSD access restored after RDC restart. Other open-weight Russian candidates still pending. Original 18-model batch stays unchanged.
 
 ## DP-MODEL-REFRESH-001 — post-core model comparison (benchmark-only)
 
