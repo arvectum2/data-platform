@@ -1,0 +1,159 @@
+module,layer,lines,functions,classes,max_function_lines,max_decisions,broad_excepts,subprocess_calls,external_imports,priority,recommendation
+__init__,root,422,2,0,8,1,0,0,,P2,preserve; inspect interface/test contract on changes
+acquisition.__init__,acquisition,29,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+acquisition.http,acquisition,49,1,1,33,6,0,0,,P3,preserve; inspect interface/test contract on changes
+acquisition.models,acquisition,93,4,7,13,7,0,0,,P3,preserve; inspect interface/test contract on changes
+acquisition.pipeline,acquisition,294,13,3,65,11,4,0,,P2,broad-errors
+acquisition.protocols,acquisition,17,2,2,1,0,0,0,,P3,preserve; inspect interface/test contract on changes
+acquisition.render,acquisition,80,2,1,60,10,1,0,playwright,P3,preserve; inspect interface/test contract on changes
+acquisition.security,acquisition,41,1,1,30,12,0,0,,P3,preserve; inspect interface/test contract on changes
+answers,root,156,4,3,52,20,0,0,,P2,preserve; inspect interface/test contract on changes
+api.__init__,api,3,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+api.app,api,309,11,0,240,68,1,0,"fastapi, uvicorn",P1,long-function; high-branching
+api.config,api,166,7,1,52,18,0,0,"pydantic, pydantic_settings",P3,preserve; inspect interface/test contract on changes
+api.contract,api,23,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+api.routes.__init__,api,17,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+api.routes.billing_usage,api,237,13,0,214,12,12,0,fastapi,P1,long-function; broad-errors
+api.routes.collections_ingest,api,242,11,0,215,17,10,0,fastapi,P1,long-function; broad-errors
+api.routes.context,api,18,0,1,0,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.index_graph_feedback,api,332,15,0,302,16,14,0,fastapi,P1,long-function; broad-errors
+api.routes.research_memory_sync_extract,api,456,10,0,422,30,9,0,fastapi,P1,long-function; high-branching; broad-errors
+api.routes.search_connectors,api,340,8,0,312,24,7,0,fastapi,P1,long-function; broad-errors
+api.routes.system_auth,api,168,10,0,140,7,4,0,fastapi,P2,broad-errors
+api.schemas,api,881,6,85,20,5,0,0,pydantic,P1,large-module
+api.service,api,177,2,1,46,8,1,0,sqlalchemy,P3,preserve; inspect interface/test contract on changes
+api.service_mixins.__init__,api,17,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+api.service_mixins.access,api,703,28,1,50,11,1,0,sqlalchemy,P1,large-module
+api.service_mixins.billing,api,773,22,1,106,19,0,0,sqlalchemy,P1,large-module
+api.service_mixins.collections,api,485,10,1,155,25,0,0,sqlalchemy,P2,long-function
+api.service_mixins.extraction,api,61,3,1,20,2,0,0,,P3,preserve; inspect interface/test contract on changes
+api.service_mixins.graph,api,545,14,1,103,30,0,0,sqlalchemy,P2,large-module; high-branching
+api.service_mixins.memory_sync,api,381,6,1,147,22,1,0,sqlalchemy,P2,preserve; inspect interface/test contract on changes
+api.service_mixins.retrieval,api,657,19,1,167,17,2,0,sqlalchemy,P1,large-module; long-function
+api.service_support,api,88,2,14,13,2,0,0,,P3,preserve; inspect interface/test contract on changes
+billing.__init__,billing,31,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+billing.core,billing,141,4,4,57,8,0,0,,P3,preserve; inspect interface/test contract on changes
+billing.providers,billing,241,11,6,46,9,0,0,,P3,preserve; inspect interface/test contract on changes
+connectors.__init__,connectors,35,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+connectors.credentials,connectors,67,4,1,19,9,0,0,cryptography,P3,preserve; inspect interface/test contract on changes
+connectors.github,connectors,340,12,2,85,26,1,0,,P2,preserve; inspect interface/test contract on changes
+connectors.http,connectors,54,3,2,31,5,1,0,,P3,preserve; inspect interface/test contract on changes
+connectors.manual,connectors,65,4,1,22,2,0,0,,P3,preserve; inspect interface/test contract on changes
+connectors.models,connectors,60,2,5,7,5,0,0,,P3,preserve; inspect interface/test contract on changes
+connectors.policy,connectors,52,3,1,18,5,0,0,,P3,preserve; inspect interface/test contract on changes
+connectors.protocols,connectors,43,5,4,7,0,0,0,,P3,preserve; inspect interface/test contract on changes
+connectors.registry,connectors,41,6,1,9,2,0,0,,P3,preserve; inspect interface/test contract on changes
+connectors.sitemap,connectors,176,8,1,47,15,3,0,,P2,broad-errors
+connectors.web,connectors,179,12,2,34,7,0,0,,P3,preserve; inspect interface/test contract on changes
+core.__init__,core,3,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+core.models,core,48,0,4,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+crawl.__init__,crawl,38,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+crawl.crawler,crawl,299,7,1,186,38,1,0,,P2,long-function; high-branching
+crawl.links,crawl,118,7,2,28,17,1,0,,P3,preserve; inspect interface/test contract on changes
+crawl.models,crawl,155,6,5,39,14,0,0,,P3,preserve; inspect interface/test contract on changes
+crawl.relevance,crawl,723,22,8,91,10,2,0,,P1,large-module
+documents.__init__,documents,35,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+documents.extractor,documents,554,23,1,55,12,4,2,"openpyxl, xlrd",P2,large-module; broad-errors; external-process
+documents.ingest,documents,315,6,1,106,11,0,0,,P2,preserve; inspect interface/test contract on changes
+documents.ocr,documents,175,6,5,58,9,0,2,,P3,external-process
+documents.pdf_pipeline,documents,140,4,2,66,14,2,0,pypdf,P3,preserve; inspect interface/test contract on changes
+documents.vlm,documents,99,2,1,58,5,0,1,,P3,external-process
+engine.__init__,engine,54,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+engine.discovery,engine,461,13,3,103,26,0,0,,P2,preserve; inspect interface/test contract on changes
+engine.engine,engine,141,4,1,45,13,1,0,,P3,preserve; inspect interface/test contract on changes
+engine.html_records,engine,664,42,4,88,12,0,0,,P1,large-module
+engine.model_provider,engine,112,3,1,53,12,0,0,,P3,preserve; inspect interface/test contract on changes
+engine.models,engine,132,5,7,21,5,0,0,,P3,preserve; inspect interface/test contract on changes
+engine.protocols,engine,32,2,2,5,0,0,0,,P3,preserve; inspect interface/test contract on changes
+engine.providers,engine,56,2,1,29,5,0,0,,P3,preserve; inspect interface/test contract on changes
+engine.records,engine,609,33,10,81,12,1,0,,P1,large-module
+engine.resolver,engine,81,2,0,60,7,0,0,,P3,preserve; inspect interface/test contract on changes
+entities,root,12,1,0,3,0,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.__init__,evaluation,162,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.adversarial,evaluation,454,20,5,49,5,1,0,,P2,preserve; inspect interface/test contract on changes
+evaluation.adversarial_cli,evaluation,72,2,0,30,4,0,0,alembic,P3,preserve; inspect interface/test contract on changes
+evaluation.catalog,evaluation,128,7,2,28,11,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.cli,evaluation,79,2,0,31,7,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.core,evaluation,104,3,0,39,4,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.corpus,evaluation,520,17,4,155,27,0,0,,P2,large-module; long-function
+evaluation.corpus_cli,evaluation,74,2,0,39,12,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.facts,evaluation,322,13,5,53,7,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.facts_cli,evaluation,77,2,0,41,9,0,0,alembic,P3,preserve; inspect interface/test contract on changes
+evaluation.faithfulness,evaluation,412,14,6,92,15,1,0,,P2,preserve; inspect interface/test contract on changes
+evaluation.faithfulness_cli,evaluation,68,2,0,30,3,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.http_runner,evaluation,84,1,2,56,8,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.metrics,evaluation,91,5,0,37,5,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.models,evaluation,182,5,4,33,14,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.multi_hop,evaluation,252,11,5,48,9,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.multi_hop_cli,evaluation,65,2,0,33,6,0,0,alembic,P3,preserve; inspect interface/test contract on changes
+evaluation.ocr_gold_review,evaluation,225,5,1,161,18,0,0,,P2,long-function
+evaluation.pipeline_latency,evaluation,141,7,2,55,7,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.pipeline_latency_cli,evaluation,38,2,0,13,1,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.private_ocr_scale,evaluation,232,4,3,129,12,0,0,pypdf,P2,preserve; inspect interface/test contract on changes
+evaluation.private_ocr_scale_cli,evaluation,34,1,0,20,2,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.private_runtime,evaluation,164,8,2,65,5,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.private_runtime_cli,evaluation,33,2,0,9,2,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.query_expansion_compare,evaluation,64,3,1,33,2,1,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.query_expansion_compare_cli,evaluation,69,2,0,33,4,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.query_expansion_gate,evaluation,39,1,1,26,5,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.rerank_compare,evaluation,62,3,1,31,2,1,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.rerank_compare_cli,evaluation,69,2,0,33,4,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.rerank_gate,evaluation,42,1,1,29,4,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.runtime_resources,evaluation,262,15,4,35,3,0,1,,P3,external-process
+evaluation.runtime_resources_cli,evaluation,55,2,0,24,4,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.sync_efficiency,evaluation,306,16,5,79,8,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.sync_efficiency_cli,evaluation,71,2,0,33,6,0,0,alembic,P3,preserve; inspect interface/test contract on changes
+evaluation.vlm_routing,evaluation,122,4,2,51,5,0,0,,P3,preserve; inspect interface/test contract on changes
+evaluation.vlm_routing_cli,evaluation,30,1,0,17,2,0,0,,P3,preserve; inspect interface/test contract on changes
+execution.__init__,execution,41,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+execution.checkpoints,execution,90,12,3,28,2,1,0,,P3,preserve; inspect interface/test contract on changes
+execution.models,execution,377,20,12,38,7,0,0,,P2,preserve; inspect interface/test contract on changes
+execution.runner,execution,408,11,1,136,12,1,0,,P2,preserve; inspect interface/test contract on changes
+graph,root,113,2,4,73,12,0,0,,P3,preserve; inspect interface/test contract on changes
+indexing.__init__,indexing,31,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+indexing.embeddings,indexing,237,11,7,68,16,2,0,sentence_transformers,P3,preserve; inspect interface/test contract on changes
+indexing.protocols,indexing,40,5,2,8,0,0,0,,P3,preserve; inspect interface/test contract on changes
+indexing.vector_local,indexing,126,11,1,40,9,0,0,,P3,preserve; inspect interface/test contract on changes
+indexing.vector_postgres,indexing,123,7,1,33,5,0,0,,P3,preserve; inspect interface/test contract on changes
+memory,root,107,1,3,66,4,0,0,,P3,preserve; inspect interface/test contract on changes
+models.__init__,models,5,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+models.models,models,70,0,8,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+models.providers,models,149,14,8,24,8,2,0,,P3,preserve; inspect interface/test contract on changes
+models.routing,models,76,4,2,24,13,0,0,,P3,preserve; inspect interface/test contract on changes
+modes,root,177,4,2,34,11,0,0,,P3,preserve; inspect interface/test contract on changes
+observability.__init__,observability,3,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+observability.logging,observability,28,2,1,10,1,0,0,,P3,preserve; inspect interface/test contract on changes
+orchestration,root,281,11,2,82,14,2,0,,P3,preserve; inspect interface/test contract on changes
+processing.__init__,processing,3,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+processing.chunking,processing,127,4,2,58,9,0,0,,P3,preserve; inspect interface/test contract on changes
+profile_lifecycle,root,668,35,7,69,10,3,0,,P1,large-module; broad-errors
+profiles,root,425,23,9,52,11,1,0,,P2,preserve; inspect interface/test contract on changes
+recovery,root,86,5,2,24,3,0,0,,P3,preserve; inspect interface/test contract on changes
+research,root,253,6,5,165,12,2,0,,P2,long-function
+results.__init__,results,59,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+results.codec,results,393,21,1,51,22,2,0,,P2,preserve; inspect interface/test contract on changes
+results.models,results,133,5,8,23,7,0,0,,P3,preserve; inspect interface/test contract on changes
+results.record_sets,results,722,34,6,61,10,1,0,,P1,large-module
+results.review,results,158,6,2,54,6,0,0,,P3,preserve; inspect interface/test contract on changes
+results.stores,results,527,43,5,44,8,3,0,,P2,large-module; broad-errors
+review_queue.__init__,review_queue,53,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+review_queue.models,review_queue,192,8,12,15,8,0,0,,P3,preserve; inspect interface/test contract on changes
+review_queue.records,review_queue,487,16,4,54,12,0,0,,P2,preserve; inspect interface/test contract on changes
+review_queue.stores,review_queue,336,37,4,27,8,5,0,,P2,broad-errors
+review_queue.workflow,review_queue,261,13,1,58,7,0,0,,P3,preserve; inspect interface/test contract on changes
+search.__init__,search,44,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+search.expansion,search,110,6,4,25,8,0,0,,P3,preserve; inspect interface/test contract on changes
+search.hybrid,search,395,6,2,214,12,2,0,,P1,long-function
+search.memory,search,86,3,2,45,9,0,0,,P3,preserve; inspect interface/test contract on changes
+search.models,search,133,1,8,42,23,0,0,,P2,preserve; inspect interface/test contract on changes
+search.postgres,search,85,3,1,40,2,0,0,,P3,preserve; inspect interface/test contract on changes
+search.protocols,search,30,2,2,10,0,0,0,,P3,preserve; inspect interface/test contract on changes
+search.rerank,search,228,12,7,34,9,1,0,sentence_transformers,P3,preserve; inspect interface/test contract on changes
+storage.__init__,storage,4,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+storage.postgres.__init__,storage,53,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+storage.postgres.base,storage,5,0,1,0,0,0,0,sqlalchemy,P3,preserve; inspect interface/test contract on changes
+storage.postgres.database,storage,14,2,0,4,1,0,0,sqlalchemy,P3,preserve; inspect interface/test contract on changes
+storage.postgres.models,storage,763,1,21,2,0,0,0,"pgvector, sqlalchemy",P1,large-module
+storage.postgres.repository,storage,566,16,3,76,12,0,0,sqlalchemy,P2,large-module
+supportability,root,82,3,1,33,4,0,0,,P3,preserve; inspect interface/test contract on changes
+sync,root,52,4,2,7,2,0,0,,P3,preserve; inspect interface/test contract on changes
