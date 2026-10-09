@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import codecs
 import io
 import subprocess
 import tempfile
@@ -27,6 +28,11 @@ _WVHTML_TIMEOUT_SECONDS = 30
 # against pathological converter output; ordinary procurement documents are
 # orders of magnitude smaller.
 _WVHTML_MAX_HTML_BYTES = 16 * 1024 * 1024
+# Conservative OOXML expansion budgets. The upload-size limit only bounds the
+# compressed archive; malicious XML members can be orders of magnitude larger.
+_MAX_OOXML_MEMBER_BYTES = 64 * 1024 * 1024
+_MAX_OOXML_TOTAL_BYTES = 256 * 1024 * 1024
+
 _SUPPORTED_EXTENSIONS = (
     ".txt",
     ".md",
@@ -133,13 +139,35 @@ def _is_unsupported_ext(ext: str) -> bool:
     return ext not in _SUPPORTED_EXTENSIONS
 
 
+# In legacy Russian archives CP1251 and KOI8-R can both decode the same bytes.
+# Select KOI8-R only with meaningful Russian-language evidence; CP1251 remains
+# the fallback for short or ambiguous payloads (compatible with older imports).
+_RU_TRIGRAMS = (
+    "про", "ени", "ого", "ост", "ние", "ств", "при", "зак", "тех",
+    "док", "ени", "ова", "ани", "тер", "тор", "пол", "ель", "раб",
+)
+
+
+def _russian_readability(text: str) -> int:
+    lower = text.lower()
+    return sum(lower.count(trigram) for trigram in _RU_TRIGRAMS)
+
+
 def _extract_txt(content: bytes) -> str:
-    for enc in ("utf-8", "cp1251", "koi8-r", "latin-1"):
-        try:
-            return content.decode(enc)
-        except (UnicodeDecodeError, LookupError):
-            continue
-    return content.decode("utf-8", errors="replace")
+    if content.startswith((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE)):
+        return content.decode("utf-32")
+    if content.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        return content.decode("utf-16")
+    try:
+        return content.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        pass
+
+    cp1251 = content.decode("cp1251", errors="replace")
+    koi8 = content.decode("koi8-r", errors="replace")
+    if _russian_readability(koi8) >= _russian_readability(cp1251) + 2:
+        return koi8
+    return cp1251
 
 
 def _extract_legacy_office(local_path: str, max_chars: int, *, ext: str = ".doc") -> str:
@@ -339,9 +367,25 @@ def _project_wvhtml_tables(html_bytes: bytes, max_chars: int) -> str:
     return "\n".join(projector.lines)[:max_chars]
 
 
+def _safe_ooxml_archive(archive: zipfile.ZipFile) -> bool:
+    total = 0
+    for member in archive.infolist():
+        size = member.file_size
+        total += size
+        if size > _MAX_OOXML_MEMBER_BYTES or total > _MAX_OOXML_TOTAL_BYTES:
+            return False
+        # ZIP bombs often contain highly repetitive XML. Use a generous ratio
+        # so ordinary compressed Office files remain supported.
+        if size > 1_048_576 and size > max(1, member.compress_size) * 1_000:
+            return False
+    return True
+
+
 def _extract_docx(content: bytes) -> str:
     try:
         with zipfile.ZipFile(io.BytesIO(content)) as z:
+            if not _safe_ooxml_archive(z):
+                return ""
             xml_content = z.read("word/document.xml")
         root = ElementTree.fromstring(xml_content)
         ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
@@ -392,6 +436,9 @@ def _extract_xlsx(content: bytes) -> str:
     except ImportError:
         return ""
     try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            if not _safe_ooxml_archive(archive):
+                return ""
         wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
         lines = []
         for sheet_name in wb.sheetnames:

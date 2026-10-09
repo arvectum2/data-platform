@@ -5,7 +5,7 @@ from .extractor import (
     UNSUPPORTED_STATUS,
     extract_text,
 )
-from .ingest import DocumentIngestResult, ingest_file, ingest_url
+from .ingest import DocumentIngestResult, ingest_bytes, ingest_file, ingest_url
 from .ocr import OCRDocumentResult, OCRPageResult, OCRProvider, TesseractOCRProvider, TextRegion
 from .pdf_pipeline import PDFExtractionResult, PDFPageAssessment, assess_pdf_pages, extract_pdf_cascade
 from .vlm import VLMEscalation, escalate_pdf_pages_to_vlm, pages_requiring_vlm
@@ -29,6 +29,7 @@ __all__ = [
     "assess_pdf_pages",
     "extract_pdf_cascade",
     "extract_text",
+    "ingest_bytes",
     "ingest_file",
     "ingest_url",
 ]

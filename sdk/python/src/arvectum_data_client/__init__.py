@@ -1,4 +1,12 @@
-from .client import DataPlatformClient, DataPlatformError, DataPlatformHttpClient
+from .client import (
+    DataPlatformAuthenticationError,
+    DataPlatformClient,
+    DataPlatformConflictError,
+    DataPlatformError,
+    DataPlatformHttpClient,
+    DataPlatformRateLimitError,
+    DataPlatformUnavailableError,
+)
 from .naming import build_collection_id
 from .models import (
     Collection,
@@ -27,9 +35,13 @@ __all__ = [
     "CollectionStats",
     "ConsumerContract",
     "ConnectorCredential",
+    "DataPlatformAuthenticationError",
     "DataPlatformClient",
+    "DataPlatformConflictError",
     "DataPlatformError",
     "DataPlatformHttpClient",
+    "DataPlatformRateLimitError",
+    "DataPlatformUnavailableError",
     "DiscoveredResource",
     "DiscoveryResponse",
     "Entity",

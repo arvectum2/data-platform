@@ -69,8 +69,22 @@ def _deduplicate_and_reindex(drafts: list[ChunkDraft]) -> list[ChunkDraft]:
 
 def chunk_text(text: str, config: ChunkingConfig) -> list[ChunkDraft]:
     cleaned = normalize_text(text)
-    if len(cleaned) < config.min_chunk_chars:
+    if not cleaned:
         return []
+    if len(cleaned) < config.min_chunk_chars:
+        # The minimum filters short *tails* of large sources, not an entire
+        # legitimate document: otherwise research may report ingest success
+        # while silently making every short source unsearchable.
+        return [
+            ChunkDraft(
+                chunk_index=0,
+                text=cleaned,
+                text_hash=hashlib.sha256(cleaned.encode("utf-8")).hexdigest(),
+                char_start=0,
+                char_end=len(cleaned),
+                token_estimate=estimate_tokens(cleaned),
+            )
+        ]
 
     chunk_size = max(config.min_chunk_chars, config.chunk_size_chars)
     overlap = max(0, min(config.overlap_chars, chunk_size // 2))

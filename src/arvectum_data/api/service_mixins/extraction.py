@@ -16,6 +16,14 @@ from ...models import ModelRole
 
 
 class ExtractionServiceMixin:
+    def _extraction_providers(self, use_model: bool):
+        providers = [AutoDiscoveryProvider()]
+        if use_model:
+            reasoning = self.model_router.provider(ModelRole.REASONING)
+            if reasoning is not None:
+                providers.append(ReasoningCandidateProvider(reasoning))
+        return tuple(providers)
+
     def extract_url(
         self,
         *,
@@ -25,13 +33,9 @@ class ExtractionServiceMixin:
     ):
         if not self.settings.allow_private_fetches:
             validate_public_url(url)
-        providers = [AutoDiscoveryProvider()]
-        reasoning_provider = self.model_router.provider(ModelRole.REASONING)
-        if use_model and reasoning_provider is not None:
-            providers.append(ReasoningCandidateProvider(reasoning_provider))
         pipeline = URLExtractionPipeline(
             acquisition=self.acquisition,
-            providers=tuple(providers),
+            providers=self._extraction_providers(use_model),
         )
         return pipeline.extract_url(url, fields)
 
@@ -46,11 +50,7 @@ class ExtractionServiceMixin:
         fields: Sequence[FieldSpec],
         use_model: bool = False,
     ):
-        providers = [AutoDiscoveryProvider()]
-        reasoning_provider = self.model_router.provider(ModelRole.REASONING)
-        if use_model and reasoning_provider is not None:
-            providers.append(ReasoningCandidateProvider(reasoning_provider))
-        engine = ExtractionEngine(tuple(providers))
+        engine = ExtractionEngine(self._extraction_providers(use_model))
         asset = RawAsset(
             asset_id=asset_id,
             source_url=source_url,

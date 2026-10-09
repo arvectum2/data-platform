@@ -3,7 +3,7 @@ import zipfile
 
 import openpyxl
 
-from arvectum_data.documents import EXTRACTED_STATUS, extract_text, ingest_file
+from arvectum_data.documents import EXTRACTED_STATUS, extract_text, ingest_bytes, ingest_file
 from arvectum_data.processing import ChunkingConfig
 
 
@@ -80,3 +80,39 @@ def test_txt_extraction_falls_back_to_cp1251(tmp_path: Path) -> None:
 
     assert status == EXTRACTED_STATUS
     assert text == "Тестовая закупочная документация"
+
+
+def test_ingest_bytes_preserves_original_source_and_cleans_temporary_file():
+    payload = ("Документы о закупке: условия поставки и оплаты. " * 5).encode("utf-8")
+    first = ingest_bytes(payload, filename="техническое-задание.txt", collection_id="tenant:doc")
+    again = ingest_bytes(payload, filename="техническое-задание.txt", collection_id="tenant:doc")
+
+    assert first == again
+    assert first.resource.canonical_uri == "upload://техническое-задание.txt"
+    assert first.document.title == "техническое-задание.txt"
+    assert first.document.metadata["file_name"] == "техническое-задание.txt"
+    assert first.resource.metadata["file_name"] == "техническое-задание.txt"
+    assert all(chunk.metadata["file_name"] == "техническое-задание.txt" for chunk in first.chunks)
+    assert all(chunk.provenance.canonical_uri == first.resource.canonical_uri for chunk in first.chunks)
+    assert "arvectum-upload-" not in repr(first)
+
+
+def test_ingest_bytes_prechunked_short_document_is_preserved():
+    result = ingest_bytes(
+        "Привет".encode("utf-8"),
+        filename="short.txt",
+        collection_id="tenant:pre",
+        pre_chunked=True,
+    )
+    assert [chunk.text for chunk in result.chunks] == ["Привет"]
+    assert result.document.metadata["pre_chunked"] is True
+
+
+def test_russian_text_encoding_fallbacks_and_bom(tmp_path: Path):
+    text = "Условия поставки и оплаты. Техническое задание для закупки. Цена контракта."
+    for encoding in ("utf-8-sig", "utf-16", "utf-32", "cp1251", "koi8-r"):
+        source = tmp_path / f"legacy-{encoding}.txt"
+        source.write_bytes(text.encode(encoding))
+        status, extracted = extract_text(str(source))
+        assert status == EXTRACTED_STATUS
+        assert extracted == text, encoding

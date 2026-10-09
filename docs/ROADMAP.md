@@ -891,3 +891,17 @@ DP-RESEARCH-001 + DP-SYNC-001 + DP-MEM-001
 ~~~
 
 The first code task is deliberately not “write a new search engine”. It is to promote the mature extraction foundation into its canonical repository, then build the missing search layers around real consumer requirements.
+
+
+## Refactor acceptance — 2026-10-09
+
+- [x] Preserve Data Platform 0.6.0 / consumer SDK 0.3.0 / HTTP v1 boundaries, without importing procurement business rules.
+- [x] Consolidate file/bytes ingestion and preserve logical upload provenance.
+- [x] Repair long-PDF native text loss; make bounded OCR omissions and incomplete extraction explicit.
+- [x] Harden Russian legacy encoding and OOXML archive expansion.
+- [x] Restore searchable short-source chunks and normalized coordinate contracts.
+- [x] Add typed, backwards-compatible consumer failure classes and eliminate redundant transport paths.
+- [x] Repair post-decomposition tests and access-policy shape; run full unit/static, isolated PostgreSQL and Tender Agent consumer acceptance.
+- [ ] Separately authorize and execute production release, live LLM/OCR/VLM quality/performance comparison, and any model/runtime change. No automatic deployment in this refactor.
+
+See [refactor acceptance and reproducibility](REFACTOR_ACCEPTANCE_2026-10-09.md).

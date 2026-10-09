@@ -57,7 +57,7 @@ def register_collections_ingest_routes(router: APIRouter, context: RouteContext)
                 name=payload.name,
                 default_language=payload.default_language,
                 access_policy=(
-                    None if payload.access_policy is None else payload.access_policy.model_dump()
+                    None if payload.access_policy is None else payload.access_policy.model_dump(exclude_none=True)
                 ),
                 retention_policy=(
                     None
