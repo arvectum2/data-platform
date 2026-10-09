@@ -740,6 +740,16 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 - [x] query expansion only if recall improves without unacceptable precision/latency regression;
 - [x] answer synthesis only if groundedness/citation benchmarks meet the required threshold.
 
+## DP-MODEL-REFRESH-RU-001 — native Russian models and hosted Russian providers
+
+- [x] Restore Russian-market model candidates omitted from the previous 18-model inventory; distinguish official open weights (ai-sage) from Sber/Yandex hosted APIs. Reference: `docs/RUSSIAN_MODEL_BENCHMARKS_2026-10-09.md`.
+- [x] Prepare resumable, revision-pinned local SSD acquisition script `scripts/download_russian_model_candidates.py`; do not substitute the internal Mac disk when SSD authorization fails.
+- [ ] Restore macOS Remote Desktop Commander file access to `/Volumes/ArvectumSSD` (currently EPERM), then download Giga-Embeddings 0826 480M and 3B plus GigaChat 3.1 Lightning Q4; archive optional legacy 3B / new 10B via `--all`.
+- [ ] Run these Russian-native models on the same frozen Russian retrieval, OCR/layout and faithfulness benchmarks used for the original candidates, without modifying production indexes or model providers.
+- [ ] Compare hosted GigaChat / Giga Embeddings and Yandex Text Embeddings v2 / Alice AI / YandexGPT only after API credentials, costs and data-processing rules are approved; use public corpus first. Do not claim hosted weights were downloaded.
+
+Status 2026-10-09: **Not downloaded**, original completed 18-model batch stays unchanged, Russian expansion open until SSD access is restored.
+
 ## DP-MODEL-REFRESH-001 — post-core model comparison (benchmark-only)
 
 - [x] Separate model inventory/staging from production on ArvectumSSD, retaining the current embedding, reranker, reasoning and OCR serving stack.
