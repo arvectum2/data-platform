@@ -114,3 +114,17 @@ round are at `docs/MODEL_REFRESH_QUALITY_2026-10-09.md` and
 `benchmarks/results/model_refresh_2026-10-09/`. All production model services
 remain unchanged. Downloads remain 18/18, but only a subset has undergone
 quality evaluation; the rest stay benchmark candidates.
+
+## Correction: missing Russian-origin candidates (2026-10-09)
+
+The earlier 18/18 download set **did not contain any Russian Sber/Giga or Yandex models**.
+This was an omission, not evidence that those models failed benchmarks.
+See `docs/RUSSIAN_MODEL_BENCHMARKS_2026-10-09.md` for the separate comparison matrix:
+official `ai-sage` Giga-Embeddings 0826 480M/3B/10B, legacy 3B,
+GigaChat 3.1 Lightning Q4, Sber cloud GigaEmbeddings/GigaChat,
+Yandex Text Embeddings v2 doc/query and Alice AI/YandexGPT hosted models.
+Downloadable weights and API-only services are tracked separately.
+A pinned Hugging Face SSD downloader is staged as
+`scripts/download_russian_model_candidates.py`; the SSD download is
+**blocked by macOS external-volume access (EPERM)** and has not run.
+The prior results remain valid only for the models actually tested.
