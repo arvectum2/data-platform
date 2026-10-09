@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-09",
+  "host": "Mac mini Apple Silicon 24GiB",
+  "roles": {
+    "embedding": "Qwen3-Embedding-4B Q8 GGUF, 2560d",
+    "reranking": "BGE-reranker-v2-m3",
+    "quality_llm": "Gemma 4 12B QAT Q4",
+    "fast_llm": "Qwen3.5-4B MLX 4bit exclusive",
+    "default_active_profile": "quality",
+    "ocr": "Tesseract rus+eng"
+  },
+  "launchd_backend": {
+    "status": "active and HTTP 200",
+    "source_checkout": "/Volumes/ArvectumSSD/Arvectum/repos/tender-agent",
+    "runtime_copy": "/Users/master/arvectum-runtime/tender-agent",
+    "runtime_commit": "fc41e652b64ea27bda0f96a4b2e5f5967e87374e",
+    "code_and_private_runtime_env_internal": true,
+    "reason": "Node wrapper git rev-parse and bash on external SSD blocked by macOS TCC",
+    "replaced_node_wrapper": true,
+    "no_postgres_or_docker_restart": true
+  },
+  "public_procurement_eis_pipeline": {
+    "status": "report_ready",
+    "procurement_registry_number": "0372200172326000015",
+    "attachments_downloaded": 6,
+    "duration_seconds": 4.375,
+    "analysis_mode": "fallback_deterministic_adapter",
+    "llm_invoked": false,
+    "result": "completed_with_warnings",
+    "recommendation": "manual_review_required",
+    "source": "live public EIS, website procurement",
+    "external_submission": false
+  },
+  "isolated_controlled_llm_pilot": {
+    "status": "rfq_ready_collect_tkp",
+    "provider": "openai_compatible",
+    "model": "arvectum-gemma4-12b-it-qat-q4_0",
+    "real_local_llm_calls": true,
+    "elapsed_seconds": 145.97,
+    "qa_db_isolated_sqlite": true,
+    "source_material": "public RU procurement fixture plus clearly labeled synthetic contract draft",
+    "artifacts": [
+      "requirements",
+      "supplier_questions",
+      "rfq_draft",
+      "contract_risk_memo",
+      "redacted_partner_export",
+      "human_review_pack",
+      "feedback",
+      "outcome"
+    ],
+    "supplier_quotes_absent": true,
+    "physical_external_communications": false
+  },
+  "production_tender_local_llm": {
+    "enabled": true,
+    "endpoint": "http://127.0.0.1:8081/v1",
+    "model": "arvectum-gemma4-12b-it-qat-q4_0",
+    "provider": "openai_compatible",
+    "backend_restarted_healthy": true,
+    "full_live_eis_llm_combined_run": "not verified; remote security tool blocked attempted rerun"
+  },
+  "assertions": {
+    "profile_quality_restored": true,
+    "five_core_http_health_checks_200": true,
+    "tender_tests_passed": 39,
+    "tender_tests_warnings": 3,
+    "full_autonomous_s1_to_s7_business_acceptance": false,
+    "long_duration_p95_soak_completed": false,
+    "model_generation_quality_on_larger_ru_goldset_accepted": false
+  }
+}

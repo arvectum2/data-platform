@@ -751,7 +751,14 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 - [x] **SSD BLOCKER RESOLVED (2026-10-09 12:13 MSK):** external file reads restored, original Gemma weights SHA-256 matched a verified 7.38 GB copy on internal APFS, launchd script backed up and switched only the Gemma model path. Gemma :8081 returned 200 on real inference; Data Platform, embeddings, BGE and Tender backend remain healthy.
 - [x] Deploy and accept a persistent launchd-exclusive Qwen3.5-4B fast / Gemma 4 12B quality switch on port :8081; both runtime weight sets use checksummed internal APFS copies. Failed SSD-backed fast start auto-rolled back; internal fast switch passed (4.21 s), real production DP E2E fast passed (46.604 s, 12.344 s answer), quality restoration passed (14.24 s). IMPORTANT: Arvectum OS shares :8081, so fast requires explicit --acknowledge-shared-consumers; quality remains 24/7 default until its model-specific aliases are migrated.
 - [x] Verified internal APFS runtime copy of Gemma and switched original launchd Gemma :8081 to that copy with unchanged alias. Qwen embeddings continue on SSD, unchanged dimension/index.
-- [ ] Full Tender Agent real S1..S7 on a frozen public procurement case; DP persisted E2E, OCR fallback, p95 latency, 24 GiB memory+swap soak and graceful restart gates before VPS migration.
+- [x] Restore Tender Agent as a launchd-supervised backend at :8001 from an internal APFS runtime copy. Repair Node startup Git timeout, external SSD TCC access and Python editable .pth path; verify restart and health 200.
+- [x] Run actual EIS public website tender 0372200172326000015 through Tender Agent: 6 downloaded documents, 4.375s, generated HTML report, manual review required. This specific run used deterministic fallback, not LLM.
+- [x] Independently complete a real local controlled Gemma 4 Tender Operator Pilot using public source fixtures with an expressly synthetic contract fragment: requirements, supplier questions, RFQ, contract risks, redacted export and human review; final rfq_ready_collect_tkp status. No fabricated supplier quotes or external dispatch.
+- [x] Configure private Tender runtime to use local Gemma OpenAI-compatible at 127.0.0.1:8081, with backup, isolated initial QA, PostgreSQL connectivity/DDL preflight and healthy launchd restart.
+- [ ] Run combined production EIS -> controlled Gemma -> report acceptance. The attempted repeat was blocked by remote-execution security; do not claim combined acceptance.
+- [ ] Full S1..S7 business acceptance with actual supplier quotes, verified economics and human decisions. Also run 24GiB shared-load soak/p95 and on-demand VLM OCR integration.
+
+See docs/MACMINI_TENDER_AGENT_RUNTIME_2026-10-09.md and benchmarks/results/model_refresh_2026-10-09/tender_macmini_e2e_summary.json.
 
 Full evidence and recovery sequence: `docs/MACMINI_RUNTIME_PROFILE_2026-10-09.md`; deployed profile runbook: `docs/MACMINI_EXCLUSIVE_LLM_PROFILES_2026-10-09.md`.
 
