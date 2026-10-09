@@ -17,6 +17,13 @@ class ChunkingConfig:
 
 @dataclass(frozen=True)
 class ChunkDraft:
+    """Source range in normalize_text(input), NOT in raw extractor output.
+
+    text is the .strip() of the normalized window and text_hash is SHA256
+    over that exact UTF-8 string. A consumer must not convert char_start/end
+    into PDF bytes, DOCX paragraphs or raw document text offsets.
+    """
+
     chunk_index: int
     text: str
     text_hash: str
@@ -26,6 +33,7 @@ class ChunkDraft:
 
 
 def normalize_text(text: str) -> str:
+    """Canonical chunk coordinate space, with line/whitespace normalization."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = text.replace("\u00a0", " ")
     lines = [line.strip() for line in text.splitlines()]
