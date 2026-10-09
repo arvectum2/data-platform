@@ -740,6 +740,21 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 - [x] query expansion only if recall improves without unacceptable precision/latency regression;
 - [x] answer synthesis only if groundedness/citation benchmarks meet the required threshold.
 
+## DP-MACMINI-E2E-STABILIZATION-002 — exclusive LLM profile and live integration (2026-10-09)
+
+- [x] Shut down booted iOS Simulator, quit Xcode; preserve existing launchd core services and five Docker containers.
+- [x] Real authenticated DP :8094 -> PostgreSQL -> embedding 2560d -> BGE hybrid search -> Gemma answer on three public procurement files: 3 docs / 14 chunks / 14 embeddings, both searches passed, correct legal name and OKUD, temp collection deleted.
+- [x] Verify Tender Agent backend :8001 healthy, 43 Data Platform integration tests passing, and live Tender SDK -> existing DP collection search returning 5 hits (~0.395 s).
+- [x] Qwen3.5-4B MLX temporary OpenAI-compatible server + separate DP :18094: 7/7 frozen-and-longer-context QA checks, plus real API E2E with user data isolated and deleted.
+- [x] Run controlled single-LLM A/B/C: Gemma answer 58.280 s, Qwen4 co-resident 37.497 s, Qwen4 with Gemma paused 13.471 s. All three full DP E2E tests pass; single Qwen4 improves memory pressure substantially. These are single trials, not p95.
+- [x] Attempt safe Gemma launchd restore; confirmed job re-registered but model remained HTTP 503 "Loading model" because filesystem `open()` to ArvectumSSD stalled after Node / macOS removable-volume TCC authorization. Restarted RDC to re-request permission; no disk unmount or Mac restart performed.
+- [ ] **BLOCKER:** user approve macOS removable-volume access for RDC Node / model launchd, verify SSD actual file opens (not just metadata) and restore Gemma :8081 to healthy inference. Until then, reasoning route is degraded.
+- [ ] Implement and accept an exclusive Qwen3.5-4B "fast E2E" provider profile, with Gemma "quality" rollback; audit Arvectum OS and any other consumers of fixed Gemma :8081 before disabling the resident Gemma service.
+- [ ] After SSD opens recover, hash-verify critical launchd model runtime copies on internal volume so node updates / TCC do not stall inference loading.
+- [ ] Full Tender Agent real S1..S7 on a frozen public procurement case; DP persisted E2E, OCR fallback, p95 latency, 24 GiB memory+swap soak and graceful restart gates before VPS migration.
+
+Full evidence and recovery sequence: `docs/MACMINI_RUNTIME_PROFILE_2026-10-09.md`.
+
 ## DP-MACMINI-E2E-STACK-001 — chosen testbed stack and VPS portability
 
 - [x] Audit all **23/23** downloaded variants and benchmark/feasibility-score **19/23** locally, with four bounded deferrals; preserve original results and inventory. Report: `docs/MACMINI_MODEL_STACK_COMPARISON_2026-10-09.md`.
