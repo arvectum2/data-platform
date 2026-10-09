@@ -75,3 +75,37 @@ Machine-readable outputs on SSD:
 Do not mistake saved files for verified GitHub files until access is restored.
 
 **Operational verdict:** For Mac mini 24GB, the best-tested *fast* model profile is Qwen3-Embedding-4B + BGE + Qwen3.5-4B MLX exclusive + Tesseract (+ Qwen3-VL-4B on demand); retain Gemma as a mutually exclusive higher-assurance profile. Further model replacement is secondary to fixing SSD permissions and completing sustained cross-product E2E.
+
+## Post-approval recovery — 2026-10-09 12:13 MSK
+
+**The previously reported SSD permissions blocker is resolved.** Following
+user approval, new remote processes read the model manifest, repo roadmap
+and the first bytes of Gemma GGUF from ArvectumSSD in ~0.001 seconds each.
+
+Gemma weights are now also stored at
+`/Users/master/arvectum-runtime/models/gemma4-12b-qat-q4.gguf` on
+the internal APFS volume, with 7,381,382,048 bytes and an SHA-256
+checksum matching the original immutable Ollama blob
+`1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606`.
+Original weights on SSD were not deleted.
+
+The original `ssd-gate.sh` was backed up as
+`ssd-gate.sh.bak-20261009-internal-gemma`, and the `llama-8081`
+model path was changed to the verified internal copy, without altering
+the host port, model alias, or other SSD-gate cases. The original
+launchd job was restarted and healthy in eight probe attempts.
+Gemma served an actual HTTP 200 chat completion preserving `0506135`
+in 1.116 seconds.
+
+At the final check, Gemma :8081, Qwen embeddings :8090, BGE :8091,
+Data Platform :8094 and Tender Agent :8001 returned 200.
+The two test-only servers were stopped, and iOS Simulator remains
+shut down. A point-in-time memory_pressure free percentage was 26%.
+
+**Important:** production Data Platform still uses Gemma as its LLM.
+Qwen3.5-4B MLX has only been validated as an exclusive fast-profile
+candidate through a temporary, isolated API. A permanent switch must
+account for other consumers of :8081 and include a rollback path.
+The SSD gate still verifies the presence and symlinks of the external
+volume before launching Gemma; only the weight file was moved to an
+internal verified copy. This is not a guarantee of startup without SSD.

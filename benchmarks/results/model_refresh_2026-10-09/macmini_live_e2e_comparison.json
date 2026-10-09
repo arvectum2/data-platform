@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-09",
+  "macmini_unified_ram_gb": 24,
+  "tests_are_one_shot_not_p95": true,
+  "raw_results_held_on_local_ssd_only": true,
+  "runs": [
+    {
+      "label": "Gemma 4 12B quality",
+      "passed": true,
+      "cleanup": true,
+      "docs": 3,
+      "chunks": 14,
+      "embeddings": 14,
+      "answer_seconds": 58.28,
+      "docx_ingest_seconds": 19.727,
+      "total_seconds": 84.833
+    },
+    {
+      "label": "Qwen3.5 4B co-resident with Gemma",
+      "passed": true,
+      "cleanup": true,
+      "docs": 3,
+      "chunks": 14,
+      "embeddings": 14,
+      "answer_seconds": 37.497,
+      "docx_ingest_seconds": 19.666,
+      "total_seconds": 64.092
+    },
+    {
+      "label": "Qwen3.5 4B exclusive",
+      "passed": true,
+      "cleanup": true,
+      "docs": 3,
+      "chunks": 14,
+      "embeddings": 14,
+      "answer_seconds": 13.471,
+      "docx_ingest_seconds": 19.672,
+      "total_seconds": 41.129
+    }
+  ]
+}

@@ -748,9 +748,9 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 - [x] Qwen3.5-4B MLX temporary OpenAI-compatible server + separate DP :18094: 7/7 frozen-and-longer-context QA checks, plus real API E2E with user data isolated and deleted.
 - [x] Run controlled single-LLM A/B/C: Gemma answer 58.280 s, Qwen4 co-resident 37.497 s, Qwen4 with Gemma paused 13.471 s. All three full DP E2E tests pass; single Qwen4 improves memory pressure substantially. These are single trials, not p95.
 - [x] Attempt safe Gemma launchd restore; confirmed job re-registered but model remained HTTP 503 "Loading model" because filesystem `open()` to ArvectumSSD stalled after Node / macOS removable-volume TCC authorization. Restarted RDC to re-request permission; no disk unmount or Mac restart performed.
-- [ ] **BLOCKER:** user approve macOS removable-volume access for RDC Node / model launchd, verify SSD actual file opens (not just metadata) and restore Gemma :8081 to healthy inference. Until then, reasoning route is degraded.
+- [x] **SSD BLOCKER RESOLVED (2026-10-09 12:13 MSK):** external file reads restored, original Gemma weights SHA-256 matched a verified 7.38 GB copy on internal APFS, launchd script backed up and switched only the Gemma model path. Gemma :8081 returned 200 on real inference; Data Platform, embeddings, BGE and Tender backend remain healthy.
 - [ ] Implement and accept an exclusive Qwen3.5-4B "fast E2E" provider profile, with Gemma "quality" rollback; audit Arvectum OS and any other consumers of fixed Gemma :8081 before disabling the resident Gemma service.
-- [ ] After SSD opens recover, hash-verify critical launchd model runtime copies on internal volume so node updates / TCC do not stall inference loading.
+- [x] Verified internal APFS runtime copy of Gemma and switched original launchd Gemma :8081 to that copy with unchanged alias. Qwen embeddings continue on SSD, unchanged dimension/index.
 - [ ] Full Tender Agent real S1..S7 on a frozen public procurement case; DP persisted E2E, OCR fallback, p95 latency, 24 GiB memory+swap soak and graceful restart gates before VPS migration.
 
 Full evidence and recovery sequence: `docs/MACMINI_RUNTIME_PROFILE_2026-10-09.md`.
