@@ -748,7 +748,8 @@ BGE production runtime acceptance (2026-10-06): `com.arvectum.reranker` is super
 - [x] Download, verify SHA-256 and quality-smoke Giga-Embeddings 0826 480M on the frozen 45-page/12-query Russian site corpus. See `docs/GIGA_EMBEDDINGS_FIRST_BENCHMARK_2026-10-09.md`.
 - [x] Download and benchmark Giga-Embeddings 0826 3B BF16 on the same frozen Russian test corpus; keep its separate 2048-dimensional vector results isolated from the incumbent index.
 - [x] Download, checksum-verify and run first Russian 5-case grounded-answer smoke for GigaChat 3.1 Lightning Q4 GGUF; see `docs/GIGACHAT31_RUSSIAN_FAITHFULNESS_2026-10-09.md`.
-- [ ] Complete remaining optional Giga Embeddings 2025/10B archive downloads and larger human-adjudicated Russian evaluations before adoption.
+- [x] Complete remaining optional Giga Embeddings 2025/10B archive downloads; 5/5 official Russian open-weight variants marked `ready` and all 11 model-weight files length-verified in SSD manifest (2026-10-09).
+- [ ] Expand to larger independently adjudicated Russian benchmark corpus before promotion, with 24 GB Mac mini memory limits checked separately for 10B BF16.
 - [ ] Run these Russian-native models on the same frozen Russian retrieval, OCR/layout and faithfulness benchmarks used for the original candidates, without modifying production indexes or model providers.
 - [ ] Compare hosted GigaChat / Giga Embeddings and Yandex Text Embeddings v2 / Alice AI / YandexGPT only after API credentials, costs and data-processing rules are approved; use public corpus first. Do not claim hosted weights were downloaded.
 

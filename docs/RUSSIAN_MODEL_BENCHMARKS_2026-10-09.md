@@ -10,8 +10,8 @@ Do not confuse a Hugging Face model download with successfully running or evalua
 |---|---|---|---|---:|---|---|
 | GIGA-EMB-0826-480M | Embedding | `ai-sage/Giga-Embeddings-instruct-480M-0826` | `1763d603adac` | 0.967 GB (BF16) | sentence-transformers/Transformers; MLX conversion separately | DOWNLOADED + QUALITY SMOKE |
 | GIGA-EMB-0826-3B | Embedding | `ai-sage/Giga-Embeddings-instruct-3B-0826` | `b71168088212` | 6.301 GB (BF16) | sentence-transformers/Transformers | DOWNLOADED + QUALITY SMOKE |
-| GIGA-EMB-2025-3B | Legacy embedding baseline | `ai-sage/Giga-Embeddings-instruct` | `2cf0fdc97194` | 13.799 GB (BF16) | sentence-transformers/Transformers | NOT DOWNLOADED |
-| GIGA-EMB-0826-10B | Embedding, resource-constrained candidate | `ai-sage/Giga-Embeddings-instruct-10B-A1.8B-0826` | `3bca8f1e0147` | 20.951 GB (BF16) | native Transformers; 24 GB Mac mini may be inadequate for inference | NOT DOWNLOADED |
+| GIGA-EMB-2025-3B | Legacy embedding baseline | `ai-sage/Giga-Embeddings-instruct` | `2cf0fdc97194` | 13.799 GB (BF16) | sentence-transformers/Transformers | DOWNLOADED, not benchmarked |
+| GIGA-EMB-0826-10B | Embedding, resource-constrained candidate | `ai-sage/Giga-Embeddings-instruct-10B-A1.8B-0826` | `3bca8f1e0147` | 20.951 GB (BF16) | native Transformers; 24 GB Mac mini may be inadequate for inference | DOWNLOADED, not benchmarked |
 | GIGACHAT-3.1-LIGHTNING | Generation | `ai-sage/GigaChat3.1-10B-A1.8B-GGUF` | `97045b260251` | 6.475 GB Q4_K_M | `llama.cpp` local OpenAI-compatible endpoint | DOWNLOADED + QUALITY SMOKE |
 
 Model revisions are pinned by full HF SHA within the downloader, not by the truncated SHA shown here.
@@ -62,3 +62,7 @@ Giga-Embeddings 480M BF16 is present and SHA-256 verified in the SSD manifest. O
 Giga-Embeddings 3B has also completed local testing: Top-1 **0.583**, MRR **0.742**, Recall@5 **1.000** and nDCG@5 **0.806** on the same 12 frozen queries. Model weights verified on SSD; see `docs/GIGA_EMBEDDINGS_FIRST_BENCHMARK_2026-10-09.md` for direct 480M/3B/Qwen3 comparison.
 
 GigaChat 3.1 Lightning GGUF completed its local 5-case real-source Russian generation smoke. The automated exact-answer-term gate passed **3/5**, the source-citation gate **5/5**, and the insufficient-evidence abstention gate **5/5**. Two failures were `Санкт- Петербурга` (an extra space) in a required exact organization name, not false numbers or unsupported organizations. See `docs/GIGACHAT31_RUSSIAN_FAITHFULNESS_2026-10-09.md`.
+
+## Complete local acquisition audit — 2026-10-09 10:35 MSK
+
+Five of five official ai-sage model variants are `ready` in the SSD manifest, including both archival variants. 11 model-weight files, **48,493,690,728 bytes** in total, have saved SHA-256 digests and were verified to exist at the exact expected byte counts in a second independent local inspection. The prior download script hashed each completed weight before marking it ready. No model was promoted or deployed. Local services 8090/8081/8091 returned HTTP 200. The 2025 3B BF16 and 10B BF16 are **downloaded but not benchmarked**; the latter likely exceeds a comfortable 24 GB-memory deployment envelope.
