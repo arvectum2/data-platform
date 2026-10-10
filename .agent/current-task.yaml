@@ -29,20 +29,20 @@ completed:
   - '2026-10-10 cross-repository Tender Agent PR #297 direct Russian no-proxy EIS SOAP TLS diagnostics and strict official endpoint guard merged main f5f3f1a8, exact-head CI green; Data Platform runtime/SDK untouched.'
   - '2026-10-10 PR #99 pure bounded HTML crawl page-signals parser extracted with facade compatibility and full green DP CI, merged main 664ef987f45b9020799adcf3bc16c8e75730b7a8.'
   - '2026-10-10 PR #100 immutable durable multi-record storage identity codec extracted with Cyrillic and malformed-input tests; full DP tests and CI green, merged main 5a60b38bf07039ca2a92ba201a227767a82ce48d.'
-current: 'DP R3 #99 and #100 completed and green on main: standalone bounded HTML page signals and durable result record identities with preserved facades, Python/JS/PostgreSQL CI passed. Tender Agent #297 EIS direct no-proxy transport merged; official EIS 16.3 maintenance through 2026-10-11 20:00 MSK still blocks new real source R5. Continue independent modular decomposition, SDK E2E and >=20 human-verified originals; owner sign-off pending.'
+current: 'Data Platform #99/#100 merged; 110-line semantic HTML DOM tree parser extracted from html_records to html_tree with facade compatibility; 35 focused tests and full DP pytest/Ruff green; CI and merge pending. R5 human-reviewed originals and owner acceptance outstanding.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '5a60b38bf07039ca2a92ba201a227767a82ce48d'
+last_verified_commit: '41b608beeca109f6d9cfaf2fc9bee608f4ce3dec'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Resume TDP-REFACTOR-20261009 after Data Platform PR #99 and #100 both merged/green on main at 5a60b38. Do not repeat page_signals or record_identities extraction. Continue next bounded DP or Tender Agent legacy-module refactor with API/SDK facade compatibility, focused+full tests, Ruff, exact-head CI before merge. EIS 16.3 maintenance until 2026-10-11 20:00 MSK; only afterward recheck Russian direct no-proxy TLS/getDocsIP via TA check_eis_direct.py, then original-file DP provenance -> saved report JSON/HTML/PDF/DOCX; >=20 independent human-verified EIS cases and owner gate. Do not alter production, private pilot, external SSD, disabled watchdog.'
+resume_instruction: 'Wait for exact-head PR CI and merge refactor/tdp-dp-html-tree-20261010 after all-green checks. 35 focused tests and full Data Platform pytest + Ruff PASS. Then another bounded decomposition preserving public API and SDK. EIS official 16.3 maintenance until 2026-10-11 20:00 MSK; direct RU no proxy only. R5 >=20 originals and owner gate still pending; production and disabled watchdog untouched.'
 execution:
-  branch: main
+  branch: refactor/tdp-dp-html-tree-20261010
   manual_override: true
   lease_until: null
