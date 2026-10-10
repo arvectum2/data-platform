@@ -26,7 +26,7 @@ completed:
   - '2026-10-10 DP #96/#97 merged and verified on main: 92a12f3 and ff115ade; Python 3.11/3.12/3.13, SDK JavaScript, PostgreSQL/mirror green.'
   - 'Read-only dual-repository AST audit after consolidation: zero exact >=12-line function groups and no forbidden import edges; Tender Agent R0 audit PR #296 tracks CI.'
 
-current: 'Data Platform #96/#97 merged to main and checkpoints reconciled; remaining R5 authentic independently reviewed Russian source benchmark, runtime/SDK/LLM truthfulness, Tender Agent consumer E2E and owner gate remain in_progress.'
+current: 'Data Platform #96/#97 and checkpoint #98 merged; Tender Agent #295/#296 merged with green CI. Generic Word table extraction and atomic profile store consolidation verified; full task remains in_progress pending authentic >=20 independently human-reviewed EIS source corpus, runtime/SDK/LLM consumer acceptance and owner approval.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
@@ -38,7 +38,7 @@ test_results:
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Resume TDP-REFACTOR-20261009 on DP main after #96/#97 (last source merge ff115ade), 0 exact >=12-line AST clone groups, Python 3.11/3.12/3.13 + PostgreSQL CI green. Next prioritize frozen >=20 original procurement documents with independent human quality verification, run measured Russian PDF/OCR/VLM accuracy and latency/cost, verify Tender Agent SDK 0.3.0 and v1 API with DP runtime 0.6.0. TA R0 PR #296 needs exact-head CI. Keep pilot 18083, watchdog disabled and external SSD untouched; no TLS bypass or production mutations.'
+resume_instruction: 'Continue TDP-REFACTOR-20261009 after DP main #96-98 and TA main #295/#296 (R0 architecture audit completed). Priority: frozen >=20 independently human-reviewed original 44/223-FZ procurements, truth-preserving original-file/DP chunk -> Tender Agent SDK 0.3.0/v1 API -> authenticated JSON/HTML/PDF/DOCX E2E, benchmark Russian OCR/VLM and Gemma latency/cost. Lawful EIS SOAP host still resets peer connection; never bypass TLS, fill missing facts or promote unverified LLM claims. Preserve Mac mini private pilot 18083, disabled watchdog and external SSD; no public deploy or live data mutation.'
 execution:
   branch: main
   manual_override: true
