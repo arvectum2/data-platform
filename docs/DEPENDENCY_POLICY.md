@@ -2,7 +2,7 @@
 
 - Declare compatible dependency ranges in `pyproject.toml`; do not embed third-party package versions in application business logic.
 - Commit resolved artifacts (`requirements.lock` with hashes for Tender Agent; `uv.lock` for Data Platform). Exact versions and hashes in these files are intentional, not harmful hardcoding.
-- Update resolution with `uv pip compile pyproject.toml --extra dev --python-version 3.11 --universal --generate-hashes --output-file requirements.lock` (Tender Agent) or `uv lock --upgrade` (Data Platform), then reinstall into a **fresh** virtual environment and run the repository's CI-equivalent tests.
+- Update resolution with `uv pip compile pyproject.toml --extra dev --python-version 3.11 --universal --upgrade --generate-hashes --output-file requirements.lock` (Tender Agent) or `uv lock --upgrade` (Data Platform), then reinstall into a **fresh** virtual environment and run the repository's CI-equivalent tests.
 - Major upgrades, API contract changes and optional runtime/model backends require focused integration tests before promotion. A successful dependency resolver alone is not acceptance.
 - Preserve SDK wire contracts and test the cross-repository consumer. Do not infer API compatibility merely from the server package version.
 - Pin infrastructure major versions (Python runtime, PostgreSQL, Redis and container images) deliberately; upgrade them via their own migration/testing process. Floating production containers are unsafe.
