@@ -506,6 +506,141 @@ class DataRepository:
                 raise ValueError(f"Unsupported search filter: {key}")
         return conditions
 
+    def search_vectors_collections(
+        self,
+        query_vector: Sequence[float],
+        *,
+        collections: Sequence[str],
+        provider: str,
+        model: str,
+        limit: int = 10,
+        filters: Mapping[str, Sequence[str]] | None = None,
+    ) -> list[tuple[str, VectorSearchHit]]:
+        """One scoped vector query for many already-authorized collections.
+
+        Ordering is identical to merging per-collection top-K lists because
+        the global top-K is a subset of their union. Tenant authorization
+        remains the responsibility of RetrievalServiceMixin before this call.
+        """
+        if not collections or limit < 1 or len(query_vector) == 0:
+            return []
+        vector = [float(value) for value in query_vector]
+        distance = ChunkEmbeddingRow.vector.cosine_distance(vector)
+        statement = (
+            select(
+                ResourceRow.collection_id,
+                ChunkRow.chunk_id, ChunkRow.document_id,
+                ResourceRow.resource_id, ResourceRow.canonical_uri,
+                DocumentRow.title, ChunkRow.text, distance.label("distance"),
+            )
+            .join(ChunkEmbeddingRow, ChunkEmbeddingRow.chunk_id == ChunkRow.chunk_id)
+            .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+            .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+            .where(
+                ResourceRow.collection_id.in_(collections),
+                ChunkEmbeddingRow.provider == provider,
+                ChunkEmbeddingRow.model == model,
+                ChunkEmbeddingRow.dimension == len(vector),
+                *self._filter_conditions(filters),
+            )
+            .order_by(distance.asc(), ChunkRow.chunk_id.asc())
+            .limit(limit)
+        )
+        return [
+            (str(row.collection_id), VectorSearchHit(
+                chunk_id=row.chunk_id,
+                document_id=row.document_id,
+                resource_id=row.resource_id,
+                canonical_uri=row.canonical_uri,
+                title=row.title,
+                text=row.text,
+                score=1.0 - float(row.distance),
+            ))
+            for row in self.session.execute(statement)
+        ]
+
+    def search_lexical_collections(
+        self,
+        query: str,
+        *,
+        collections: Sequence[str],
+        limit: int = 10,
+        filters: Mapping[str, Sequence[str]] | None = None,
+        collection_languages: Mapping[str, str] | None = None,
+    ) -> list[tuple[str, LexicalSearchHit]]:
+        """One SQL query per language group, not per collection.
+
+        Russian, English and simple PostgreSQL text-search vectors have
+        different semantics; never search everything using one language.
+        """
+        normalized_query = query.strip()
+        if not collections or limit < 1 or not normalized_query:
+            return []
+        groups: dict[str, list[str]] = {}
+        languages = (
+            collection_languages
+            if collection_languages is not None
+            else dict(self.session.execute(
+                select(CollectionRow.collection_id, CollectionRow.default_language).where(
+                    CollectionRow.collection_id.in_(collections)
+                )
+            ).all())
+        )
+        for collection_id in collections:
+            if collection_id in languages:
+                groups.setdefault(
+                    _language_config(languages[collection_id]), []
+                ).append(collection_id)
+
+        found: list[tuple[str, LexicalSearchHit]] = []
+        for config, collection_ids in groups.items():
+            vector_column = {
+                "russian": ChunkRow.search_vector_russian,
+                "english": ChunkRow.search_vector_english,
+                "simple": ChunkRow.search_vector_simple,
+            }[config]
+            tsquery = func.websearch_to_tsquery(config, normalized_query)
+            rank = func.ts_rank_cd(vector_column, tsquery)
+            exact_boost = case(
+                (
+                    func.strpos(func.lower(ChunkRow.text), normalized_query.lower()) > 0,
+                    0.25,
+                ),
+                else_=0.0,
+            )
+            score = rank + exact_boost
+            statement = (
+                select(
+                    ResourceRow.collection_id,
+                    ChunkRow.chunk_id, ChunkRow.document_id,
+                    ResourceRow.resource_id, ResourceRow.canonical_uri,
+                    DocumentRow.title, ChunkRow.text, score.label("score"),
+                )
+                .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
+                .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
+                .where(
+                    ResourceRow.collection_id.in_(collection_ids),
+                    vector_column.op("@@")(tsquery),
+                    *self._filter_conditions(filters),
+                )
+                .order_by(score.desc(), ChunkRow.chunk_id.asc())
+                .limit(limit)
+            )
+            found.extend(
+                (str(row.collection_id), LexicalSearchHit(
+                    chunk_id=row.chunk_id,
+                    document_id=row.document_id,
+                    resource_id=row.resource_id,
+                    canonical_uri=row.canonical_uri,
+                    title=row.title,
+                    text=row.text,
+                    score=float(row.score),
+                ))
+                for row in self.session.execute(statement)
+            )
+        found.sort(key=lambda item: (-item[1].score, item[1].chunk_id))
+        return found[:limit]
+
     def search_vectors(
         self,
         query_vector: Sequence[float],

@@ -10,7 +10,7 @@ acquisition.security,acquisition,41,1,1,30,12,0,0,,P3,preserve; inspect interfac
 answers,root,156,4,3,52,20,0,0,,P2,preserve; inspect interface/test contract on changes
 api.__init__,api,3,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
 api.app,api,309,11,0,240,68,1,0,"fastapi, uvicorn",P1,long-function; high-branching
-api.config,api,166,7,1,52,18,0,0,"pydantic, pydantic_settings",P3,preserve; inspect interface/test contract on changes
+api.config,api,169,7,1,52,18,0,0,"pydantic, pydantic_settings",P3,preserve; inspect interface/test contract on changes
 api.contract,api,23,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
 api.routes.__init__,api,17,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
 api.routes.billing_usage,api,237,13,0,214,12,12,0,fastapi,P1,long-function; broad-errors
@@ -23,13 +23,13 @@ api.routes.system_auth,api,168,10,0,140,7,4,0,fastapi,P2,broad-errors
 api.schemas,api,881,6,85,20,5,0,0,pydantic,P1,large-module
 api.service,api,177,2,1,46,8,1,0,sqlalchemy,P3,preserve; inspect interface/test contract on changes
 api.service_mixins.__init__,api,17,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
-api.service_mixins.access,api,703,28,1,50,11,1,0,sqlalchemy,P1,large-module
+api.service_mixins.access,api,712,28,1,50,11,1,0,sqlalchemy,P1,large-module
 api.service_mixins.billing,api,773,22,1,106,19,0,0,sqlalchemy,P1,large-module
 api.service_mixins.collections,api,485,10,1,155,25,0,0,sqlalchemy,P2,long-function
 api.service_mixins.extraction,api,61,3,1,20,2,0,0,,P3,preserve; inspect interface/test contract on changes
 api.service_mixins.graph,api,545,14,1,103,30,0,0,sqlalchemy,P2,large-module; high-branching
 api.service_mixins.memory_sync,api,381,6,1,147,22,1,0,sqlalchemy,P2,preserve; inspect interface/test contract on changes
-api.service_mixins.retrieval,api,674,19,1,167,16,2,0,sqlalchemy,P1,large-module; long-function
+api.service_mixins.retrieval,api,728,20,1,167,16,2,0,sqlalchemy,P1,large-module; long-function
 api.service_support,api,88,2,14,13,2,0,0,,P3,preserve; inspect interface/test contract on changes
 billing.__init__,billing,31,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
 billing.core,billing,141,4,4,57,8,0,0,,P3,preserve; inspect interface/test contract on changes
@@ -146,7 +146,7 @@ search.expansion,search,110,6,4,25,8,0,0,,P3,preserve; inspect interface/test co
 search.hybrid,search,405,6,2,224,16,2,0,,P1,long-function
 search.memory,search,86,3,2,45,9,0,0,,P3,preserve; inspect interface/test contract on changes
 search.models,search,134,1,8,43,23,0,0,,P2,preserve; inspect interface/test contract on changes
-search.postgres,search,85,3,1,40,2,0,0,,P3,preserve; inspect interface/test contract on changes
+search.postgres,search,129,3,1,61,3,0,0,,P3,preserve; inspect interface/test contract on changes
 search.protocols,search,30,2,2,10,0,0,0,,P3,preserve; inspect interface/test contract on changes
 search.rerank,search,228,12,7,34,9,1,0,sentence_transformers,P3,preserve; inspect interface/test contract on changes
 storage.__init__,storage,4,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
@@ -154,6 +154,6 @@ storage.postgres.__init__,storage,53,0,0,0,0,0,0,,P3,preserve; inspect interface
 storage.postgres.base,storage,5,0,1,0,0,0,0,sqlalchemy,P3,preserve; inspect interface/test contract on changes
 storage.postgres.database,storage,14,2,0,4,1,0,0,sqlalchemy,P3,preserve; inspect interface/test contract on changes
 storage.postgres.models,storage,763,1,21,2,0,0,0,"pgvector, sqlalchemy",P1,large-module
-storage.postgres.repository,storage,631,18,3,76,12,0,0,sqlalchemy,P1,large-module
+storage.postgres.repository,storage,766,20,3,81,12,0,0,sqlalchemy,P1,large-module
 supportability,root,82,3,1,33,4,0,0,,P3,preserve; inspect interface/test contract on changes
 sync,root,52,4,2,7,2,0,0,,P3,preserve; inspect interface/test contract on changes
