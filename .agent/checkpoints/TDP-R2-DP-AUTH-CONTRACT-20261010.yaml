@@ -1,0 +1,24 @@
+version: 2
+repository: arvectum2/data-platform
+task_id: TDP-R2-DP-AUTH-CONTRACT-20261010
+status: completed
+goal: Prove deployed read-only authenticated SDK consumer contract without exposing credentials or writing data.
+definition_of_done:
+  - Verify running DP 0.6.0 health.
+  - Verify live authorized SDK 0.3.0 contract 1.0 via configured secret without disclosure.
+  - Check canonical TA processing collection IDs with read-only GET.
+  - Preserve original evidence as unverified if collections absent.
+completed:
+  - DP 0.6.0 health returned HTTP 200.
+  - Authenticated GET /v1/contract HTTP 200 confirmed API v1.0.
+  - Python SDK 0.3.0 require_contract(1) succeeded.
+  - Canonical TA processing collections upload/connector/recovery absent, not assumed to exist.
+  - No write, restart, secret disclosure or production mutation.
+current: Auth-contract preflight complete; actual stored original file evidence proof remains open.
+pending: []
+last_verified_commit: d8f69d5
+test_results:
+  - SDK0.3.0 require_contract(1) PASS
+  - Protected contract GET HTTP200
+  - Processing collection GET checks: three absent
+resume_instruction: Continue overarching TDP-REFACTOR-20261009; locate existing authorized original source or isolated non-production dataset, then read-only validate source/resource/document/chunk IDs, SHA256 and offsets. Do not invent evidence or enable disabled watchdog.
