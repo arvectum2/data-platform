@@ -18,6 +18,7 @@ completed:
 
 current: 'DP PR #86 merged, package consumer v1 intact. Normalized text chunk offset and SHA256 contract documented with regression coverage, exact-head CI/merge pending; later Russian OCR/source quality benchmarks outstanding.'
 pending:
+  - 'Dependency sweep 2026-10-10: uv.lock refresh succeeded; Python 3.12 dev environment, Ruff and default full DP tests passed with SDK installed. Verify optional browser/rerank/model backend and exact-head CI before merge.'
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
