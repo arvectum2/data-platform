@@ -1,0 +1,38 @@
+version: 2
+repository: arvectum2/data-platform
+task_id: TDP-DP-DEPENDENCIES-20261011
+status: in_progress
+goal: Refresh Data Platform resolved dependency versions within declared compatibility
+  ranges while retaining reproducible lockfile and validating runtime
+definition_of_done:
+- Run uv lock --upgrade in isolated branch and review actual changes
+- Keep upper-bound compatibility ranges in pyproject and lock exact versions for reproducibility;
+  never blanket-delete constraints
+- Run Ruff, Python 3.12 full tests and exact-head CI on 3.11/3.12/3.13 + Postgres/JS
+- Merge only if compatible; checkpoint completed with results and preserve live deployments
+completed:
+- 'Existing Tender Agent dependency refresh PR #310 already merged; Data Platform
+  main at f622172 with pinned uv.lock and compatibility version ranges.'
+- uv lock --upgrade resolved 97 packages and changed only numpy for Python >=3.12
+  from 2.5.3 to 2.5.4; Python<3.12 remains compatible locked 2.4.6.
+- Existing PyPI compatibility ranges in pyproject kept; uv.lock retains exact versions
+  and artifact hashes.
+- uv lock --check PASS; clean locked uv environment Python 3.12 full pytest exit 0
+  with SDK source path installed via PYTHONPATH; Ruff on src/tests/SDK PASS.
+- Optional rerank dependency set was successfully dry-run resolved for Python3.12,
+  without downloading heavyweight Torch models.
+current: Exact-head CI and merge pending; optional rerank runtime not executed locally.
+pending:
+- Upgrade and audit resolved versions
+- Run targeted/full tests and CI
+- Merge green changes; checkpoint completed or record objective blocker
+last_verified_commit: f622172
+test_results:
+- uv lock --check PASS
+- Fresh uv run --locked --extra dev Python3.12 full pytest exit 0
+- Ruff PASS
+- uv sync --locked --extra rerank --dry-run resolved
+resume_instruction: Continue worktree /Volumes/ArvectumSSD/Arvectum/worktrees/tdp-dp-dependency-refresh-20261011.
+  Create PR, validate exact-head GitHub Python 3.11/3.12/3.13, Postgres, JS/mirror
+  CI, merge. No runtime rerank benchmark was performed; avoid claiming it. Checkpoint
+  completed after all green.
