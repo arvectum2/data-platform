@@ -1,7 +1,7 @@
 version: 2
 repository: arvectum2/data-platform
 task_id: TDP-CI-GITVERSE-PUSH-20261011
-status: in_progress
+status: completed
 goal: Retry transient mirror push transport failures to GitVerse, preserving force/prune
   semantics and hard failure on persistent errors.
 definition_of_done:
@@ -18,17 +18,19 @@ completed:
 - 'Two local offline mock scenarios passed: transient two failed push attempts then
   success at third; persistent failure all five attempts exits nonzero and produces
   no mock secret in output.'
-current: Pending exact-head GitHub workflow CI and safe merge.
-pending:
-- Patch and offline simulation
-- Exact-head CI and merge
-- Complete checkpoint
-last_verified_commit: f7ca058cdde521292e5b8cf77d9dcdce80419ae4
+- 'DP #117 exact-head GitHub CI all green: Python 3.11/3.12/3.13, PostgreSQL, JavaScript
+  SDK, GitVerse mirror push and health.'
+- Merged DP main a1c2afc5db29caa8b6156d12f204e0f5f63d63c4.
+current: Completed and merged as a1c2afc5db29caa8b6156d12f204e0f5f63d63c4
+pending: []
+last_verified_commit: a1c2afc5db29caa8b6156d12f204e0f5f63d63c4
 test_results:
 - YAML parse / bash -n PASS
 - mock 2 transient failures -> 3rd success
 - mock persistent -> 5 failures, nonzero, no secret output
-resume_instruction: Continue /Volumes/ArvectumSSD/Arvectum/worktrees/tdp-gitverse-push-retry-20261011,
-  commit and open PR. Await exact-head GitHub CI including mirror-to-GitVerse and
-  health; merge only all-green, then checkpoint completed. Do not enable disabled
-  watchdog or alter live pilot.
+- All exact-head CI green
+- Merged a1c2afc5db29caa8b6156d12f204e0f5f63d63c4
+resume_instruction: Completed bounded GitVerse push retry. Both push and health query
+  now have fail-closed bounded retries; no need to redo. Continue core TDP-REFACTOR
+  R2 original EIS binary hash, R4 integrated model quality, R5 >=20 human-approved
+  source-locked procurements. Watchdog remains disabled.

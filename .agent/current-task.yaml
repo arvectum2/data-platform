@@ -53,17 +53,18 @@ completed:
   - '2026-10-11 DP #112 read-only pure normalized exported chunk verifier: UTF8 SHA256, normalized offsets, IDs and safe-only error codes; six unit tests plus real Postgres export CI on Python 3.11/3.12/3.13 all green, merged 86d85c053eb49cdccf9e0d0afde4eb2695e693de. This is NOT original EIS binary SHA256 proof.'
   - '2026-10-11 DP #114 uv lock --upgrade refreshed only NumPy 2.5.3->2.5.4 for py>=3.12 (96 other resolved packages unchanged), compatible bounds intact; fresh Python3.12 pytest and Ruff PASS; Python3.11-3.13, Postgres, JS/mirror exact-head CI green, merged 2def46e2e3d2ba5a396fbbf3b7c0d60437d5dd1e.'
   - '2026-10-11 DP #116 restored 12-attempt GitVerse health query loop under set -e/pipefail for transient 502, keeps main SHA mismatch/nonreachable fail-closed. Three offline mock cases and all CI green, merged f7ca058cdde521292e5b8cf77d9dcdce80419ae4.'
-current: 'CI mirror health retry #116 merged green; current bounded GitVerse push retry task active to prevent HTTP502 interruption. R2 original EIS source binary SHA256/revisions, R4 integrated live model benchmark and R5 >=20 owner-reviewed source EIS cases remain open. Overall in_progress.'
+  - '2026-10-11 DP #117 GitVerse mirror push bounded 5 retry attempts with no secret-bearing logs, persistent failure still nonzero; offline mocks transient/pass vs permanent/fail, all CI Python3.11-3.13/Postgres/JS/mirror green; merged a1c2afc5db29caa8b6156d12f204e0f5f63d63c4.'
+current: 'DP dependency refresh #114 and CI GitVerse health/push robustness #116/#117 completed green; TA dependency refresh #310 already complete. Remaining core R2 independent original EIS attachment binary hash and notice revision validation, R3 remaining monolith segmentation, R4 full product non-stub model quality benchmark and R5 >=20 independent source-locked EIS reviews with owner signoff. Overall in_progress.'
 pending:
-  - 'CI GitVerse push retry TDP-CI-GITVERSE-PUSH-20261011: bounded retries of transient push failures, preserve hard failure and auth secrecy.'
   - 'R2 remaining: validate live chunk char_start/end against normalize_text(document.text).strip(), then compare authoritative original EIS attachment binary hash and notice revision. Metadata-only audit is NOT original-file proof.'
   - 'R2 remaining: find previously persisted original-source resource/document/chunk IDs and validate SHA256/offsets using read-only authorized API or isolated non-production fixture; standard TA collections are currently absent.'
   - '2026-10-10 dependency refresh PR #108: merged current main into feature branch, regenerated uv.lock --upgrade. Fresh Python 3.12 SDK/dev install, Ruff and complete new-main pytest PASS. Exact-head Python 3.11/3.13 CI and optional browser/rerank/model backends still need checking; do not merge until gates green.'
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: 'f7ca058cdde521292e5b8cf77d9dcdce80419ae4'
+last_verified_commit: 'a1c2afc5db29caa8b6156d12f204e0f5f63d63c4'
 test_results:
+  - 'DP CI #116 health + #117 push retries: offline mock recovery/permanent fail; GitHub all jobs Python3.11/12/13, JS, Postgres and GitVerse green.'
   - 'DP #114 resolved 97 packages, NumPy only updated for py>=3.12. Locked Python3.12 pytest/Ruff, CI Python3.11/12/13, Postgres, JS, mirror PASS.'
   - 'DP #112 normalized exported chunk validator: local pytest exit 0, Ruff clean; exact-head Python 3.11/3.12/3.13, PostgreSQL, JS SDK and GitVerse CI green.'
   - '2026-10-11 live DP metadata audit: 17 tender resource/doc samples, 57 chunks valid hash-shapes/range types; EIS resource 41/41 chunk text SHA256 verified; raw coordinate 0/41 expected because normalized coordinate contract.'
@@ -73,7 +74,7 @@ test_results:
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Finish TDP-CI-GITVERSE-PUSH-20261011 via offline failure/recovery mocks and GitHub CI, merge then checkpoint completed. Core TDP-REFACTOR R2 original EIS binary hash, R4 model E2E and R5 human reviews still pending. Do not alter production, secrets or disabled watchdog.'
+resume_instruction: 'Resume overarching TDP-REFACTOR-20261009 from DP main a1c2afc5db29caa8b6156d12f204e0f5f63d63c4. Dependency locks refreshed, CI GitVerse mirror health/push retry tasks completed; do not repeat. Prioritize R2 original EIS attachment SHA256 and notice revision with lawful verified source files, R3 product/report module decomposition, R4 integrated real model benchmarking, R5 >=20 owner-reviewed procurement originals. Do not touch live deployment, print secrets or enable disabled watchdog.'
 execution:
   branch: main
   manual_override: true
