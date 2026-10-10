@@ -51,17 +51,18 @@ completed:
   - '2026-10-10 R2 authenticated DP0.6 read-only SDK0.3 require_contract(1) returned HTTP200 contract v1.0 using configured runtime secret without disclosure; canonical TA upload/connector/recovery collections absent, so original file/chunk SHA256/offset still unverified.'
   - '2026-10-11 live DP0.6 read-only source audit: 24 collections (17 tender); sample 17 tender resources/17 docs/57 chunks with hash shape and coordinate type, one EIS-linked resource 41/41 chunk-text SHA256 matches. DP chunk offsets refer to normalize_text() not raw doc.text; original EIS binary hash and live normalized-offset replay remain pending.'
   - '2026-10-11 DP #112 read-only pure normalized exported chunk verifier: UTF8 SHA256, normalized offsets, IDs and safe-only error codes; six unit tests plus real Postgres export CI on Python 3.11/3.12/3.13 all green, merged 86d85c053eb49cdccf9e0d0afde4eb2695e693de. This is NOT original EIS binary SHA256 proof.'
-current: 'R2 authenticated SDK0.3 -> DP0.6 contract v1.0, live persisted chunk metadata survey and normalized export-text integrity module #112 verified and merged. Still must validate actual original EIS attachment binary SHA256 and notice revision; R4 product-wide non-stub model benchmark, R5 >=20 independent source-locked EIS reviews/owner approval pending. Task in_progress.'
+  - '2026-10-11 DP #114 uv lock --upgrade refreshed only NumPy 2.5.3->2.5.4 for py>=3.12 (96 other resolved packages unchanged), compatible bounds intact; fresh Python3.12 pytest and Ruff PASS; Python3.11-3.13, Postgres, JS/mirror exact-head CI green, merged 2def46e2e3d2ba5a396fbbf3b7c0d60437d5dd1e.'
+current: 'R2 normalized DP source export validator #112 complete. Compatible DP dependency lock refresh #114 merged green; TA dependency lock #310 previously merged. Remaining hard boundary: genuine EIS source attachment binary SHA256/notice revisions, R4 integrated non-stub model benchmark and R5 >=20 original source-locked human reviews/owner signoff. Task in_progress.'
 pending:
-  - 'Data Platform compatible dependency lock refresh TDP-DP-DEPENDENCIES-20261011: upgrade resolved versions without removing reproducible lock and verify Python/DB/JS CI.'
   - 'R2 remaining: validate live chunk char_start/end against normalize_text(document.text).strip(), then compare authoritative original EIS attachment binary hash and notice revision. Metadata-only audit is NOT original-file proof.'
   - 'R2 remaining: find previously persisted original-source resource/document/chunk IDs and validate SHA256/offsets using read-only authorized API or isolated non-production fixture; standard TA collections are currently absent.'
   - '2026-10-10 dependency refresh PR #108: merged current main into feature branch, regenerated uv.lock --upgrade. Fresh Python 3.12 SDK/dev install, Ruff and complete new-main pytest PASS. Exact-head Python 3.11/3.13 CI and optional browser/rerank/model backends still need checking; do not merge until gates green.'
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '86d85c053eb49cdccf9e0d0afde4eb2695e693de'
+last_verified_commit: '2def46e2e3d2ba5a396fbbf3b7c0d60437d5dd1e'
 test_results:
+  - 'DP #114 resolved 97 packages, NumPy only updated for py>=3.12. Locked Python3.12 pytest/Ruff, CI Python3.11/12/13, Postgres, JS, mirror PASS.'
   - 'DP #112 normalized exported chunk validator: local pytest exit 0, Ruff clean; exact-head Python 3.11/3.12/3.13, PostgreSQL, JS SDK and GitVerse CI green.'
   - '2026-10-11 live DP metadata audit: 17 tender resource/doc samples, 57 chunks valid hash-shapes/range types; EIS resource 41/41 chunk text SHA256 verified; raw coordinate 0/41 expected because normalized coordinate contract.'
   - '2026-10-10 R2 auth proof: live SDK0.3 require_contract(1) returned v1.0; authorized HTTP200; TA processing collections absent, original source proof pending.'
@@ -70,7 +71,7 @@ test_results:
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Continue TDP-REFACTOR-20261009 from DP main 86d85c053eb49cdccf9e0d0afde4eb2695e693de. R2 verified contracted SDK0.3, metadata sample and software validator for normalized char_start/end, not actual EIS binary hashes. Next source-locked original EIS attachment bytes SHA256 + notice revision verified independently. Continue R4 integrated non-stub model quality and R5 20+ owner-reviewed EIS samples. Do not mutate live Mac mini pilot or reveal secrets; watchdog disabled by owner.'
+resume_instruction: 'Resume overarching TDP-REFACTOR-20261009 from DP main 2def46e2e3d2ba5a396fbbf3b7c0d60437d5dd1e. DP package lock compatible update #114 complete. TA dependency refresh #310 complete; retain intentional published SDKv0.3 wheel pin until supported release upgrade. Next R2 actual original EIS file attachment SHA256/revision, R4 non-stub full model evaluation, R5 owner-reviewed >=20 EIS cases. Preserve production and watchdog disabled.'
 execution:
   branch: main
   manual_override: true
