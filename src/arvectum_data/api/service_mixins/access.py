@@ -47,6 +47,38 @@ from ..service_support import (
 
 
 class AccessServiceMixin:
+    @staticmethod
+    def _lock_consumer_key_issuance(session: Session, consumer_id: str) -> None:
+        """Serialize concurrent API-key issuance for the same consumer in PostgreSQL."""
+        session.execute(
+            select(
+                func.pg_advisory_xact_lock(
+                    func.hashtextextended(f"arvectum:consumer:key:{consumer_id}", 0)
+                )
+            )
+        )
+
+    @staticmethod
+    def _active_tenants_for_consumer(
+        session: Session,
+        consumer_id: str,
+    ) -> set[str]:
+        # DISTINCT/LIMIT 2 is enough to detect ambiguous tenants without
+        # loading arbitrarily many API keys or their sensitive credentials.
+        now = datetime.now(UTC)
+        return set(session.scalars(
+            select(ConsumerApiKeyRow.tenant_id).where(
+                ConsumerApiKeyRow.consumer_id == consumer_id,
+                ConsumerApiKeyRow.status == "active",
+                ConsumerApiKeyRow.tenant_id.is_not(None),
+                ConsumerApiKeyRow.tenant_id != "",
+                or_(
+                    ConsumerApiKeyRow.expires_at.is_(None),
+                    ConsumerApiKeyRow.expires_at > now,
+                ),
+            ).distinct().limit(2)
+        ))
+
     def _credential_cipher(self) -> CredentialCipher:
         master_key = self.settings.connector_credentials_master_key.strip()
         if not master_key:
@@ -71,21 +103,7 @@ class AccessServiceMixin:
             return ""
 
         def resolve(active_session: Session) -> str:
-            now = datetime.now(UTC)
-            tenants = {
-                str(value)
-                for value in active_session.scalars(
-                    select(ConsumerApiKeyRow.tenant_id).where(
-                        ConsumerApiKeyRow.consumer_id == consumer,
-                        ConsumerApiKeyRow.status == "active",
-                        or_(
-                            ConsumerApiKeyRow.expires_at.is_(None),
-                            ConsumerApiKeyRow.expires_at > now,
-                        ),
-                    )
-                )
-                if value
-            }
+            tenants = self._active_tenants_for_consumer(active_session, consumer)
             if len(tenants) > 1:
                 raise ValueError("consumer is associated with multiple active tenants")
             return next(iter(tenants), "")
@@ -399,20 +417,10 @@ class AccessServiceMixin:
             if expires_at <= datetime.now(UTC):
                 raise ValueError("expires_at must be in the future")
         with self._require_factory()() as session:
-            existing_tenants = {
-                str(value)
-                for value in session.scalars(
-                    select(ConsumerApiKeyRow.tenant_id).where(
-                        ConsumerApiKeyRow.consumer_id == consumer_id,
-                        ConsumerApiKeyRow.status == "active",
-                        or_(
-                            ConsumerApiKeyRow.expires_at.is_(None),
-                            ConsumerApiKeyRow.expires_at > datetime.now(UTC),
-                        ),
-                    )
-                )
-                if value
-            }
+            self._lock_consumer_key_issuance(session, consumer_id)
+            existing_tenants = self._active_tenants_for_consumer(session, consumer_id)
+            if len(existing_tenants) > 1:
+                raise ValueError("consumer is associated with multiple active tenants")
             if existing_tenants and tenant_id not in existing_tenants:
                 raise ValueError("consumer already belongs to another active tenant")
 

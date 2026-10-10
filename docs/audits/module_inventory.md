@@ -3,7 +3,7 @@
 The CSV beside this document contains **one individually analyzed row for every Python source module**.
 Metrics are obtained by parsing the AST without importing code. Recommendations are **review candidates**, not proof of an optimization or benchmark improvement.
 
-- Modules: **158**; total source lines: **30468**
+- Modules: **158**; total source lines: **30508**
 - Priorities: P1 **18**, P2 **27**, P3 **113**
 - P1: source >=600 lines, function >=200 lines or complex function >=40 decisions; P2: smaller but still large or broad-exception hotspots.
 - `max_decisions` is a rough AST-based branching proxy, not a formal cyclomatic complexity measurement.
@@ -37,13 +37,13 @@ Metrics are obtained by parsing the AST without importing code. Recommendations 
 | Module | Lines | Longest function | Branches | Exception handlers |
 |---|---:|---:|---:|---:|
 | `api.schemas` | 881 | 20 | 5 | 0 |
-| `api.service_mixins.billing` | 814 | 119 | 20 | 0 |
+| `api.service_mixins.billing` | 846 | 119 | 20 | 0 |
 | `storage.postgres.repository` | 766 | 81 | 12 | 0 |
 | `storage.postgres.models` | 763 | 2 | 0 | 0 |
 | `results.record_sets` | 738 | 61 | 10 | 1 |
 | `crawl.relevance` | 736 | 91 | 10 | 2 |
 | `api.service_mixins.retrieval` | 728 | 167 | 16 | 2 |
-| `api.service_mixins.access` | 712 | 50 | 11 | 1 |
+| `api.service_mixins.access` | 720 | 46 | 11 | 1 |
 | `profile_lifecycle` | 668 | 69 | 10 | 3 |
 | `engine.html_records` | 664 | 88 | 12 | 0 |
 | `engine.records` | 609 | 81 | 12 | 1 |
