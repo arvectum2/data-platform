@@ -260,3 +260,20 @@ def test_audit_contains_candidate_id_not_business_value():
     assert submitted[0].metadata["record_id"] == "r1"
     assert submitted[0].selections == {"code": candidate_id}
     assert "SECRET-CODE" not in repr(submitted[0].to_dict())
+
+
+
+def test_record_result_is_decoded_only_once():
+    from unittest.mock import patch
+
+    from arvectum_data.results import RecordResultCodec
+
+    codec = RecordResultCodec()
+    repo = RecordResultRepository(InMemoryResultStore(), codec=codec)
+    original = _record("r1", "SAVE10")
+    repo.persist_set(job_id="job", item_id="page", definition_hash="def", result=_set(original))
+    with patch.object(codec, "decode_record", wraps=codec.decode_record) as decoder:
+        loaded = repo.load_result("job", "page", "r1", expected_definition_hash="def")
+    assert loaded is not None
+    assert loaded[1].record_id == "r1"
+    assert decoder.call_count == 1

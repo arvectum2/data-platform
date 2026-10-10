@@ -86,12 +86,22 @@ class HybridSearchEngine:
                     expansions = ()
                     expansion_status = "failed-open"
             explicit = {
-                request.query.casefold(),
-                *(item.casefold() for item in request.query_variants),
+                request.query.strip().casefold(),
+                *(item.strip().casefold() for item in request.query_variants),
             }
-            expansions = tuple(
-                item for item in expansions if item.text.casefold() not in explicit
-            )
+            # Custom expanders may return repeated or over-limit variants.
+            # Bound expensive backend/embedding calls and avoid doubling RRF
+            # contributions for the same query, preserving first-seen order.
+            unique_expansions = []
+            for item in expansions:
+                key = item.text.strip().casefold()
+                if not key or key in explicit:
+                    continue
+                explicit.add(key)
+                unique_expansions.append(item)
+                if len(unique_expansions) >= request.query_expansion_limit:
+                    break
+            expansions = tuple(unique_expansions)
             self.last_expansions = expansions
             queries.extend((item.text, item.weight) for item in expansions)
             diagnostics.append(

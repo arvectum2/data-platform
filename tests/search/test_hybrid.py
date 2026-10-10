@@ -269,3 +269,60 @@ def test_unavailable_optional_search_stages_are_visible_as_skipped() -> None:
     by_stage = {item.stage: item for item in engine.last_diagnostics}
     assert by_stage["query-expansion"].status == "skipped-unavailable"
     assert by_stage["rerank"].status == "skipped-unavailable"
+
+
+class _UnboundedQueryExpander:
+    name = "unbounded-test"
+
+    def expand(self, query, *, limit):
+        # A buggy provider returns duplicate/case-fold variants beyond the
+        # requested bound; the search engine enforces the contract itself.
+        from arvectum_data.search import QueryExpansion
+
+        return (
+            QueryExpansion(" Original ", "test"),
+            QueryExpansion("EXPANDED", "test"),
+            QueryExpansion("expanded", "test"),
+            QueryExpansion(" ", "test"),
+            QueryExpansion("next", "test"),
+            QueryExpansion("fourth", "test"),
+        )
+
+
+def test_expander_is_deduplicated_and_bounded_before_backend_or_embedding_calls() -> None:
+    seen: list[str] = []
+
+    class RecordingLexical:
+        def search_lexical(self, query, *, collections, filters, limit):
+            seen.append(query)
+            return [_hit(query.strip(), 1.0)]
+
+    engine = HybridSearchEngine(
+        lexical_backend=RecordingLexical(),
+        vector_backend=FakeVector(),
+        embedding_provider=HashingEmbeddingProvider(dimension=16),
+        query_expander=_UnboundedQueryExpander(),
+    )
+    hits = engine.search(
+        SearchQuery(
+            query="original",
+            collections=("one",),
+            mode=SearchMode.LEXICAL,
+            expand_query=True,
+            query_expansion_limit=2,
+        )
+    )
+    assert seen == ["original", "EXPANDED", "next"]
+    assert [item.text for item in engine.last_expansions] == ["EXPANDED", "next"]
+    assert len(hits) == 3
+    diagnostics = {item.stage: item for item in engine.last_diagnostics}
+    assert diagnostics["query-expansion"].metadata["variants"] == 2
+    assert diagnostics["lexical-retrieval"].metadata["calls"] == 3
+
+
+def test_explicit_query_variants_dedupe_case_insensitively() -> None:
+    query = SearchQuery(
+        query="Original", collections=("one",),
+        query_variants=(" original ", "Expanded", "expanded"),
+    )
+    assert query.query_variants == ("Expanded",)
