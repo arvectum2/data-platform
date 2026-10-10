@@ -38,20 +38,21 @@ completed:
   - '2026-10-10 TA PR #300 upload batch preflight validates entire files/count/sizes before any disk write, green full 3499 local tests and exact-head CI merged TA code 9498c40a291386d55cdd17a9a889cdbd1dcf0eee; DP R2 SDK0.3 ASGI v1 provenance integration remains merged as c50c0ae.'
   - '2026-10-10 cross-repo Tender Agent PR #300 atomic upload preflight and PR #301 economics upload validation both merged exact-head CI green, latest TA code 7f3e664ce7620507074a6532fd23d2d0ee9a6f99; DP SDK0.3 -> ASGI APIv1 synthetic test already merged, deployed real-source acceptance pending.'
   - '2026-10-10 cross-repo TA PR #301 pure economics upload bounds and #302 source-backed procurement scope classifier both merged exact-head CI green, latest TA code da7907c72ef4a869674526799e33077d85a4bf63; DP service/API/SDK unchanged.'
-current: 'DP R2/R4 pure frozen Russian corpus OCR and table structure scoring extracted to evaluation/corpus_scoring.py with old scoring aliases preserved. 14 focused evaluation tests and full DP pytest/Ruff green locally, exact-head GitHub PR CI pending. Cross-repo TA #303 open pending quality. Real-source EIS R5 and owner review outstanding.'
+  - '2026-10-10 DP PR #106 pure deterministic Russian OCR/text/table/field structure/latency percentile scoring extracted into evaluation/corpus_scoring.py with legacy aliases, 14 focused and full local pytest/Ruff PASS, exact-head Python 3.11-3.13/JS SDK/PostgreSQL CI all green, merged main 406a9530a6ca802e2497188972c4f9679c2d2bd2.'
+current: 'Data Platform #99-106 modular R2-R4 extraction and SDK0.3-to-ASGI-v1 synthetic contract all merged/CI green; latest DP code #106 406a9530a6ca802e2497188972c4f9679c2d2bd2. Corpus OCR/structure/percentile scoring is independent and preserves old evaluation facade. Cross-repo TA PR #303 operator original-file/DP provenance assembly has 3520 full local PASS, exact-head quality CI still pending. DP deployed authenticated original-doc SDK source proof, Russian OCR/VLM model benchmarks, R5 >=20 independent human-reviewed EIS cases and owner acceptance remain incomplete.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '0dd5dd3568d1dedb9de92f269acb9d554c158507'
+last_verified_commit: '406a9530a6ca802e2497188972c4f9679c2d2bd2'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Check DP PR refactor/tdp-dp-corpus-scoring-20261010 exact-head CI, merge only when all checks green. Code 0dd5dd3; 14 focused and full DP pytest/Ruff all green. Preserve old scoring aliases and Russian OCR, table order, missing-claims behavior. Also TA #303 is awaiting exact-head quality CI; after merges synchronize both main checkpoints. R5 original EIS source proof and owner gate pending, keep RU direct no proxy, production, SSD, pilot and disabled watchdog intact.'
+resume_instruction: 'Restore Data Platform main after #106 fully CI-verified merged at 406a9530; do not redo corpus_scoring, earlier DP #99-105 or synthetic SDK-ASGI test. Check Tender Agent #303 original-file assembly exact-head CI: full local 3520 PASS but GitHub quality still pending; after merge synchronize both checkpoints. Next R2 deployed authenticated DP0.6 API v1 SDK0.3 true original Russian documents, source resource/document/chunk offset/hash and OCR/VLM actual benchmarks. R5 after EIS maintenance through 2026-10-11 20:00 MSK use Russian direct-no-proxy getDocsIP and source->DP->saved TA JSON/HTML/PDF/DOCX, >=20 independent human reviews and owner acceptance. Keep private pilot, production SSD and disabled watchdog untouched.'
 execution:
-  branch: refactor/tdp-dp-corpus-scoring-20261010
+  branch: main
   manual_override: true
   lease_until: null
