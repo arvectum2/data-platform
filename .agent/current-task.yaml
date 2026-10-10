@@ -32,20 +32,20 @@ completed:
   - '2026-10-10 DP PR #101 semantic HTML DOM tree parser extracted with cache-invalidation and Cyrillic tests, full pytest/Ruff and exact-head GitHub CI green, merged main bcca9a4fa826f7702e35bec4b4d11c5d4f9f1491.'
   - '2026-10-10 DP PR #102 pure credential-safe API response projections and connector metadata validation extracted from AccessServiceMixin, original staticmethod facades retained; full DP pytest, Ruff, exact-head Python/JS/Postgres CI green; merged main 01e90bac3b3c5365f0a914d87fd0636e6cc7c6ae.'
   - '2026-10-10 DP PR #103 canonical/federated search hit deduplication policy extracted from RetrievalServiceMixin into pure api/search_hit_policy with old static-method facades retained; full pytest/Ruff and exact-head Python/JS/PostgreSQL CI green, merged main 9f1f132f2512413b39b5554b9114e30ab1ebd880.'
-current: 'DP R3 #99/#100/#101/#102/#103 bounded extractions merged with CI green; latest #103 search_hit_policy preserves RetrievalServiceMixin contract, search result ordering and provenance. Remaining refactor: high-LOC API/service_mixins, storage and pipeline separation as justified by bounded architecture; R2 SDK 0.3.0 vs DP API 1.0 consumer and Russian PDF/DOCX/XLS OCR/VLM regression; R4 runtime/model benchmarks; R5 original EIS full-source DP->TA and >=20 human-reviewed procurements, owner signoff. status remains in_progress.'
+current: DP R3 five pure billing payload projections extracted preserving BillingServiceMixin static facades and tenant/payment side effect boundaries; full DP pytest and Ruff green; PR/CI pending. R2/R4/R5 acceptance remains.
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '9f1f132f2512413b39b5554b9114e30ab1ebd880'
+last_verified_commit: 731c42d49352f05fb4b05d33da53664e4d443578
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Resume TDP-REFACTOR-20261009 from Data Platform main after merged green #103 (code 9f1f132), do not redo #99-103. Next bounded R3 extract responsibility from large billing/retrieval/storage modules while preserving tenant/security and SDK/API compatibility; focused+full tests/Ruff and exact-head CI. In parallel R2 verify SDK 0.3.0 consuming DP 0.6.0/API v1 and Russian OCR/VLM/index corpus, measure R4 models. After EIS 16.3 maintenance ends 2026-10-11 20:00 MSK, on Russian Mac mini direct no-proxy first TLS probe then one genuine getDocsIP, source-original DP resource/document/chunk offsets -> Tender Agent saved JSON HTML PDF DOCX; require >=20 independent human-reviewed procurements and owner acceptance. No production, pilot, SSD or watchdog changes.'
+resume_instruction: Verify and merge DP billing payload projections from /private/tmp/tdp-dp-billing-payloads-20261010 after exact-head GitHub CI green, then update both canonical checkpoints. Full local DP pytest and Ruff green; two focused tests. Preserve billing transactions and tenant isolation, public SDK/API compatibility. EIS RU direct no proxy after 11 Oct 2026 20:00 MSK. R5 real-original 20+ procurement reviews and owner gate pending.
 execution:
-  branch: main
+  branch: refactor/tdp-dp-billing-payloads-20261010
   manual_override: true
   lease_until: null
