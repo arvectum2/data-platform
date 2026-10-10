@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from collections.abc import Iterable
+from uuid import uuid4
 from typing import Mapping, Sequence
 
 from sqlalchemy import case, func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from ...documents import DocumentIngestResult
@@ -386,6 +389,68 @@ class DataRepository:
         collection.embedding_dimension = dimension
         self.session.flush()
         return collection
+
+    def upsert_embeddings(
+        self,
+        items: Iterable[tuple[str, Sequence[float]]],
+        *,
+        provider: str,
+        model: str,
+        batch_size: int = 128,
+    ) -> int:
+        """Write many embeddings via bounded PostgreSQL UPSERT statements.
+
+        A single ON CONFLICT update preserves existing embedding IDs and
+        created_at values, unlike replacing rows. The surrounding session owns
+        commit/rollback just as for individual upserts.
+        """
+        if batch_size < 1:
+            raise ValueError("batch_size must be positive")
+        pending: list[dict[str, object]] = []
+        written = 0
+        seen: set[str] = set()
+
+        def write_pending() -> None:
+            if not pending:
+                return
+            statement = pg_insert(ChunkEmbeddingRow).values(pending)
+            self.session.execute(
+                statement.on_conflict_do_update(
+                    index_elements=(
+                        ChunkEmbeddingRow.chunk_id,
+                        ChunkEmbeddingRow.provider,
+                        ChunkEmbeddingRow.model,
+                    ),
+                    set_={
+                        "dimension": statement.excluded.dimension,
+                        "vector": statement.excluded.vector,
+                    },
+                )
+            )
+            pending.clear()
+
+        for chunk_id, vector in items:
+            if not chunk_id or chunk_id in seen:
+                raise ValueError("embedding chunk IDs must be non-empty and unique")
+            seen.add(chunk_id)
+            values = [float(value) for value in vector]
+            if not values:
+                raise ValueError("embedding vector must not be empty")
+            pending.append(
+                {
+                    "embedding_id": str(uuid4()),
+                    "chunk_id": chunk_id,
+                    "provider": provider,
+                    "model": model,
+                    "dimension": len(values),
+                    "vector": values,
+                }
+            )
+            written += 1
+            if len(pending) >= batch_size:
+                write_pending()
+        write_pending()
+        return written
 
     def upsert_embedding(
         self,

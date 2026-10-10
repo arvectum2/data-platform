@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.orm import load_only
 
 from ...answers import GroundedAnswer, ReasoningAnswerSynthesizer
 from ...research import ResearchResult, ResearchWorkflow
@@ -170,13 +171,17 @@ class RetrievalServiceMixin:
             )
             if len(vectors) != len(pending_chunks):
                 raise RuntimeError("embedding provider returned unexpected vector count")
-            for chunk, vector in zip(pending_chunks, vectors):
-                repo.upsert_embedding(
-                    chunk_id=chunk.chunk_id,
-                    provider=self.embedding_provider.provider_name,
-                    model=self.embedding_provider.model_name,
-                    vector=vector,
+            dimensions = {len(vector) for vector in vectors}
+            if len(dimensions) > 1 or 0 in dimensions:
+                raise EmbeddingContractMismatch(
+                    f"embedding provider returned invalid or inconsistent dimensions: "
+                    f"{sorted(dimensions)}"
                 )
+            repo.upsert_embeddings(
+                ((chunk.chunk_id, vector) for chunk, vector in zip(pending_chunks, vectors)),
+                provider=self.embedding_provider.provider_name,
+                model=self.embedding_provider.model_name,
+            )
             if vectors:
                 dimension = len(vectors[0])
                 if collection.embedding_dimension is None:
@@ -276,8 +281,18 @@ class RetrievalServiceMixin:
     ]:
         self._validate_tenant_search_quota(request, consumer)
         with self._require_factory()() as session:
+            # Preserve request-order authorization and error precedence, but
+            # load all collection policies/contracts with one SQL round-trip.
+            collections = {
+                row.collection_id: row
+                for row in session.scalars(
+                    select(CollectionRow).where(
+                        CollectionRow.collection_id.in_(request.collections)
+                    )
+                )
+            }
             for collection_id in request.collections:
-                collection = session.get(CollectionRow, collection_id)
+                collection = collections.get(collection_id)
                 if collection is None:
                     raise CollectionNotFound(collection_id)
                 self._authorize_collection_consumer(collection, consumer, session=session)
@@ -438,19 +453,21 @@ class RetrievalServiceMixin:
         collection: CollectionRow,
         chunks: Sequence[ChunkRow],
     ) -> str:
-        payload = "\n".join(
-            [
+        # Preserve the historical byte-for-byte revision contract without
+        # constructing a giant intermediate string for large collections.
+        header = "\n".join(
+            (
                 f"provider={self.embedding_provider.provider_name}",
                 f"model={self.embedding_provider.model_name}",
                 f"dimension={self.embedding_provider.dimension}",
                 f"language={collection.default_language}",
-                *[
-                    f"{chunk.chunk_id}:{chunk.content_hash}"
-                    for chunk in sorted(chunks, key=lambda item: item.chunk_id)
-                ],
-            ]
+            )
         )
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        digest = hashlib.sha256(header.encode("utf-8"))
+        for chunk in sorted(chunks, key=lambda item: item.chunk_id):
+            digest.update(b"\n")
+            digest.update(f"{chunk.chunk_id}:{chunk.content_hash}".encode("utf-8"))
+        return digest.hexdigest()
 
     @staticmethod
     def _job_payload(row: PipelineRunRow) -> dict[str, Any]:
@@ -479,6 +496,7 @@ class RetrievalServiceMixin:
                     .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
                     .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
                     .where(ResourceRow.collection_id == collection_id)
+                    .options(load_only(ChunkRow.chunk_id, ChunkRow.content_hash))
                     .order_by(ChunkRow.chunk_id.asc())
                 )
             )
@@ -571,13 +589,11 @@ class RetrievalServiceMixin:
                     vectors=vectors,
                 )
                 previous_contract = self._collection_embedding_contract(collection)
-                for chunk, vector in zip(chunks, vectors):
-                    repo.upsert_embedding(
-                        chunk_id=chunk.chunk_id,
-                        provider=self.embedding_provider.provider_name,
-                        model=self.embedding_provider.model_name,
-                        vector=vector,
-                    )
+                repo.upsert_embeddings(
+                    ((chunk.chunk_id, vector) for chunk, vector in zip(chunks, vectors)),
+                    provider=self.embedding_provider.provider_name,
+                    model=self.embedding_provider.model_name,
+                )
 
                 final_chunks = list(
                     session.scalars(
@@ -585,6 +601,7 @@ class RetrievalServiceMixin:
                         .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
                         .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
                         .where(ResourceRow.collection_id == collection_id)
+                        .options(load_only(ChunkRow.chunk_id, ChunkRow.content_hash))
                         .order_by(ChunkRow.chunk_id.asc())
                     )
                 )

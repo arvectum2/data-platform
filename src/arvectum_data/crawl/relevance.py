@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from heapq import nsmallest
 from dataclasses import dataclass
 from enum import StrEnum
 from html.parser import HTMLParser
@@ -250,8 +251,19 @@ class TargetPageDiscoveryResult:
             allowed.add(TargetPageStatus.CANDIDATE)
         if include_unprobed:
             allowed.add(TargetPageStatus.UNPROBED)
-        values = [item.url for item in self.ranked() if item.status in allowed]
-        return tuple(values[: self.max_selected_urls])
+        # Only the best K selectable URLs are needed; sorting every discovered
+        # URL costs O(N log N) even when max_selected_urls is small.
+        priority = {
+            TargetPageStatus.TARGET: 0,
+            TargetPageStatus.CANDIDATE: 1,
+            TargetPageStatus.UNPROBED: 2,
+        }
+        winners = nsmallest(
+            self.max_selected_urls,
+            (item for item in self.assessments if item.status in allowed),
+            key=lambda item: (priority[item.status], -item.score, item.discovery_index),
+        )
+        return tuple(item.url for item in winners)
 
     def to_job(
         self,
@@ -320,6 +332,10 @@ class _SignalHTMLParser(HTMLParser):
 
     def handle_data(self, data):
         if self._ignored_depth:
+            return
+        if self.visible_chars >= self.max_visible_chars and not (
+            self._title_depth or self._h1_depth
+        ):
             return
         cleaned = _WS_RE.sub(" ", data).strip()
         if not cleaned:
@@ -393,8 +409,11 @@ class TargetPageClassifier:
             for item in preliminary
             if item.status is not TargetPageStatus.NON_TARGET
         ]
-        probe_candidates.sort(key=lambda item: (-item.score, item.discovery_index))
-        selected_for_probe = probe_candidates[: self.policy.max_probe_pages]
+        selected_for_probe = nsmallest(
+            self.policy.max_probe_pages,
+            probe_candidates,
+            key=lambda item: (-item.score, item.discovery_index),
+        )
         probe_urls = {item.url for item in selected_for_probe}
         limit_reasons: list[str] = []
         if len(probe_candidates) > self.policy.max_probe_pages:
@@ -411,18 +430,12 @@ class TargetPageClassifier:
                 continue
             final.append(self._probe(item, request_headers))
 
-        ranked = TargetPageDiscoveryResult(
-            discovery=discovery,
-            assessments=tuple(final),
-            max_selected_urls=self.policy.max_selected_urls,
-            limit_reasons=tuple(limit_reasons),
-        ).ranked()
-        selectable = [
-            item
-            for item in ranked
-            if item.status in {TargetPageStatus.TARGET, TargetPageStatus.CANDIDATE}
-        ]
-        if len(selectable) > self.policy.max_selected_urls:
+        # Only cardinality is used to report truncation. No ranked copy needed.
+        selectable_count = sum(
+            item.status in {TargetPageStatus.TARGET, TargetPageStatus.CANDIDATE}
+            for item in final
+        )
+        if selectable_count > self.policy.max_selected_urls:
             limit_reasons.append("max_selected_urls")
 
         return TargetPageDiscoveryResult(
