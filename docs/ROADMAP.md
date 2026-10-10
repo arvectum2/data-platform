@@ -289,11 +289,30 @@ Collection stats expose first/last source observation, latest embedding time, la
 
 ## Immediate next priorities
 
-- [x] DP-VEC-001: formalize the VectorIndex protocol boundary.
-- [x] DP-VEC-001: benchmark HNSW versus IVFFlat and keep exact pgvector search until ANN passes the relevance gate.
-- [x] DP-VEC-001: add explicit model/dimension migration safety for vector indexes.
-- [ ] DP-INT-002: close real-data production acceptance on the first non-empty KnowledgeAssetRecord set.
-- [x] DP-BENCH-002: competitive frozen-corpus benchmark suite is complete for the required promotion decisions. Multi-format, OCR/layout, adversarial, faithfulness, multi-hop, sync, latency/resource, private-core, Qdrant/Unstructured external references and live local VLM quality are executable and frozen. Additional reference products remain optional backlog work.
+Platform implementation is now feature-complete for the currently planned pilot scope. The remaining work is mostly live acceptance against real external credentials/data rather than new core architecture.
+
+- [x] DP-BENCH-002: competitive frozen-corpus benchmark suite completed for promotion decisions.
+- [x] DP-MODES-001: FAST / STANDARD / DEEP / RESEARCH execution modes completed.
+- [x] DP-MODEL-001: local-first optional reasoning/VLM provider layer completed.
+- [x] DP-OCR-001: OCR/VLM ingestion cascade completed and benchmarked on the frozen real-document set.
+- [x] DP-RERANK-001: BGE cross-encoder reranking promoted as the preferred optional strategy after benchmarked uplift.
+- [x] DP-QE-001: query expansion implementation completed; default activation remains benchmark-gated.
+- [x] DP-STRUCT-001: schema-driven structured extraction completed.
+- [x] DP-ANSWER-001: evidence-grounded synthesis completed; production use remains faithfulness-gated by policy.
+- [x] DP-RESEARCH-001: reusable research workflow completed.
+- [x] DP-GRAPH-002: evidence-backed graph enrichment completed.
+- [x] DP-SYNC-001: continuous indexing completed.
+- [x] DP-MEM-001: scoped evidence-backed agent memory completed.
+- [x] DP-METER-001: billing-grade usage metering completed and production-accepted.
+- [x] DP-CRED-001: encrypted connector credential vault completed and production-accepted.
+- [x] DP-BILL-001: pricing/invoicing core plus YooKassa/SBP adapter completed and production-accepted without merchant secrets.
+- [x] DP-CRAWL-002: bounded single-node crawl concurrency completed; distributed crawling remains intentionally deferred until measured throughput requires it.
+- [ ] **NEXT — live private GitHub connector acceptance:** use a deliberately supplied tenant-owned GitHub credential against a private repository and close the remaining DP-CRED-001 live gate.
+- [ ] **NEXT — live YooKassa merchant acceptance:** configure deliberately supplied merchant credentials/webhook and close the remaining DP-BILL-001 payment-provider gate.
+- [ ] **BLOCKED — DP-INT-002:** close real-data Arvectum OS acceptance when the first non-empty production KnowledgeAssetRecord set appears; synthetic data must not close this gate.
+
+Current product status: **PILOT-READY**. No unblocked core platform implementation gate remains for the pilot scope.
+
 
 ## AI/model architecture and capability roadmap
 
