@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import defer
 
 from ...acquisition.security import validate_public_url
 from ...documents import ingest_bytes, ingest_url
@@ -116,24 +118,53 @@ class CollectionServiceMixin:
                     .limit(limit)
                 )
             )
+            # Export one page at a time but prefetch its children in batches.
+            # The previous N+1 query pattern scaled as 3 queries/resource plus
+            # 1 query/document, even for metadata-only exports.
+            resource_ids = [item.resource_id for item in resources]
+            documents_by_resource: dict[str, list[DocumentRow]] = defaultdict(list)
+            chunks_by_document: dict[str, list[ChunkRow]] = defaultdict(list)
+            records_by_resource: dict[str, list[DataRecordRow]] = defaultdict(list)
+            provenance_by_resource: dict[str, list[ProvenanceRow]] = defaultdict(list)
+            if resource_ids:
+                documents_query = select(DocumentRow).where(
+                    DocumentRow.resource_id.in_(resource_ids)
+                ).order_by(DocumentRow.resource_id.asc(), DocumentRow.document_id.asc())
+                if not include_content:
+                    # Metadata-only export must not fetch unbounded source text.
+                    documents_query = documents_query.options(defer(DocumentRow.text))
+                documents = session.scalars(documents_query).all()
+                for item in documents:
+                    documents_by_resource[item.resource_id].append(item)
+                if documents:
+                    document_ids = [item.document_id for item in documents]
+                    chunks_query = select(ChunkRow).where(
+                        ChunkRow.document_id.in_(document_ids)
+                    ).order_by(ChunkRow.document_id.asc(), ChunkRow.ordinal.asc())
+                    if not include_content:
+                        chunks_query = chunks_query.options(defer(ChunkRow.text))
+                    for item in session.scalars(chunks_query):
+                        chunks_by_document[item.document_id].append(item)
+                records_query = select(DataRecordRow).where(
+                    DataRecordRow.resource_id.in_(resource_ids)
+                ).order_by(DataRecordRow.resource_id.asc(), DataRecordRow.record_id.asc())
+                if not include_content:
+                    records_query = records_query.options(defer(DataRecordRow.data_json))
+                for item in session.scalars(records_query):
+                    records_by_resource[item.resource_id].append(item)
+                for item in session.scalars(
+                    select(ProvenanceRow)
+                    .where(ProvenanceRow.resource_id.in_(resource_ids))
+                    .order_by(ProvenanceRow.resource_id.asc(), ProvenanceRow.provenance_id.asc())
+                ):
+                    provenance_by_resource[item.resource_id].append(item)
+
             exported_resources: list[dict[str, Any]] = []
             for resource in resources:
-                documents = list(
-                    session.scalars(
-                        select(DocumentRow)
-                        .where(DocumentRow.resource_id == resource.resource_id)
-                        .order_by(DocumentRow.document_id.asc())
-                    )
-                )
+                documents = documents_by_resource[resource.resource_id]
                 exported_documents: list[dict[str, Any]] = []
                 for document in documents:
-                    chunks = list(
-                        session.scalars(
-                            select(ChunkRow)
-                            .where(ChunkRow.document_id == document.document_id)
-                            .order_by(ChunkRow.ordinal.asc())
-                        )
-                    )
+                    chunks = chunks_by_document[document.document_id]
                     exported_documents.append(
                         {
                             "document_id": document.document_id,
@@ -159,20 +190,8 @@ class CollectionServiceMixin:
                         }
                     )
 
-                records = list(
-                    session.scalars(
-                        select(DataRecordRow)
-                        .where(DataRecordRow.resource_id == resource.resource_id)
-                        .order_by(DataRecordRow.record_id.asc())
-                    )
-                )
-                provenance = list(
-                    session.scalars(
-                        select(ProvenanceRow)
-                        .where(ProvenanceRow.resource_id == resource.resource_id)
-                        .order_by(ProvenanceRow.provenance_id.asc())
-                    )
-                )
+                records = records_by_resource[resource.resource_id]
+                provenance = provenance_by_resource[resource.resource_id]
                 exported_resources.append(
                     {
                         "resource_id": resource.resource_id,
