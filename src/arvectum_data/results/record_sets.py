@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
@@ -26,45 +25,16 @@ from .models import (
     payload_hash,
 )
 from .stores import ResultStore
+from .record_identities import (
+    _RECORD_PREFIX as _RECORD_PREFIX,
+    _SET_PREFIX as _SET_PREFIX,
+    parse_record_storage_item_id as parse_record_storage_item_id,
+    record_set_storage_item_id as record_set_storage_item_id,
+    record_storage_item_id as record_storage_item_id,
+)
 
 
 MULTI_RECORD_RESULT_SCHEMA_VERSION = 1
-_RECORD_PREFIX = "__dp_record_v1__:"
-_SET_PREFIX = "__dp_record_set_v1__:"
-
-
-def _b64(value: str) -> str:
-    return base64.urlsafe_b64encode(value.encode("utf-8")).decode("ascii").rstrip("=")
-
-
-def _unb64(value: str) -> str:
-    padding = "=" * (-len(value) % 4)
-    return base64.urlsafe_b64decode((value + padding).encode("ascii")).decode("utf-8")
-
-
-def record_storage_item_id(item_id: str, record_id: str) -> str:
-    if not item_id.strip() or not record_id.strip():
-        raise ValueError("item_id and record_id must not be blank")
-    return f"{_RECORD_PREFIX}{_b64(item_id)}:{_b64(record_id)}"
-
-
-def record_set_storage_item_id(item_id: str) -> str:
-    if not item_id.strip():
-        raise ValueError("item_id must not be blank")
-    return f"{_SET_PREFIX}{_b64(item_id)}"
-
-
-def parse_record_storage_item_id(storage_item_id: str) -> tuple[str, str] | None:
-    if not storage_item_id.startswith(_RECORD_PREFIX):
-        return None
-    encoded = storage_item_id[len(_RECORD_PREFIX) :]
-    parts = encoded.split(":", 1)
-    if len(parts) != 2:
-        raise ResultIntegrityError("Malformed durable record storage item id")
-    try:
-        return _unb64(parts[0]), _unb64(parts[1])
-    except Exception as exc:
-        raise ResultIntegrityError("Malformed durable record storage identity") from exc
 
 
 def _storage_status(status: RecordStatus) -> StoredResultStatus:
