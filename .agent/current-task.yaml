@@ -50,6 +50,7 @@ completed:
   - '2026-10-10 read-only Mac mini DP0.6 production-local SDKv0.3 probe: health OK, protected GET /v1/contract returns expected HTTP401 without credentials, require_contract(1) fails HTTP401; authenticated deployed original file/chunk provenance still NOT verified. No credentials surfaced, no mutations.'
 current: 'DP #99-107 green, TA #298-308 merged all green latest 879b68c4. Read-only Mac mini DP0.6 SDK probe confirms health OK and unauthorized contract GET HTTP401 fail closed; authenticated deployed DP0.6 SDK0.3 real Russian source/resource/document/chunk hash/offset still pending. Real OCR/VLM/LLM model benchmark and EIS >=20 independent human original reviews/owner gate outstanding.'
 pending:
+  - '2026-10-10 dependency refresh PR #108: merged current main into feature branch, regenerated uv.lock --upgrade. Fresh Python 3.12 SDK/dev install, Ruff and complete new-main pytest PASS. Exact-head Python 3.11/3.13 CI and optional browser/rerank/model backends still need checking; do not merge until gates green.'
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
