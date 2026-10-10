@@ -1,0 +1,33 @@
+version: 2
+repository: arvectum2/data-platform
+task_id: TDP-R2-NORMALIZED-CHUNKS-20261011
+status: in_progress
+goal: Pure read-only verification of exported chunk hashes and normalized-text offsets;
+  not original attachment binary verification.
+definition_of_done:
+- Validate normalized offsets plus exact chunk text SHA256 and nested source IDs
+- Diagnostics contain issue codes only, never source text or secrets
+- Test Russian source whitespace, corrupt hashes and coordinates, missing IDs, metadata-only
+- Ruff, tests, CI all pass, merge and record completion
+completed:
+- 'DP #111 verified some stored chunk hashes but raw extracted text coordinates were
+  improperly compared; DP ChunkDraft specifies normalized coordinates.'
+- Implemented pure chunk_export_audit.py on normalized text coordinate space with
+  SHA256 checks, source ID checks and non-disclosing error codes.
+- Added six validator unit tests and one PostgreSQL collection export assertion.
+- Focused 9 pass with local PostgreSQL test skipped (test DB environment not set).
+  Ruff clean; full local Python 3.12 pytest exit 0.
+current: Await exact-head CI, particularly PostgreSQL fixture, before merge.
+pending:
+- Code and tests
+- Full relevant checks and exact-head CI
+- Merge and mark slice completed; original EIS binary proof pending
+last_verified_commit: 3872c1f
+test_results:
+- Ruff targeted clean
+- 9 targeted tests PASS; PostgreSQL test SKIP locally (test database not configured)
+- Full local Python 3.12 pytest EXIT 0
+resume_instruction: Next commit, push PR and await exact-head CI including PostgreSQL.
+  Correct any failures, merge, mark bounded checkpoint completed; overarching TDP-REFACTOR
+  remains in_progress for live EIS original binary source validation, R4 model E2E,
+  R5 human reviews.

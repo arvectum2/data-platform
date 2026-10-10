@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from arvectum_data.api.app import create_app
 from arvectum_data.api.config import Settings
+from arvectum_data.processing.chunk_export_audit import audit_chunk_export
 from arvectum_data.storage.postgres import ResourceRow
 
 
@@ -88,6 +89,7 @@ def test_collection_export_retention_and_confirmed_delete() -> None:
     assert content_export.status_code == 200
     exported_text = content_export.json()["resources"][0]["documents"][0]["text"]
     assert "lifecycle retention export evidence" in exported_text
+    assert audit_chunk_export(content_export.json()).verified
 
     service = app.state.platform_service
     with service._require_factory()() as session:
