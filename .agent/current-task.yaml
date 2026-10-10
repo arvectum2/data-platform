@@ -27,20 +27,20 @@ completed:
   - 'Read-only dual-repository AST audit after consolidation: zero exact >=12-line function groups and no forbidden import edges; Tender Agent R0 audit PR #296 tracks CI.'
 
   - '2026-10-10 cross-repository Tender Agent PR #297 direct Russian no-proxy EIS SOAP TLS diagnostics and strict official endpoint guard merged main f5f3f1a8, exact-head CI green; Data Platform runtime/SDK untouched.'
-current: 'Data Platform #96-98 already merged/verified; Tender Agent direct Russian no-proxy EIS TLS preflight PR #297 also merged with green CI. During official EIS 16.3 maintenance through 2026-10-11 20:00 MSK, real new SOAP source acquisition remains unverified. R5 >=20 independent original procurements, Russian OCR/VLM benchmark, SDK consumer E2E and owner acceptance remain in_progress.'
+current: 'DP R3 standalone crawl/page_signals.py extracted from relevance classifier with same private facade, 25 focused tests PASS and complete DP suite + Ruff PASS; GitHub exact-head CI/merge pending. R5 independent originals and owner acceptance outstanding.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: 'ff115adea1070c5b66d8eb61e5d287247a3118d9'
+last_verified_commit: '6cef60e81fca9e07a2eca01fd7f989ee29c311c2'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Continue TDP-REFACTOR-20261009 from Data Platform main after #98, TA main after merged #297 (f5f3f1a8). Official EIS 16.3 maintenance until 2026-10-11 20:00 MSK; after that run direct Russian/no-proxy EIS TLS and one actual getDocsIP read-only request with the TA fast-fail operator script, then validate original file -> DP resource/document/chunk IDs -> TA authenticated saved fact/report/PDF/DOCX, plus >=20 independently human-reviewed real EIS procurements. Run measured Russian OCR/VLM accuracy and LLM latency/cost, SDK 0.3.0/v1 API compatibility, owner acceptance. No proxy/TLS bypass, private pilot mutation, public deploy, SSD diagnosis side effects or enabling disabled watchdog.'
+resume_instruction: 'Check PR for refactor/tdp-dp-crawl-signals-20261010 at /private/tmp/tdp-dp-crawl-signals-20261010 and merge only exact-head green CI. All DP suite and Ruff green locally, 25 focused tests pass. Then take next bounded modular refactor; EIS official 16.3 maintenance remains until 2026-10-11 20:00 MSK; do not switch RU direct route to proxy. R5 independent 20 source reviews and owner gate remain in_progress; preserve pilot, disabled watchdog and production data.'
 execution:
-  branch: main
+  branch: refactor/tdp-dp-crawl-signals-20261010
   manual_override: true
   lease_until: null
