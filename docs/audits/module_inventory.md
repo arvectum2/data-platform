@@ -3,8 +3,8 @@
 The CSV beside this document contains **one individually analyzed row for every Python source module**.
 Metrics are obtained by parsing the AST without importing code. Recommendations are **review candidates**, not proof of an optimization or benchmark improvement.
 
-- Modules: **177**; total source lines: **30836**
-- Priorities: P1 **12**, P2 **40**, P3 **125**
+- Modules: **177**; total source lines: **30829**
+- Priorities: P1 **11**, P2 **41**, P3 **125**
 - P1: source >=600 lines, function >=200 lines or complex function >=40 decisions; P2: smaller but still large or broad-exception hotspots.
 - `max_decisions` is a rough AST-based branching proxy, not a formal cyclomatic complexity measurement.
 
@@ -47,7 +47,6 @@ Metrics are obtained by parsing the AST without importing code. Recommendations 
 | `engine.html_records` | 680 | 88 | 12 | 0 |
 | `profile_lifecycle` | 668 | 69 | 10 | 3 |
 | `engine.records` | 621 | 87 | 12 | 1 |
-| `search.hybrid` | 405 | 224 | 16 | 2 |
 
 ## Reproduce
 
