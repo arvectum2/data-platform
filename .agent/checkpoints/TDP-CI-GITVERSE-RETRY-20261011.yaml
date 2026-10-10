@@ -1,0 +1,36 @@
+version: 2
+repository: arvectum2/data-platform
+task_id: TDP-CI-GITVERSE-RETRY-20261011
+status: in_progress
+goal: Keep exact-main GitVerse mirror verification fail-closed while retrying intermittent
+  GitVerse HTTP 502 automatically.
+definition_of_done:
+- Guard git ls-remote network failures inside existing retry loop under set -e and
+  pipefail
+- Distinguish persistent remote read failure vs main SHA mismatch, avoid printing
+  tokens
+- YAML+Bash syntax, exact-head CI, merge and checkpoint completion
+completed:
+- 'Manual reruns needed after transient HTTP502 in DP #110 and #114; original loop
+  stopped early on git ls-remote error.'
+- Guarded remote git ls-remote under shell set -e and pipefail to preserve all 12
+  attempts after intermittent query failures.
+- 'All failures remain fail-closed: no successful read vs mismatched SHA is distinguished
+  in final diagnostics; no credentials displayed.'
+- 'Parsed workflow YAML and executed 3 isolated offline shell mocks: transient HTTP-like
+  failure twice then recovery (3 tries PASS), persistent failure (12 tries FAIL),
+  wrong remote SHA (12 tries FAIL).'
+current: Await exact-head workflow CI then merge.
+pending:
+- Implement retry guard
+- Validate syntax and exact-head CI
+- Merge green and mark completed
+last_verified_commit: 38ba15f
+test_results:
+- YAML parsed
+- mock transient 3 attempts -> success
+- mock permanent outage 12 attempts -> fail
+- mock divergent main 12 attempts -> fail
+resume_instruction: Continue worktree /Volumes/ArvectumSSD/Arvectum/worktrees/tdp-gitverse-transient-retry-20261011.
+  Push PR and await GitHub exact-head checks. Do not merge if divergence or auth failure
+  is hidden. Complete bounded checkpoint after green CI. No live service impact.
