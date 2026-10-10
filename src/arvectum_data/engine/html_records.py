@@ -82,14 +82,28 @@ class _Node:
     children: list[_Node] = field(default_factory=list)
     text_parts: list[str] = field(default_factory=list)
     child_counts: dict[str, int] = field(default_factory=dict)
+    _cached_text: str | None = field(default=None, init=False, repr=False)
+
+    def invalidate_text(self) -> None:
+        """Invalidate ancestors after an incremental HTMLParser mutation."""
+        current: _Node | None = self
+        while current is not None and current._cached_text is not None:
+            current._cached_text = None
+            current = current.parent
 
     def text(self) -> str:
+        # Scoring and boundary discovery request text for overlapping DOM
+        # ancestors many times. Memoize the subtree text after its first read.
+        if self._cached_text is not None:
+            return self._cached_text
         parts = list(self.text_parts)
         for child in self.children:
             text = child.text()
             if text:
                 parts.append(text)
-        return _compact(" ".join(parts))
+        result = _compact(" ".join(parts))
+        self._cached_text = result
+        return result
 
     def walk(self):
         yield self
@@ -125,6 +139,7 @@ class _TreeParser(HTMLParser):
             parent=parent,
         )
         parent.children.append(node)
+        parent.invalidate_text()
         if tag not in _VOID_TAGS:
             self._stack.append(node)
 
@@ -144,6 +159,7 @@ class _TreeParser(HTMLParser):
         value = _compact(data)
         if value:
             self.current.text_parts.append(value)
+            self.current.invalidate_text()
 
 
 def _semantic_tokens(node: _Node) -> set[str]:

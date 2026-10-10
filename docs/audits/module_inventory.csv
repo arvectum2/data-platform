@@ -9,17 +9,36 @@ acquisition.render,acquisition,80,2,1,60,10,1,0,playwright,P3,preserve; inspect 
 acquisition.security,acquisition,41,1,1,30,12,0,0,,P3,preserve; inspect interface/test contract on changes
 answers,root,156,4,3,52,20,0,0,,P2,preserve; inspect interface/test contract on changes
 api.__init__,api,3,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
-api.app,api,309,11,0,240,68,1,0,"fastapi, uvicorn",P1,long-function; high-branching
+api.app,api,236,8,0,180,28,1,0,"fastapi, uvicorn",P2,long-function
 api.config,api,169,7,1,52,18,0,0,"pydantic, pydantic_settings",P3,preserve; inspect interface/test contract on changes
 api.contract,api,23,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
+api.errors,api,52,1,0,30,14,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.operation_metrics,api,36,2,0,18,16,0,0,,P3,preserve; inspect interface/test contract on changes
 api.routes.__init__,api,17,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
-api.routes.billing_usage,api,237,13,0,214,12,12,0,fastapi,P1,long-function; broad-errors
-api.routes.collections_ingest,api,242,11,0,215,17,10,0,fastapi,P1,long-function; broad-errors
+api.routes.answer_routes,api,106,2,0,83,5,1,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.billing_routes,api,215,12,0,192,11,11,0,fastapi,P2,long-function; broad-errors
+api.routes.billing_usage,api,9,1,0,3,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.collection_routes,api,149,8,0,127,9,7,0,fastapi,P2,broad-errors
+api.routes.collections_ingest,api,9,1,0,3,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.connector_routes,api,194,7,0,170,12,6,0,fastapi,P2,long-function; broad-errors
 api.routes.context,api,18,0,1,0,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
-api.routes.index_graph_feedback,api,332,15,0,302,16,14,0,fastapi,P1,long-function; broad-errors
-api.routes.research_memory_sync_extract,api,456,10,0,422,30,9,0,fastapi,P1,long-function; high-branching; broad-errors
-api.routes.search_connectors,api,340,8,0,312,24,7,0,fastapi,P1,long-function; broad-errors
+api.routes.entity_routes,api,112,5,0,89,4,4,0,fastapi,P2,broad-errors
+api.routes.extract_routes,api,121,2,0,102,9,1,0,fastapi,P2,preserve; inspect interface/test contract on changes
+api.routes.feedback_routes,api,78,4,0,59,3,3,0,fastapi,P2,broad-errors
+api.routes.graph_relation_routes,api,137,5,0,114,6,4,0,fastapi,P2,broad-errors
+api.routes.graph_routes,api,9,1,0,3,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.index_graph_feedback,api,11,1,0,4,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.index_routes,api,67,4,0,49,3,3,0,fastapi,P2,broad-errors
+api.routes.ingest_routes,api,114,4,0,91,8,3,0,fastapi,P2,broad-errors
+api.routes.memory_routes,api,63,3,0,44,2,2,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.refresh_routes,api,99,5,0,79,4,4,0,fastapi,P2,broad-errors
+api.routes.research_answer_routes,api,9,1,0,3,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.research_memory_sync_extract,api,17,1,0,6,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.research_routes,api,151,2,0,128,10,1,0,fastapi,P2,preserve; inspect interface/test contract on changes
+api.routes.search_connectors,api,9,1,0,3,0,0,0,fastapi,P3,preserve; inspect interface/test contract on changes
+api.routes.search_routes,api,170,2,0,146,12,1,0,fastapi,P2,preserve; inspect interface/test contract on changes
 api.routes.system_auth,api,168,10,0,140,7,4,0,fastapi,P2,broad-errors
+api.routes.usage_routes,api,43,2,0,25,1,1,0,fastapi,P3,preserve; inspect interface/test contract on changes
 api.schemas,api,881,6,85,20,5,0,0,pydantic,P1,large-module
 api.service,api,177,2,1,46,8,1,0,sqlalchemy,P3,preserve; inspect interface/test contract on changes
 api.service_mixins.__init__,api,17,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
@@ -61,12 +80,12 @@ documents.vlm,documents,99,2,1,58,5,0,1,,P3,external-process
 engine.__init__,engine,54,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes
 engine.discovery,engine,461,13,3,103,26,0,0,,P2,preserve; inspect interface/test contract on changes
 engine.engine,engine,141,4,1,45,13,1,0,,P3,preserve; inspect interface/test contract on changes
-engine.html_records,engine,664,42,4,88,12,0,0,,P1,large-module
+engine.html_records,engine,680,43,4,88,12,0,0,,P1,large-module
 engine.model_provider,engine,112,3,1,53,12,0,0,,P3,preserve; inspect interface/test contract on changes
 engine.models,engine,132,5,7,21,5,0,0,,P3,preserve; inspect interface/test contract on changes
 engine.protocols,engine,32,2,2,5,0,0,0,,P3,preserve; inspect interface/test contract on changes
 engine.providers,engine,56,2,1,29,5,0,0,,P3,preserve; inspect interface/test contract on changes
-engine.records,engine,609,33,10,81,12,1,0,,P1,large-module
+engine.records,engine,621,33,10,87,12,1,0,,P1,large-module
 engine.resolver,engine,81,2,0,60,7,0,0,,P3,preserve; inspect interface/test contract on changes
 entities,root,12,1,0,3,0,0,0,,P3,preserve; inspect interface/test contract on changes
 evaluation.__init__,evaluation,162,0,0,0,0,0,0,,P3,preserve; inspect interface/test contract on changes

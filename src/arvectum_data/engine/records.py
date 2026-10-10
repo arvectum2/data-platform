@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from html.parser import HTMLParser
+from itertools import islice
 from typing import Any
 
 from .engine import ExtractionEngine
@@ -374,8 +375,11 @@ def _field_semantics(fields: Sequence[FieldSpec]) -> dict[str, set[str]]:
 def _direct_matching_fields(
     value: Mapping[str, Any],
     fields: Sequence[FieldSpec],
+    *,
+    semantics: Mapping[str, set[str]] | None = None,
 ) -> tuple[str, ...]:
-    semantics = _field_semantics(fields)
+    if semantics is None:
+        semantics = _field_semantics(fields)
     matches: set[str] = set()
     for raw_key, child in value.items():
         if child is None or child == "":
@@ -427,10 +431,11 @@ class AttributeRecordProvider:
             raise ValueError(f"asset.attributes[{self.attribute_key!r}] must be a sequence")
 
         warnings: list[str] = []
-        source_records = list(raw)
-        if len(source_records) > self.max_records:
+        # Avoid copying arbitrarily large structured source arrays when only
+        # the first max_records records can be published.
+        if len(raw) > self.max_records:
             warnings.append(f"max_records:{self.max_records}")
-            source_records = source_records[: self.max_records]
+        source_records = islice(raw, self.max_records)
 
         boundaries: list[RecordBoundary] = []
         for index, item in enumerate(source_records):
@@ -439,8 +444,9 @@ class AttributeRecordProvider:
                     f"asset.attributes[{self.attribute_key!r}][{index}] must be a mapping"
                 )
             source_ref = f"attributes.{self.attribute_key}[{index}]"
+            record_id = make_record_id(asset.asset_id, self.name, source_ref)
             child_asset = RawAsset(
-                asset_id=f"{asset.asset_id}#{make_record_id(asset.asset_id, self.name, source_ref)}",
+                asset_id=f"{asset.asset_id}#{record_id}",
                 source_url=asset.source_url,
                 attributes=dict(item),
                 metadata={
@@ -451,7 +457,7 @@ class AttributeRecordProvider:
             )
             boundaries.append(
                 RecordBoundary(
-                    record_id=make_record_id(asset.asset_id, self.name, source_ref),
+                    record_id=record_id,
                     asset=child_asset,
                     provider=self.name,
                     source_ref=source_ref,
@@ -540,6 +546,8 @@ class JSONLDRecordProvider:
         warnings: list[str] = []
         discovered: list[tuple[str, Mapping[str, Any], tuple[str, ...]]] = []
         effective_min = min(self.min_matched_fields, len(fields))
+        field_semantics = _field_semantics(fields)
+        truncated = False
 
         for block_ref, block in parser.blocks:
             try:
@@ -548,13 +556,17 @@ class JSONLDRecordProvider:
                 warnings.append(f"malformed_jsonld:{block_ref}")
                 continue
             for source_ref, value in _walk_json_objects(payload, block_ref):
-                matched_fields = _direct_matching_fields(value, fields)
+                matched_fields = _direct_matching_fields(
+                    value, fields, semantics=field_semantics
+                )
                 if len(matched_fields) >= effective_min:
-                    discovered.append((source_ref, value, matched_fields))
+                    if len(discovered) < self.max_records:
+                        discovered.append((source_ref, value, matched_fields))
+                    else:
+                        truncated = True
 
-        if len(discovered) > self.max_records:
+        if truncated:
             warnings.append(f"max_records:{self.max_records}")
-            discovered = discovered[: self.max_records]
 
         boundaries: list[RecordBoundary] = []
         for ordinal, (source_ref, value, matched_fields) in enumerate(discovered):
