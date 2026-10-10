@@ -46,4 +46,3 @@ def parse_record_storage_item_id(storage_item_id: str) -> tuple[str, str] | None
         return _unb64(parts[0]), _unb64(parts[1])
     except Exception as exc:
         raise ResultIntegrityError("Malformed durable record storage identity") from exc
-
