@@ -1,7 +1,7 @@
 version: 2
 repository: arvectum2/data-platform
 task_id: TDP-DP-DEPENDENCIES-20261011
-status: in_progress
+status: completed
 goal: Refresh Data Platform resolved dependency versions within declared compatibility
   ranges while retaining reproducible lockfile and validating runtime
 definition_of_done:
@@ -21,18 +21,21 @@ completed:
   with SDK source path installed via PYTHONPATH; Ruff on src/tests/SDK PASS.
 - Optional rerank dependency set was successfully dry-run resolved for Python3.12,
   without downloading heavyweight Torch models.
-current: Exact-head CI and merge pending; optional rerank runtime not executed locally.
-pending:
-- Upgrade and audit resolved versions
-- Run targeted/full tests and CI
-- Merge green changes; checkpoint completed or record objective blocker
-last_verified_commit: f622172
+- 'DP #114 exact-head GitHub CI all green after transient external GitVerse HTTP502
+  retry: Python3.11/3.12/3.13, PostgreSQL, JavaScript SDK and mirror checks.'
+- Merged main 2def46e2e3d2ba5a396fbbf3b7c0d60437d5dd1e.
+current: Completed as 2def46e2e3d2ba5a396fbbf3b7c0d60437d5dd1e
+pending: []
+last_verified_commit: 2def46e2e3d2ba5a396fbbf3b7c0d60437d5dd1e
 test_results:
 - uv lock --check PASS
 - Fresh uv run --locked --extra dev Python3.12 full pytest exit 0
 - Ruff PASS
 - uv sync --locked --extra rerank --dry-run resolved
-resume_instruction: Continue worktree /Volumes/ArvectumSSD/Arvectum/worktrees/tdp-dp-dependency-refresh-20261011.
-  Create PR, validate exact-head GitHub Python 3.11/3.12/3.13, Postgres, JS/mirror
-  CI, merge. No runtime rerank benchmark was performed; avoid claiming it. Checkpoint
-  completed after all green.
+- All exact-head CI green (external GitVerse transient HTTP502 retried)
+- Merged 2def46e2e3d2ba5a396fbbf3b7c0d60437d5dd1e
+resume_instruction: 'Completed dependency lock update #114. Do not re-run. Data Platform
+  uv.lock now NumPy2.5.4 on py>=3.12 with all other 96 resolved packages unchanged;
+  upgrade compatibility ranges and lock reproducibility preserved. Next overarching
+  R2 original EIS binary source proof, R4 model benchmark and R5 reviewed corpus;
+  live pilot untouched and watchdog disabled.'
