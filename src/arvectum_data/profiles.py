@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -12,6 +11,7 @@ from urllib.parse import urlsplit
 
 from .engine.models import Candidate, RawAsset
 from .engine.protocols import CandidateProvider
+from .storage.atomic_json import write_atomic_json
 
 
 _INDEX_RE = re.compile(r"\[\d+\]")
@@ -260,32 +260,7 @@ class JsonSiteProfileStore(InMemorySiteProfileStore):
         self._persist()
 
     def _persist(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = json.dumps(
-            self.snapshot(),
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        )
-        fd, temporary = tempfile.mkstemp(
-            prefix=f".{self.path.name}.",
-            suffix=".tmp",
-            dir=self.path.parent,
-            text=True,
-        )
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                handle.write(payload)
-                handle.write("\n")
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(temporary, self.path)
-        except Exception:
-            try:
-                os.unlink(temporary)
-            except OSError:
-                pass
-            raise
+        write_atomic_json(self.path, self.snapshot())
 
 
 class ProfileAwareProvider:

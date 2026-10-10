@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     embedding_base_url: str = "http://127.0.0.1:8090/v1"
     embedding_timeout_seconds: int = 60
     embedding_dimension: str | int | None = 256
+    # Bound each local/HTTP inference call without splitting source chunks.
+    embedding_inference_batch_size: int = Field(default=32, ge=1, le=512)
+    embedding_inference_batch_chars: int = Field(default=32768, ge=1024, le=1000000)
     embedding_retry_max_attempts: int = Field(default=3, ge=1, le=10)
     embedding_retry_base_delay_seconds: float = Field(default=0.25, ge=0.0)
     embedding_retry_max_delay_seconds: float = Field(default=2.0, ge=0.0)

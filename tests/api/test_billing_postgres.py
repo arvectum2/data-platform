@@ -338,3 +338,119 @@ def test_payment_provider_reconciliation_marks_invoice_paid_only_after_verificat
     assert synchronized["status"] == "paid"
     assert synchronized["provider_status"] == "succeeded"
     assert synchronized["paid_at"] is not None
+
+
+def test_invoice_listing_batches_lines_and_snapshot_hash_is_byte_identical():
+    """Invoice list is two SQL round-trips rather than one per invoice."""
+    import hashlib
+
+    from sqlalchemy import event, select
+    from arvectum_data.storage.postgres import UsageEventRow
+
+    service = _service()
+    suffix = uuid.uuid4().hex[:10]
+    tenant_id = f"tenant-sql-batch-{suffix}"
+    consumer_id = f"consumer-sql-batch-{suffix}"
+    now = datetime.now(UTC)
+    service.create_consumer_key(
+        consumer_id=consumer_id, tenant_id=tenant_id, label="list invoice regression"
+    )
+    catalog = service.create_billing_catalog(
+        plan_code=f"list-{suffix}", version=1, name="List", currency="RUB",
+        base_fee_minor=1234,
+        rules=({"operation": "search", "unit": "request", "unit_price_minor": 17},),
+        effective_from=now - timedelta(days=3),
+    )
+    service.assign_tenant_billing(
+        tenant_id=tenant_id, catalog_id=catalog["catalog_id"],
+        effective_from=now - timedelta(days=2),
+    )
+    for index in range(3):
+        service.record_usage_event(
+            consumer_id=consumer_id, operation="search", status_code=200,
+            request_id=f"{suffix}-usage-{index}",
+        )
+
+    with service.session_factory() as session:
+        events = list(session.scalars(
+            select(UsageEventRow)
+            .where(UsageEventRow.tenant_id == tenant_id)
+            .order_by(UsageEventRow.usage_event_id)
+        ))
+    legacy_payload = "\n".join(
+        f"{row.usage_event_id}:{row.operation}:{row.unit}:{row.quantity}" for row in events
+    )
+    expected_hash = hashlib.sha256(legacy_payload.encode()).hexdigest()
+
+    for index in range(6):
+        period_start = now - timedelta(hours=index + 1)
+        period_end = now + timedelta(hours=index + 1)
+        preview = service.preview_invoice(
+            tenant_id=tenant_id, period_start=period_start, period_end=period_end,
+        )
+        assert preview["usage_snapshot_hash"] == expected_hash
+        finalized = service.finalize_invoice(
+            tenant_id=tenant_id, period_start=period_start, period_end=period_end,
+        )
+        assert finalized["total_minor"] == 1234 + 3 * 17
+        assert finalized["usage_snapshot_hash"] == expected_hash
+
+    engine = service.session_factory.kw["bind"]
+    executed = []
+
+    def capture(connection, cursor, statement, parameters, context, executemany):
+        executed.append(statement)
+
+    event.listen(engine, "before_cursor_execute", capture)
+    try:
+        invoices = service.list_invoices(tenant_id=tenant_id)
+    finally:
+        event.remove(engine, "before_cursor_execute", capture)
+    assert len(invoices) == 6
+    assert len(executed) == 2, f"invoice list issued {len(executed)} SQL calls"
+    assert all(len(invoice["lines"]) == 1 for invoice in invoices)
+    assert all(invoice["total_minor"] == 1285 for invoice in invoices)
+    assert all(invoice["usage_snapshot_hash"] == expected_hash for invoice in invoices)
+    assert [invoice["period_end"] for invoice in invoices] == sorted(
+        (invoice["period_end"] for invoice in invoices), reverse=True
+    )
+
+
+def test_usage_event_concurrent_replays_are_idempotent():
+    """Two workers must not create duplicates or overwrite the first event."""
+    from concurrent.futures import ThreadPoolExecutor
+    from sqlalchemy import func, select
+    from arvectum_data.storage.postgres import UsageEventRow
+
+    service = _service()
+    suffix = uuid.uuid4().hex[:12]
+    consumer_id = f"consumer-concurrent-{suffix}"
+    tenant_id = f"tenant-concurrent-{suffix}"
+    request_id = f"request-concurrent-{suffix}"
+    service.create_consumer_key(
+        consumer_id=consumer_id, tenant_id=tenant_id, label="concurrent usage"
+    )
+
+    def record(_):
+        return service.record_usage_event(
+            consumer_id=consumer_id, request_id=request_id,
+            operation="search", status_code=200, quantity=1,
+        )
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(record, range(12)))
+    assert len({item["usage_event_id"] for item in results}) == 1
+    assert all(item["quantity"] == 1 for item in results)
+    assert all(item["tenant_id"] == tenant_id for item in results)
+    with service.session_factory() as session:
+        count = session.scalar(select(func.count()).select_from(UsageEventRow).where(
+            UsageEventRow.consumer_id == consumer_id,
+            UsageEventRow.request_id == request_id,
+        ))
+    assert count == 1
+
+    replay = service.record_usage_event(
+        consumer_id=consumer_id, request_id=request_id,
+        operation="search", status_code=503, quantity=100,
+    )
+    assert replay == results[0]

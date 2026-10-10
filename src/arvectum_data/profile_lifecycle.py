@@ -4,7 +4,6 @@ import json
 import math
 import os
 import sqlite3
-import tempfile
 import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
@@ -13,6 +12,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from .profiles import EvidenceFingerprint, ProfileSignalStats
+from .storage.atomic_json import write_atomic_json
 
 
 PROFILE_SCHEMA_VERSION = 2
@@ -366,32 +366,7 @@ class JsonSiteProfileStore(InMemorySiteProfileStore):
         return report
 
     def _persist(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = json.dumps(
-            self.snapshot(),
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        )
-        fd, temporary = tempfile.mkstemp(
-            prefix=f".{self.path.name}.",
-            suffix=".tmp",
-            dir=self.path.parent,
-            text=True,
-        )
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                handle.write(payload)
-                handle.write("\n")
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(temporary, self.path)
-        except Exception:
-            try:
-                os.unlink(temporary)
-            except OSError:
-                pass
-            raise
+        write_atomic_json(self.path, self.snapshot())
 
 
 class SQLiteSiteProfileStore(_LifecycleBase):

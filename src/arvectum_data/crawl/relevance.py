@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import re
+from heapq import nsmallest
 from dataclasses import dataclass
 from enum import StrEnum
-from html.parser import HTMLParser
 from typing import Mapping, Sequence
 from urllib.parse import parse_qsl, unquote, urlsplit
 
@@ -11,6 +11,7 @@ from ..acquisition import AcquisitionEngine, AcquisitionRequest, RenderMode
 from ..engine import FieldSpec, RawAsset
 from ..execution import ExtractionJob
 from .models import CrawlDiscoveryResult
+from .page_signals import _PageSignals as _PageSignals, _SignalHTMLParser as _SignalHTMLParser
 
 _URL_RE = re.compile(r"(?i)https?://[^\s'\"<>]+")
 _WS_RE = re.compile(r"\s+")
@@ -250,8 +251,19 @@ class TargetPageDiscoveryResult:
             allowed.add(TargetPageStatus.CANDIDATE)
         if include_unprobed:
             allowed.add(TargetPageStatus.UNPROBED)
-        values = [item.url for item in self.ranked() if item.status in allowed]
-        return tuple(values[: self.max_selected_urls])
+        # Only the best K selectable URLs are needed; sorting every discovered
+        # URL costs O(N log N) even when max_selected_urls is small.
+        priority = {
+            TargetPageStatus.TARGET: 0,
+            TargetPageStatus.CANDIDATE: 1,
+            TargetPageStatus.UNPROBED: 2,
+        }
+        winners = nsmallest(
+            self.max_selected_urls,
+            (item for item in self.assessments if item.status in allowed),
+            key=lambda item: (priority[item.status], -item.score, item.discovery_index),
+        )
+        return tuple(item.url for item in winners)
 
     def to_job(
         self,
@@ -270,78 +282,6 @@ class TargetPageDiscoveryResult:
         return ExtractionJob.from_urls(job_id, urls, fields)
 
 
-@dataclass(frozen=True, slots=True)
-class _PageSignals:
-    title: str = ""
-    h1: str = ""
-    meta_description: str = ""
-    visible_text: str = ""
-
-
-class _SignalHTMLParser(HTMLParser):
-    def __init__(self, *, max_visible_chars: int = 20_000) -> None:
-        super().__init__(convert_charrefs=True)
-        self.max_visible_chars = max_visible_chars
-        self._ignored_depth = 0
-        self._title_depth = 0
-        self._h1_depth = 0
-        self.title_parts: list[str] = []
-        self.h1_parts: list[str] = []
-        self.meta_description = ""
-        self.visible_parts: list[str] = []
-        self.visible_chars = 0
-
-    def handle_starttag(self, tag, attrs):
-        tag = tag.casefold()
-        attrs_map = {str(k).casefold(): str(v or "") for k, v in attrs}
-        if tag in {"script", "style", "noscript", "svg"}:
-            self._ignored_depth += 1
-            return
-        if tag == "title":
-            self._title_depth += 1
-        elif tag == "h1":
-            self._h1_depth += 1
-        elif tag == "meta" and not self.meta_description:
-            name = attrs_map.get("name", "").casefold()
-            prop = attrs_map.get("property", "").casefold()
-            if name == "description" or prop == "og:description":
-                self.meta_description = attrs_map.get("content", "").strip()
-
-    def handle_endtag(self, tag):
-        tag = tag.casefold()
-        if tag in {"script", "style", "noscript", "svg"}:
-            if self._ignored_depth:
-                self._ignored_depth -= 1
-            return
-        if tag == "title" and self._title_depth:
-            self._title_depth -= 1
-        elif tag == "h1" and self._h1_depth:
-            self._h1_depth -= 1
-
-    def handle_data(self, data):
-        if self._ignored_depth:
-            return
-        cleaned = _WS_RE.sub(" ", data).strip()
-        if not cleaned:
-            return
-        if self._title_depth:
-            self.title_parts.append(cleaned)
-        if self._h1_depth:
-            self.h1_parts.append(cleaned)
-        if self.visible_chars < self.max_visible_chars:
-            remaining = self.max_visible_chars - self.visible_chars
-            chunk = cleaned[:remaining]
-            if chunk:
-                self.visible_parts.append(chunk)
-                self.visible_chars += len(chunk) + 1
-
-    def signals(self) -> _PageSignals:
-        return _PageSignals(
-            title=_WS_RE.sub(" ", " ".join(self.title_parts)).strip(),
-            h1=_WS_RE.sub(" ", " ".join(self.h1_parts)).strip(),
-            meta_description=self.meta_description,
-            visible_text=_WS_RE.sub(" ", " ".join(self.visible_parts)).strip(),
-        )
 
 
 class TargetPageClassifier:
@@ -393,8 +333,11 @@ class TargetPageClassifier:
             for item in preliminary
             if item.status is not TargetPageStatus.NON_TARGET
         ]
-        probe_candidates.sort(key=lambda item: (-item.score, item.discovery_index))
-        selected_for_probe = probe_candidates[: self.policy.max_probe_pages]
+        selected_for_probe = nsmallest(
+            self.policy.max_probe_pages,
+            probe_candidates,
+            key=lambda item: (-item.score, item.discovery_index),
+        )
         probe_urls = {item.url for item in selected_for_probe}
         limit_reasons: list[str] = []
         if len(probe_candidates) > self.policy.max_probe_pages:
@@ -411,18 +354,12 @@ class TargetPageClassifier:
                 continue
             final.append(self._probe(item, request_headers))
 
-        ranked = TargetPageDiscoveryResult(
-            discovery=discovery,
-            assessments=tuple(final),
-            max_selected_urls=self.policy.max_selected_urls,
-            limit_reasons=tuple(limit_reasons),
-        ).ranked()
-        selectable = [
-            item
-            for item in ranked
-            if item.status in {TargetPageStatus.TARGET, TargetPageStatus.CANDIDATE}
-        ]
-        if len(selectable) > self.policy.max_selected_urls:
+        # Only cardinality is used to report truncation. No ranked copy needed.
+        selectable_count = sum(
+            item.status in {TargetPageStatus.TARGET, TargetPageStatus.CANDIDATE}
+            for item in final
+        )
+        if selectable_count > self.policy.max_selected_urls:
             limit_reasons.append("max_selected_urls")
 
         return TargetPageDiscoveryResult(

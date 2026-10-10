@@ -17,9 +17,10 @@ from fastapi import (
 )
 import uvicorn
 
-from ..acquisition.security import UnsafeURL
 from ..observability import configure_logging
 from .config import Settings
+from .operation_metrics import operation_name, usage_operation_name
+from .errors import map_service_error
 from .routes import (
     RouteContext,
     register_billing_usage_routes,
@@ -30,21 +31,7 @@ from .routes import (
     register_system_auth_routes,
 )
 from .service import (
-    CollectionAccessDenied,
-    InvoicePricingIncomplete,
-    InvoiceNotFound,
-    BillingCatalogNotFound,
-    BillingAssignmentNotFound,
-    CollectionNotFound,
-    ConnectorCredentialNotFound,
-    ConsumerKeyNotFound,
     DataPlatformService,
-    EmbeddingContractMismatch,
-    EntityNotFound,
-    IndexJobNotFound,
-    MemoryNotFound,
-    PlatformNotConfigured,
-    TenantQuotaExceeded,
 )
 
 
@@ -87,37 +74,7 @@ def create_app(
     }
     service.state.operation_latency_samples = {name: deque(maxlen=256) for name in operation_names}
 
-    def operation_name(method: str, path: str) -> str | None:
-        if method == "POST" and path == "/v1/process/document":
-            return "process"
-        if method == "POST" and path in {"/v1/ingest/document", "/v1/ingest/url"}:
-            return "ingest"
-        if method == "POST" and path == "/v1/search":
-            return "search"
-        if method == "POST" and path == "/v1/answer":
-            return "answer"
-        if method == "POST" and path == "/v1/research":
-            return "research"
-        if method == "POST" and path == "/v1/discover":
-            return "discover"
-        if method == "POST" and path == "/v1/extract":
-            return "extract"
-        if method == "POST" and path == "/v1/index/rebuild":
-            return "reindex"
-        return None
 
-    def usage_operation_name(method: str, path: str) -> str | None:
-        if method == "POST" and path == "/v1/search":
-            return "search"
-        if method == "POST" and path == "/v1/answer":
-            return "answer"
-        if method == "POST" and path == "/v1/research":
-            return "research"
-        if method == "POST" and path == "/v1/memory":
-            return "memory_write"
-        if method == "DELETE" and path.startswith("/v1/memory/"):
-            return "memory_delete"
-        return None
 
     @service.middleware("http")
     async def request_context(request, call_next):
@@ -243,36 +200,6 @@ def create_app(
     def runtime():
         return service.state.platform_service
 
-    def map_service_error(exc: Exception) -> HTTPException:
-        if isinstance(exc, PlatformNotConfigured):
-            return HTTPException(status_code=503, detail=str(exc))
-        if isinstance(exc, CollectionNotFound):
-            return HTTPException(status_code=404, detail="collection not found")
-        if isinstance(exc, ConsumerKeyNotFound):
-            return HTTPException(status_code=404, detail="consumer key not found")
-        if isinstance(exc, ConnectorCredentialNotFound):
-            return HTTPException(status_code=404, detail="connector credential not found")
-        if isinstance(exc, BillingCatalogNotFound):
-            return HTTPException(status_code=404, detail="billing catalog not found")
-        if isinstance(exc, BillingAssignmentNotFound):
-            return HTTPException(status_code=404, detail=str(exc))
-        if isinstance(exc, InvoiceNotFound):
-            return HTTPException(status_code=404, detail="invoice not found")
-        if isinstance(exc, InvoicePricingIncomplete):
-            return HTTPException(status_code=409, detail=str(exc))
-        if isinstance(exc, CollectionAccessDenied):
-            return HTTPException(status_code=403, detail="collection access denied")
-        if isinstance(exc, TenantQuotaExceeded):
-            return HTTPException(status_code=429, detail=str(exc))
-        if isinstance(exc, IndexJobNotFound):
-            return HTTPException(status_code=404, detail="index job not found")
-        if isinstance(exc, MemoryNotFound):
-            return HTTPException(status_code=404, detail="memory not found")
-        if isinstance(exc, EntityNotFound):
-            return HTTPException(status_code=404, detail="entity not found")
-        if isinstance(exc, (EmbeddingContractMismatch, UnsafeURL, ValueError)):
-            return HTTPException(status_code=400, detail=str(exc))
-        return HTTPException(status_code=500, detail="internal data platform error")
 
     router = APIRouter(
         prefix="/v1",

@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.orm import load_only
 
 from ...answers import GroundedAnswer, ReasoningAnswerSynthesizer
 from ...research import ResearchResult, ResearchWorkflow
@@ -35,6 +36,11 @@ from ...storage.postgres import (
     DocumentRow,
     PipelineRunRow,
     ResourceRow,
+)
+
+from ..search_hit_policy import (
+    _collapse_canonical_hits,
+    _dedupe_federated_hits,
 )
 
 from ..service_support import (
@@ -127,22 +133,68 @@ class RetrievalServiceMixin:
         self,
         texts: list[str],
     ) -> tuple[list[list[float]], int]:
+        """Embed bounded input batches while retaining atomic caller semantics.
+
+        A retry applies only to the failed batch. All vectors are validated
+        before the caller persists them, so later inference failures roll back
+        the entire ingest/rebuild transaction instead of partially activating
+        an index.
+        """
         if not texts:
             return [], 0
-        max_attempts = self.settings.embedding_retry_max_attempts
-        for attempt in range(1, max_attempts + 1):
-            try:
-                return self.embedding_provider.embed_texts(texts), attempt
-            except EmbeddingServerUnavailableError:
-                if attempt >= max_attempts:
-                    raise
-                delay = min(
-                    self.settings.embedding_retry_max_delay_seconds,
-                    self.settings.embedding_retry_base_delay_seconds * (2 ** (attempt - 1)),
-                )
-                if delay > 0:
-                    time.sleep(delay)
-        raise RuntimeError("embedding retry loop exited unexpectedly")
+
+        max_size = self.settings.embedding_inference_batch_size
+        max_chars = self.settings.embedding_inference_batch_chars
+        all_vectors: list[list[float]] = []
+        attempts_total = 0
+        batch: list[str] = []
+        batch_chars = 0
+        expected_dimension: int | None = None
+
+        def execute_batch(batch_texts: list[str]) -> None:
+            nonlocal attempts_total, expected_dimension
+            max_attempts = self.settings.embedding_retry_max_attempts
+            for attempt in range(1, max_attempts + 1):
+                attempts_total += 1
+                try:
+                    vectors = self.embedding_provider.embed_texts(batch_texts)
+                except EmbeddingServerUnavailableError:
+                    if attempt >= max_attempts:
+                        raise
+                    delay = min(
+                        self.settings.embedding_retry_max_delay_seconds,
+                        self.settings.embedding_retry_base_delay_seconds * (2 ** (attempt - 1)),
+                    )
+                    if delay > 0:
+                        time.sleep(delay)
+                    continue
+                if len(vectors) != len(batch_texts):
+                    raise RuntimeError("embedding provider returned unexpected vector count")
+                for vector in vectors:
+                    dimension = len(vector)
+                    if not dimension or (
+                        expected_dimension is not None and dimension != expected_dimension
+                    ):
+                        raise EmbeddingContractMismatch(
+                            "embedding provider returned invalid or inconsistent dimensions"
+                        )
+                    expected_dimension = dimension
+                all_vectors.extend(vectors)
+                return
+            raise RuntimeError("embedding retry loop exited unexpectedly")
+
+        for text in texts:
+            # Do not truncate or subdivide a document chunk: changing the text
+            # would silently alter stored source/embedding correspondence.
+            if batch and (len(batch) >= max_size or batch_chars + len(text) > max_chars):
+                execute_batch(batch)
+                batch = []
+                batch_chars = 0
+            batch.append(text)
+            batch_chars += len(text)
+        if batch:
+            execute_batch(batch)
+        return all_vectors, attempts_total
 
     def _persist_and_index(self, result) -> dict[str, Any]:
         if len(result.chunks) > self.settings.max_chunks_per_ingest:
@@ -170,13 +222,17 @@ class RetrievalServiceMixin:
             )
             if len(vectors) != len(pending_chunks):
                 raise RuntimeError("embedding provider returned unexpected vector count")
-            for chunk, vector in zip(pending_chunks, vectors):
-                repo.upsert_embedding(
-                    chunk_id=chunk.chunk_id,
-                    provider=self.embedding_provider.provider_name,
-                    model=self.embedding_provider.model_name,
-                    vector=vector,
+            dimensions = {len(vector) for vector in vectors}
+            if len(dimensions) > 1 or 0 in dimensions:
+                raise EmbeddingContractMismatch(
+                    f"embedding provider returned invalid or inconsistent dimensions: "
+                    f"{sorted(dimensions)}"
                 )
+            repo.upsert_embeddings(
+                ((chunk.chunk_id, vector) for chunk, vector in zip(pending_chunks, vectors)),
+                provider=self.embedding_provider.provider_name,
+                model=self.embedding_provider.model_name,
+            )
             if vectors:
                 dimension = len(vectors[0])
                 if collection.embedding_dimension is None:
@@ -202,46 +258,9 @@ class RetrievalServiceMixin:
                 "extraction_status": result.document.extraction_status,
             }
 
-    @staticmethod
-    def _collapse_canonical_hits(
-        hits: Sequence[SearchHit],
-        *,
-        limit: int,
-    ) -> list[SearchHit]:
-        seen: set[str] = set()
-        results: list[SearchHit] = []
-        for hit in hits:
-            canonical_uri = hit.canonical_uri.strip()
-            key = canonical_uri or hit.chunk_id
-            if key in seen:
-                continue
-            seen.add(key)
-            results.append(hit)
-            if len(results) >= limit:
-                break
-        return results
+    _collapse_canonical_hits = staticmethod(_collapse_canonical_hits)
 
-    @staticmethod
-    def _dedupe_federated_hits(
-        hits: Sequence[SearchHit],
-        *,
-        limit: int,
-    ) -> list[SearchHit]:
-        winners: dict[str, str] = {}
-        results: list[SearchHit] = []
-        for hit in hits:
-            canonical_uri = hit.canonical_uri.strip()
-            collection_id = str(hit.metadata.get("collection_id") or "")
-            if canonical_uri and collection_id:
-                winner = winners.get(canonical_uri)
-                if winner is None:
-                    winners[canonical_uri] = collection_id
-                elif winner != collection_id:
-                    continue
-            results.append(hit)
-            if len(results) >= limit:
-                break
-        return results
+    _dedupe_federated_hits = staticmethod(_dedupe_federated_hits)
 
     def search(
         self,
@@ -274,16 +293,34 @@ class RetrievalServiceMixin:
         tuple[QueryExpansion, ...],
         tuple[SearchStageDiagnostic, ...],
     ]:
-        self._validate_tenant_search_quota(request, consumer)
+        resolved_tenant = self._validate_tenant_search_quota(request, consumer)
         with self._require_factory()() as session:
+            # Preserve request-order authorization and error precedence, but
+            # load all collection policies/contracts with one SQL round-trip.
+            collections = {
+                row.collection_id: row
+                for row in session.scalars(
+                    select(CollectionRow).where(
+                        CollectionRow.collection_id.in_(request.collections)
+                    )
+                )
+            }
             for collection_id in request.collections:
-                collection = session.get(CollectionRow, collection_id)
+                collection = collections.get(collection_id)
                 if collection is None:
                     raise CollectionNotFound(collection_id)
-                self._authorize_collection_consumer(collection, consumer, session=session)
+                self._authorize_collection_consumer(
+                    collection, consumer, session=session, resolved_tenant=resolved_tenant
+                )
                 self._validate_embedding_contract(collection)
 
-            backend = PostgresSearchBackend(DataRepository(session))
+            backend = PostgresSearchBackend(
+                DataRepository(session),
+                collection_languages={
+                    collection_id: collections[collection_id].default_language
+                    for collection_id in request.collections
+                },
+            )
             reasoning_provider = self.model_router.provider(ModelRole.REASONING)
             reranker = None
             if request.rerank:
@@ -438,19 +475,21 @@ class RetrievalServiceMixin:
         collection: CollectionRow,
         chunks: Sequence[ChunkRow],
     ) -> str:
-        payload = "\n".join(
-            [
+        # Preserve the historical byte-for-byte revision contract without
+        # constructing a giant intermediate string for large collections.
+        header = "\n".join(
+            (
                 f"provider={self.embedding_provider.provider_name}",
                 f"model={self.embedding_provider.model_name}",
                 f"dimension={self.embedding_provider.dimension}",
                 f"language={collection.default_language}",
-                *[
-                    f"{chunk.chunk_id}:{chunk.content_hash}"
-                    for chunk in sorted(chunks, key=lambda item: item.chunk_id)
-                ],
-            ]
+            )
         )
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        digest = hashlib.sha256(header.encode("utf-8"))
+        for chunk in sorted(chunks, key=lambda item: item.chunk_id):
+            digest.update(b"\n")
+            digest.update(f"{chunk.chunk_id}:{chunk.content_hash}".encode("utf-8"))
+        return digest.hexdigest()
 
     @staticmethod
     def _job_payload(row: PipelineRunRow) -> dict[str, Any]:
@@ -479,6 +518,7 @@ class RetrievalServiceMixin:
                     .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
                     .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
                     .where(ResourceRow.collection_id == collection_id)
+                    .options(load_only(ChunkRow.chunk_id, ChunkRow.content_hash))
                     .order_by(ChunkRow.chunk_id.asc())
                 )
             )
@@ -571,13 +611,11 @@ class RetrievalServiceMixin:
                     vectors=vectors,
                 )
                 previous_contract = self._collection_embedding_contract(collection)
-                for chunk, vector in zip(chunks, vectors):
-                    repo.upsert_embedding(
-                        chunk_id=chunk.chunk_id,
-                        provider=self.embedding_provider.provider_name,
-                        model=self.embedding_provider.model_name,
-                        vector=vector,
-                    )
+                repo.upsert_embeddings(
+                    ((chunk.chunk_id, vector) for chunk, vector in zip(chunks, vectors)),
+                    provider=self.embedding_provider.provider_name,
+                    model=self.embedding_provider.model_name,
+                )
 
                 final_chunks = list(
                     session.scalars(
@@ -585,6 +623,7 @@ class RetrievalServiceMixin:
                         .join(DocumentRow, DocumentRow.document_id == ChunkRow.document_id)
                         .join(ResourceRow, ResourceRow.resource_id == DocumentRow.resource_id)
                         .where(ResourceRow.collection_id == collection_id)
+                        .options(load_only(ChunkRow.chunk_id, ChunkRow.content_hash))
                         .order_by(ChunkRow.chunk_id.asc())
                     )
                 )

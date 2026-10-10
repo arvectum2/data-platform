@@ -427,3 +427,48 @@ def test_probe_request_preserves_bounded_transport_controls_and_headers():
     assert request.max_bytes == 123_456
     assert request.render_mode is RenderMode.NEVER
     assert request.headers == {"X-Test": "yes"}
+
+
+def test_bounded_ranking_matches_full_sort_for_many_assessments():
+    """Bounded heap selection must preserve scoring/order across all statuses."""
+    from arvectum_data.crawl import (
+        TargetPageAssessment,
+        TargetPageDiscoveryResult,
+    )
+
+    statuses = tuple(TargetPageStatus)
+    assessments = tuple(
+        TargetPageAssessment(
+            url=f"https://example.test/{index}",
+            status=statuses[(index * 13) % len(statuses)],
+            score=float((index * 17) % 97) / 10,
+            discovery_index=index,
+        )
+        for index in range(2000)
+    )
+    result = TargetPageDiscoveryResult(
+        discovery=discovery(), assessments=assessments, max_selected_urls=23
+    )
+    for include_candidates, include_unprobed in (
+        (True, False), (True, True), (False, False), (False, True)
+    ):
+        allowed = {TargetPageStatus.TARGET}
+        if include_candidates:
+            allowed.add(TargetPageStatus.CANDIDATE)
+        if include_unprobed:
+            allowed.add(TargetPageStatus.UNPROBED)
+        expected = tuple(item.url for item in result.ranked() if item.status in allowed)[:23]
+        assert result.urls(
+            include_candidates=include_candidates,
+            include_unprobed=include_unprobed,
+        ) == expected
+
+
+def test_html_parser_keeps_title_after_visible_budget_exhausted():
+    from arvectum_data.crawl.relevance import _SignalHTMLParser
+
+    parser = _SignalHTMLParser(max_visible_chars=5)
+    parser.feed("<p>12345</p><div>" + ("x" * 4000) + "</div><h1>Скидка</h1>")
+    parser.close()
+    assert parser.signals().visible_text == "12345"
+    assert parser.signals().h1 == "Скидка"

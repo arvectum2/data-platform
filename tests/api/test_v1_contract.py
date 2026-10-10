@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from arvectum_data.api.app import create_app
@@ -1128,3 +1130,74 @@ def test_research_execution_mode_exposes_safe_budget_diagnostics() -> None:
         "total-research",
     ]
     assert "research-secret-marker" not in repr(diagnostics)
+
+
+def test_python_sdk_v03_auth_and_provenance_through_live_v1_asgi_routes() -> None:
+    """Versioned SDK calls real API routes, not independently mocked JSON endpoints.
+
+    The service is deliberately synthetic: no external requests, model invocations,
+    database changes or claims of real-document acceptance are involved.
+    """
+    import httpx
+
+    from arvectum_data_client import DataPlatformAuthenticationError, DataPlatformClient
+
+    with _client() as app_client:
+
+        def api_transport(request: httpx.Request) -> httpx.Response:
+            route = request.url.raw_path.decode("ascii")
+            response = app_client.request(
+                request.method,
+                route,
+                content=request.content,
+                headers=dict(request.headers),
+            )
+            return httpx.Response(
+                response.status_code,
+                content=response.content,
+                headers=dict(response.headers),
+            )
+
+        transport = httpx.MockTransport(api_transport)
+        with httpx.Client(
+            base_url="http://data-platform.test",
+            transport=transport,
+            headers={"X-Arvectum-Key": "secret"},
+        ) as http_client:
+            sdk = DataPlatformClient(
+                base_url="http://data-platform.test",
+                api_key="secret",
+                client=http_client,
+            )
+            contract = sdk.require_contract(1)
+            assert contract["name"] == "arvectum-data-consumer"
+            assert contract["version"] == "1.0"
+            original_uri = "eis://44-fz/0123456789012345678/technical-specification"
+            document = sdk.process_document(
+                collection_id="tender:technical",
+                canonical_uri=original_uri,
+                title="Техническое задание",
+                content="Условия оплаты по контракту".encode("utf-8"),
+                filename="Техническое-задание.txt",
+                content_type="text/plain",
+            )
+            assert document["canonical_uri"] == original_uri
+            assert document["resource_id"] == "resource-process-1"
+            assert document["document_id"] == "document-process-1"
+            assert document["extraction_status"] == "extracted"
+            assert document["metadata"]["ocr"]["provider"] == "fake-ocr"
+            chunk = document["chunks"][0]
+            assert chunk["chunk_id"] == "chunk-process-1"
+            assert document["text"][chunk["char_start"]:chunk["char_end"]] == chunk["text"]
+            assert chunk["ordinal"] == 0
+
+        with httpx.Client(
+            base_url="http://data-platform.test",
+            transport=transport,
+        ) as unauthenticated_http:
+            unauthenticated_sdk = DataPlatformClient(
+                base_url="http://data-platform.test",
+                client=unauthenticated_http,
+            )
+            with pytest.raises(DataPlatformAuthenticationError):
+                unauthenticated_sdk.require_contract(1)

@@ -1,0 +1,2153 @@
+{
+  "/health": {
+    "get": {
+      "operation_id": "health_health_get",
+      "parameters": [],
+      "request_content": [],
+      "response_status": [
+        "200"
+      ],
+      "tags": [
+        "system"
+      ]
+    }
+  },
+  "/v1/answer": {
+    "post": {
+      "operation_id": "answer_endpoint_v1_answer_post",
+      "parameters": [
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "search"
+      ]
+    }
+  },
+  "/v1/auth/consumer-keys": {
+    "get": {
+      "operation_id": "list_consumer_keys_v1_auth_consumer_keys_get",
+      "parameters": [
+        [
+          "consumer_id",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "auth"
+      ]
+    },
+    "post": {
+      "operation_id": "create_consumer_key_v1_auth_consumer_keys_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "auth"
+      ]
+    }
+  },
+  "/v1/auth/consumer-keys/{key_id}/revoke": {
+    "post": {
+      "operation_id": "revoke_consumer_key_v1_auth_consumer_keys__key_id__revoke_post",
+      "parameters": [
+        [
+          "key_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "auth"
+      ]
+    }
+  },
+  "/v1/auth/consumer-keys/{key_id}/rotate": {
+    "post": {
+      "operation_id": "rotate_consumer_key_v1_auth_consumer_keys__key_id__rotate_post",
+      "parameters": [
+        [
+          "key_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "auth"
+      ]
+    }
+  },
+  "/v1/billing/catalogs": {
+    "get": {
+      "operation_id": "list_billing_catalogs_endpoint_v1_billing_catalogs_get",
+      "parameters": [
+        [
+          "plan_code",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    },
+    "post": {
+      "operation_id": "create_billing_catalog_endpoint_v1_billing_catalogs_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/billing/invoices": {
+    "get": {
+      "operation_id": "list_invoices_endpoint_v1_billing_invoices_get",
+      "parameters": [
+        [
+          "tenant_id",
+          "query",
+          false
+        ],
+        [
+          "status",
+          "query",
+          false
+        ],
+        [
+          "limit",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/billing/invoices/finalize": {
+    "post": {
+      "operation_id": "finalize_invoice_endpoint_v1_billing_invoices_finalize_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/billing/invoices/preview": {
+    "post": {
+      "operation_id": "preview_invoice_endpoint_v1_billing_invoices_preview_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/billing/invoices/{invoice_id}": {
+    "get": {
+      "operation_id": "get_invoice_endpoint_v1_billing_invoices__invoice_id__get",
+      "parameters": [
+        [
+          "invoice_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/billing/invoices/{invoice_id}/mark-paid": {
+    "post": {
+      "operation_id": "mark_invoice_paid_endpoint_v1_billing_invoices__invoice_id__mark_paid_post",
+      "parameters": [
+        [
+          "invoice_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/billing/invoices/{invoice_id}/payment": {
+    "post": {
+      "operation_id": "create_invoice_payment_endpoint_v1_billing_invoices__invoice_id__payment_post",
+      "parameters": [
+        [
+          "invoice_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/billing/invoices/{invoice_id}/sync-payment": {
+    "post": {
+      "operation_id": "sync_invoice_payment_endpoint_v1_billing_invoices__invoice_id__sync_payment_post",
+      "parameters": [
+        [
+          "invoice_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/billing/tenants/{tenant_id}/assignments": {
+    "get": {
+      "operation_id": "list_tenant_billing_assignments_endpoint_v1_billing_tenants__tenant_id__assignments_get",
+      "parameters": [
+        [
+          "tenant_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    },
+    "post": {
+      "operation_id": "assign_tenant_billing_endpoint_v1_billing_tenants__tenant_id__assignments_post",
+      "parameters": [
+        [
+          "tenant_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "billing"
+      ]
+    }
+  },
+  "/v1/collections": {
+    "get": {
+      "operation_id": "list_collections_v1_collections_get",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "collections"
+      ]
+    },
+    "post": {
+      "operation_id": "create_collection_v1_collections_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "collections"
+      ]
+    }
+  },
+  "/v1/collections/{collection_id}": {
+    "delete": {
+      "operation_id": "delete_collection_v1_collections__collection_id__delete",
+      "parameters": [
+        [
+          "collection_id",
+          "path",
+          true
+        ],
+        [
+          "confirm",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "collections"
+      ]
+    },
+    "get": {
+      "operation_id": "get_collection_v1_collections__collection_id__get",
+      "parameters": [
+        [
+          "collection_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "collections"
+      ]
+    }
+  },
+  "/v1/collections/{collection_id}/export": {
+    "get": {
+      "operation_id": "export_collection_v1_collections__collection_id__export_get",
+      "parameters": [
+        [
+          "collection_id",
+          "path",
+          true
+        ],
+        [
+          "include_content",
+          "query",
+          false
+        ],
+        [
+          "offset",
+          "query",
+          false
+        ],
+        [
+          "limit",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "collections"
+      ]
+    }
+  },
+  "/v1/collections/{collection_id}/retention/prune": {
+    "post": {
+      "operation_id": "prune_collection_retention_v1_collections__collection_id__retention_prune_post",
+      "parameters": [
+        [
+          "collection_id",
+          "path",
+          true
+        ],
+        [
+          "dry_run",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "collections"
+      ]
+    }
+  },
+  "/v1/collections/{collection_id}/stats": {
+    "get": {
+      "operation_id": "get_collection_stats_v1_collections__collection_id__stats_get",
+      "parameters": [
+        [
+          "collection_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "collections"
+      ]
+    }
+  },
+  "/v1/connectors": {
+    "get": {
+      "operation_id": "connector_status_endpoint_v1_connectors_get",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "connectors"
+      ]
+    }
+  },
+  "/v1/connectors/credentials": {
+    "get": {
+      "operation_id": "list_connector_credentials_endpoint_v1_connectors_credentials_get",
+      "parameters": [
+        [
+          "connector",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "connectors"
+      ]
+    },
+    "post": {
+      "operation_id": "create_connector_credential_endpoint_v1_connectors_credentials_post",
+      "parameters": [
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "connectors"
+      ]
+    }
+  },
+  "/v1/connectors/credentials/{credential_id}/revoke": {
+    "post": {
+      "operation_id": "revoke_connector_credential_endpoint_v1_connectors_credentials__credential_id__revoke_post",
+      "parameters": [
+        [
+          "credential_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "connectors"
+      ]
+    }
+  },
+  "/v1/connectors/credentials/{credential_id}/rotate": {
+    "post": {
+      "operation_id": "rotate_connector_credential_endpoint_v1_connectors_credentials__credential_id__rotate_post",
+      "parameters": [
+        [
+          "credential_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "connectors"
+      ]
+    }
+  },
+  "/v1/contract": {
+    "get": {
+      "operation_id": "consumer_contract_v1_contract_get",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "system"
+      ]
+    }
+  },
+  "/v1/discover": {
+    "post": {
+      "operation_id": "discover_endpoint_v1_discover_post",
+      "parameters": [
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "connectors"
+      ]
+    }
+  },
+  "/v1/entities": {
+    "post": {
+      "operation_id": "create_entity_endpoint_v1_entities_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "entities"
+      ]
+    }
+  },
+  "/v1/entities/resolve": {
+    "post": {
+      "operation_id": "resolve_entity_endpoint_v1_entities_resolve_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "entities"
+      ]
+    }
+  },
+  "/v1/entities/{entity_id}": {
+    "get": {
+      "operation_id": "get_entity_endpoint_v1_entities__entity_id__get",
+      "parameters": [
+        [
+          "entity_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "entities"
+      ]
+    }
+  },
+  "/v1/entities/{entity_id}/graph": {
+    "get": {
+      "operation_id": "traverse_entity_graph_endpoint_v1_entities__entity_id__graph_get",
+      "parameters": [
+        [
+          "entity_id",
+          "path",
+          true
+        ],
+        [
+          "max_depth",
+          "query",
+          false
+        ],
+        [
+          "relation_type",
+          "query",
+          false
+        ],
+        [
+          "limit",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "entities"
+      ]
+    }
+  },
+  "/v1/entities/{entity_id}/relations": {
+    "get": {
+      "operation_id": "list_entity_relations_endpoint_v1_entities__entity_id__relations_get",
+      "parameters": [
+        [
+          "entity_id",
+          "path",
+          true
+        ],
+        [
+          "direction",
+          "query",
+          false
+        ],
+        [
+          "relation_type",
+          "query",
+          false
+        ],
+        [
+          "status",
+          "query",
+          false
+        ],
+        [
+          "limit",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "entities"
+      ]
+    }
+  },
+  "/v1/entity-relations": {
+    "post": {
+      "operation_id": "create_entity_relation_endpoint_v1_entity_relations_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "entities"
+      ]
+    }
+  },
+  "/v1/entity-relations/{relation_id}/review": {
+    "post": {
+      "operation_id": "review_entity_relation_endpoint_v1_entity_relations__relation_id__review_post",
+      "parameters": [
+        [
+          "relation_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "entities"
+      ]
+    }
+  },
+  "/v1/extract": {
+    "post": {
+      "operation_id": "extract_endpoint_v1_extract_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "extraction"
+      ]
+    }
+  },
+  "/v1/feedback/relevance": {
+    "get": {
+      "operation_id": "list_relevance_feedback_endpoint_v1_feedback_relevance_get",
+      "parameters": [
+        [
+          "collection_id",
+          "query",
+          true
+        ],
+        [
+          "limit",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "feedback"
+      ]
+    },
+    "post": {
+      "operation_id": "record_relevance_feedback_endpoint_v1_feedback_relevance_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "feedback"
+      ]
+    }
+  },
+  "/v1/feedback/relevance/summary": {
+    "get": {
+      "operation_id": "relevance_feedback_summary_endpoint_v1_feedback_relevance_summary_get",
+      "parameters": [
+        [
+          "collection_id",
+          "query",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "feedback"
+      ]
+    }
+  },
+  "/v1/graph/suggestions": {
+    "post": {
+      "operation_id": "graph_suggestions_endpoint_v1_graph_suggestions_post",
+      "parameters": [
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "entities"
+      ]
+    }
+  },
+  "/v1/index/jobs": {
+    "get": {
+      "operation_id": "list_index_jobs_endpoint_v1_index_jobs_get",
+      "parameters": [
+        [
+          "collection_id",
+          "query",
+          false
+        ],
+        [
+          "limit",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "index"
+      ]
+    }
+  },
+  "/v1/index/jobs/{run_id}": {
+    "get": {
+      "operation_id": "get_index_job_endpoint_v1_index_jobs__run_id__get",
+      "parameters": [
+        [
+          "run_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "index"
+      ]
+    }
+  },
+  "/v1/index/rebuild": {
+    "post": {
+      "operation_id": "rebuild_index_endpoint_v1_index_rebuild_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "index"
+      ]
+    }
+  },
+  "/v1/ingest/document": {
+    "post": {
+      "operation_id": "ingest_document_endpoint_v1_ingest_document_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "multipart/form-data"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "ingest"
+      ]
+    }
+  },
+  "/v1/ingest/url": {
+    "post": {
+      "operation_id": "ingest_url_endpoint_v1_ingest_url_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "ingest"
+      ]
+    }
+  },
+  "/v1/memory": {
+    "post": {
+      "operation_id": "write_memory_endpoint_v1_memory_post",
+      "parameters": [
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "memory"
+      ]
+    }
+  },
+  "/v1/memory/{record_id}": {
+    "delete": {
+      "operation_id": "delete_memory_endpoint_v1_memory__record_id__delete",
+      "parameters": [
+        [
+          "record_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "204",
+        "422"
+      ],
+      "tags": [
+        "memory"
+      ]
+    }
+  },
+  "/v1/models/status": {
+    "get": {
+      "operation_id": "model_status_v1_models_status_get",
+      "parameters": [
+        [
+          "probe",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "system"
+      ]
+    }
+  },
+  "/v1/modes": {
+    "get": {
+      "operation_id": "execution_modes_v1_modes_get",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "system"
+      ]
+    }
+  },
+  "/v1/process/document": {
+    "post": {
+      "operation_id": "process_document_endpoint_v1_process_document_post",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "multipart/form-data"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "process"
+      ]
+    }
+  },
+  "/v1/research": {
+    "post": {
+      "operation_id": "research_endpoint_v1_research_post",
+      "parameters": [
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "research"
+      ]
+    }
+  },
+  "/v1/resources/{resource_id}/refresh": {
+    "post": {
+      "operation_id": "refresh_resource_endpoint_v1_resources__resource_id__refresh_post",
+      "parameters": [
+        [
+          "resource_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "sync"
+      ]
+    }
+  },
+  "/v1/resources/{resource_id}/refresh-policy": {
+    "put": {
+      "operation_id": "configure_refresh_policy_endpoint_v1_resources__resource_id__refresh_policy_put",
+      "parameters": [
+        [
+          "resource_id",
+          "path",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "sync"
+      ]
+    }
+  },
+  "/v1/resources/{resource_id}/refresh-runs": {
+    "get": {
+      "operation_id": "refresh_runs_endpoint_v1_resources__resource_id__refresh_runs_get",
+      "parameters": [
+        [
+          "resource_id",
+          "path",
+          true
+        ],
+        [
+          "limit",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "sync"
+      ]
+    }
+  },
+  "/v1/search": {
+    "post": {
+      "operation_id": "search_endpoint_v1_search_post",
+      "parameters": [
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "application/json"
+      ],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "search"
+      ]
+    }
+  },
+  "/v1/status": {
+    "get": {
+      "operation_id": "status_v1_status_get",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "system"
+      ]
+    }
+  },
+  "/v1/support/readiness": {
+    "get": {
+      "operation_id": "support_readiness_v1_support_readiness_get",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "system"
+      ]
+    }
+  },
+  "/v1/sync/refresh-due": {
+    "post": {
+      "operation_id": "refresh_due_endpoint_v1_sync_refresh_due_post",
+      "parameters": [
+        [
+          "limit",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "sync"
+      ]
+    }
+  },
+  "/v1/usage/summary": {
+    "get": {
+      "operation_id": "usage_summary_endpoint_v1_usage_summary_get",
+      "parameters": [
+        [
+          "tenant_id",
+          "query",
+          false
+        ],
+        [
+          "consumer_id",
+          "query",
+          false
+        ],
+        [
+          "since",
+          "query",
+          false
+        ],
+        [
+          "until",
+          "query",
+          false
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "usage"
+      ]
+    }
+  }
+}

@@ -36,6 +36,12 @@ from ...storage.postgres import (
 )
 from ..config import Settings
 
+from ..access_payloads import (
+    _consumer_key_payload,
+    _connector_credential_payload,
+    _normalize_credential_metadata,
+)
+
 from ..service_support import (
     PlatformNotConfigured,
     CollectionNotFound,
@@ -47,6 +53,38 @@ from ..service_support import (
 
 
 class AccessServiceMixin:
+    @staticmethod
+    def _lock_consumer_key_issuance(session: Session, consumer_id: str) -> None:
+        """Serialize concurrent API-key issuance for the same consumer in PostgreSQL."""
+        session.execute(
+            select(
+                func.pg_advisory_xact_lock(
+                    func.hashtextextended(f"arvectum:consumer:key:{consumer_id}", 0)
+                )
+            )
+        )
+
+    @staticmethod
+    def _active_tenants_for_consumer(
+        session: Session,
+        consumer_id: str,
+    ) -> set[str]:
+        # DISTINCT/LIMIT 2 is enough to detect ambiguous tenants without
+        # loading arbitrarily many API keys or their sensitive credentials.
+        now = datetime.now(UTC)
+        return set(session.scalars(
+            select(ConsumerApiKeyRow.tenant_id).where(
+                ConsumerApiKeyRow.consumer_id == consumer_id,
+                ConsumerApiKeyRow.status == "active",
+                ConsumerApiKeyRow.tenant_id.is_not(None),
+                ConsumerApiKeyRow.tenant_id != "",
+                or_(
+                    ConsumerApiKeyRow.expires_at.is_(None),
+                    ConsumerApiKeyRow.expires_at > now,
+                ),
+            ).distinct().limit(2)
+        ))
+
     def _credential_cipher(self) -> CredentialCipher:
         master_key = self.settings.connector_credentials_master_key.strip()
         if not master_key:
@@ -71,21 +109,7 @@ class AccessServiceMixin:
             return ""
 
         def resolve(active_session: Session) -> str:
-            now = datetime.now(UTC)
-            tenants = {
-                str(value)
-                for value in active_session.scalars(
-                    select(ConsumerApiKeyRow.tenant_id).where(
-                        ConsumerApiKeyRow.consumer_id == consumer,
-                        ConsumerApiKeyRow.status == "active",
-                        or_(
-                            ConsumerApiKeyRow.expires_at.is_(None),
-                            ConsumerApiKeyRow.expires_at > now,
-                        ),
-                    )
-                )
-                if value
-            }
+            tenants = self._active_tenants_for_consumer(active_session, consumer)
             if len(tenants) > 1:
                 raise ValueError("consumer is associated with multiple active tenants")
             return next(iter(tenants), "")
@@ -101,11 +125,17 @@ class AccessServiceMixin:
         consumer: str | None,
         *,
         session: Session | None = None,
+        resolved_tenant: str | None = None,
     ) -> None:
         policy = dict(collection.access_policy or {})
         tenant_id = str(policy.get("tenant_id") or "").strip()
         if tenant_id:
-            if self._consumer_tenant(consumer, session=session) != tenant_id:
+            effective_tenant = (
+                resolved_tenant
+                if resolved_tenant is not None
+                else self._consumer_tenant(consumer, session=session)
+            )
+            if effective_tenant != tenant_id:
                 raise CollectionAccessDenied(collection.collection_id)
         allowed_consumers = tuple(
             str(item) for item in policy.get("allowed_consumers", []) if str(item)
@@ -117,12 +147,14 @@ class AccessServiceMixin:
         self,
         request: SearchQuery,
         consumer: str | None,
-    ) -> None:
+    ) -> str:
+        # Return the resolved identity to reuse for all collection checks in
+        # the same request. Do not cache it across requests or key rotations.
         if consumer is None:
-            return
+            return ""
         tenant_id = self._consumer_tenant(consumer)
         if not tenant_id:
-            return
+            return ""
         quota = dict(self.settings.tenant_quotas.get(tenant_id) or {})
         checks = {
             "max_collections_per_search": len(request.collections),
@@ -141,6 +173,7 @@ class AccessServiceMixin:
                 raise TenantQuotaExceeded(
                     f"tenant {tenant_id!r} quota exceeded: {key}={actual} > {limit}"
                 )
+        return tenant_id
 
     @staticmethod
     def _default_connector_registry() -> ConnectorRegistry:
@@ -358,19 +391,7 @@ class AccessServiceMixin:
             "metrics": metrics,
         }
 
-    @staticmethod
-    def _consumer_key_payload(row: ConsumerApiKeyRow) -> dict[str, Any]:
-        return {
-            "key_id": row.key_id,
-            "consumer_id": row.consumer_id,
-            "tenant_id": row.tenant_id,
-            "key_prefix": row.key_prefix,
-            "label": row.label,
-            "status": row.status,
-            "created_at": row.created_at,
-            "expires_at": row.expires_at,
-            "revoked_at": row.revoked_at,
-        }
+    _consumer_key_payload = staticmethod(_consumer_key_payload)
 
     def create_consumer_key(
         self,
@@ -390,20 +411,10 @@ class AccessServiceMixin:
             if expires_at <= datetime.now(UTC):
                 raise ValueError("expires_at must be in the future")
         with self._require_factory()() as session:
-            existing_tenants = {
-                str(value)
-                for value in session.scalars(
-                    select(ConsumerApiKeyRow.tenant_id).where(
-                        ConsumerApiKeyRow.consumer_id == consumer_id,
-                        ConsumerApiKeyRow.status == "active",
-                        or_(
-                            ConsumerApiKeyRow.expires_at.is_(None),
-                            ConsumerApiKeyRow.expires_at > datetime.now(UTC),
-                        ),
-                    )
-                )
-                if value
-            }
+            self._lock_consumer_key_issuance(session, consumer_id)
+            existing_tenants = self._active_tenants_for_consumer(session, consumer_id)
+            if len(existing_tenants) > 1:
+                raise ValueError("consumer is associated with multiple active tenants")
             if existing_tenants and tenant_id not in existing_tenants:
                 raise ValueError("consumer already belongs to another active tenant")
 
@@ -500,47 +511,9 @@ class AccessServiceMixin:
             session.refresh(replacement)
             return {**self._consumer_key_payload(replacement), "secret": secret}
 
-    @staticmethod
-    def _connector_credential_payload(row: ConnectorCredentialRow) -> dict[str, Any]:
-        return {
-            "credential_id": row.credential_id,
-            "tenant_id": row.tenant_id,
-            "consumer_id": row.consumer_id,
-            "connector": row.connector_name,
-            "label": row.label,
-            "status": row.status,
-            "metadata": dict(row.metadata_json or {}),
-            "created_at": row.created_at,
-            "revoked_at": row.revoked_at,
-        }
+    _connector_credential_payload = staticmethod(_connector_credential_payload)
 
-    @staticmethod
-    def _normalize_credential_metadata(
-        metadata: Mapping[str, object] | None,
-    ) -> dict[str, object]:
-        result = dict(metadata or {})
-        if len(result) > 32:
-            raise ValueError("connector credential metadata may contain at most 32 keys")
-        blocked_fragments = (
-            "secret",
-            "password",
-            "token",
-            "api_key",
-            "apikey",
-            "authorization",
-        )
-        for key, value in result.items():
-            normalized_key = str(key).strip()
-            if not normalized_key or len(normalized_key) > 128:
-                raise ValueError("connector credential metadata keys must be 1..128 characters")
-            lowered_key = normalized_key.casefold()
-            if any(fragment in lowered_key for fragment in blocked_fragments):
-                raise ValueError("sensitive connector credential values must be stored in secrets")
-            if isinstance(value, (dict, list, tuple, set)):
-                raise ValueError("connector credential metadata must contain scalar values only")
-            if value is not None and len(str(value)) > 1024:
-                raise ValueError("connector credential metadata values are too large")
-        return result
+    _normalize_credential_metadata = staticmethod(_normalize_credential_metadata)
 
     def create_connector_credential(
         self,

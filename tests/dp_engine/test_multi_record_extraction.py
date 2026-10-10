@@ -526,3 +526,50 @@ def test_record_result_rejects_mismatched_boundary_and_extraction_assets() -> No
 
     with pytest.raises(ValueError, match="must match"):
         replace(record, extraction=replace(record.extraction, asset=RawAsset("other")))
+
+
+def test_structured_records_consume_only_bounded_source_items():
+    from collections.abc import Sequence
+
+    class TrackedSequence(Sequence):
+        def __init__(self):
+            self.reads = 0
+
+        def __len__(self):
+            return 100_000
+
+        def __getitem__(self, index):
+            if isinstance(index, slice):
+                raise AssertionError("must not copy entire source array")
+            if index < 0 or index >= 100_000:
+                raise IndexError(index)
+            self.reads += 1
+            return {"title": f"Record {index}"}
+
+    sequence = TrackedSequence()
+    result = AttributeRecordProvider(max_records=7).records(
+        RawAsset("bounded-source", attributes={"records": sequence}), FIELDS
+    )
+    assert len(result.records) == 7
+    assert sequence.reads == 7
+    assert result.warnings == ("max_records:7",)
+
+
+def test_jsonld_over_limit_preserves_first_records_and_warning_order():
+    import json
+
+    html = (
+        '<script type="application/ld+json">'
+        + json.dumps([{"name": f"Record {i}", "code": f"C{i}"} for i in range(3000)])
+        + '</script><script type="application/ld+json">{broken</script>'
+    )
+    result = JSONLDRecordProvider(max_records=5).records(
+        RawAsset("large-jsonld", html=html), FIELDS
+    )
+    assert len(result.records) == 5
+    assert result.warnings == (
+        "malformed_jsonld:script[2]", "max_records:5"
+    )
+    assert [x.metadata["matched_fields"] for x in result.records] == [
+        ("promo_code", "title")
+    ] * 5

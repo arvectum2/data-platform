@@ -121,12 +121,13 @@ class SearchQuery:
         )
         object.__setattr__(self, "execution_mode", resolved_execution_mode)
         normalized_variants: list[str] = []
-        seen = {self.query.strip()}
+        seen = {self.query.strip().casefold()}
         for variant in self.query_variants:
             cleaned = variant.strip()
-            if not cleaned or cleaned in seen:
+            key = cleaned.casefold()
+            if not cleaned or key in seen:
                 continue
-            seen.add(cleaned)
+            seen.add(key)
             normalized_variants.append(cleaned)
         if len(normalized_variants) > 8:
             raise ValueError("at most 8 query variants are allowed")

@@ -393,3 +393,35 @@ def test_validity_marker_bounds_single_offer_card() -> None:
     result = SemanticHTMLRecordProvider().records(RawAsset(asset_id="a", html=html), ())
     assert len(result.records) == 1
     assert "Срок действия" in result.records[0].asset.attributes["record_text"]
+
+
+def test_html_text_cache_invalidates_on_incremental_parser_updates():
+    from arvectum_data.engine.html_records import _TreeParser
+
+    parser = _TreeParser()
+    parser.feed("<main><section><h3>Скидка")
+    assert parser.root.text() == "Скидка"
+    parser.feed(" 20%</h3><p>и бонус</p></section><article>Подарок</article></main>")
+    assert parser.root.text() == "Скидка 20% и бонус Подарок"
+    assert parser.root.text() == "Скидка 20% и бонус Подарок"
+
+
+def test_repeated_subtree_text_reads_reuse_cached_normalization(monkeypatch):
+    from arvectum_data.engine import html_records
+
+    parser = html_records._TreeParser()
+    parser.feed("<main><article><h3>Скидка 10%</h3><p>Промокод</p></article></main>")
+    node = parser.root.children[0]
+    calls = []
+    original = html_records._compact
+
+    def counting(value):
+        calls.append(value)
+        return original(value)
+
+    monkeypatch.setattr(html_records, "_compact", counting)
+    initial = node.text()
+    calls_after_first = len(calls)
+    for _ in range(100):
+        assert node.text() == initial
+    assert len(calls) == calls_after_first

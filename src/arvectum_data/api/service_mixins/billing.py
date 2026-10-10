@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import hashlib
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import case, func, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from ...billing import (
     PaymentRequest,
-    PriceRule,
     UsageQuantity,
     calculate_invoice,
     normalize_rules,
@@ -24,6 +25,14 @@ from ...storage.postgres import (
     UsageEventRow,
 )
 
+from ..billing_payloads import (
+    _billing_catalog_payload,
+    _billing_assignment_payload,
+    _billing_rule_payload,
+    _invoice_line_payload,
+    _usage_event_payload,
+)
+
 from ..service_support import (
     BillingCatalogNotFound,
     BillingAssignmentNotFound,
@@ -34,35 +43,29 @@ from ..service_support import (
 
 class BillingServiceMixin:
     @staticmethod
-    def _billing_catalog_payload(row: BillingCatalogRow) -> dict[str, Any]:
-        return {
-            "catalog_id": row.catalog_id,
-            "plan_code": row.plan_code,
-            "version": row.version,
-            "name": row.name,
-            "currency": row.currency,
-            "base_fee_minor": row.base_fee_minor,
-            "rules": list(row.rules_json or []),
-            "status": row.status,
-            "effective_from": row.effective_from,
-            "created_at": row.created_at,
-        }
+    def _lock_tenant_billing(session: Session, tenant_id: str) -> None:
+        """Serialize assignment and finalization for a tenant across workers.
+
+        Transaction-scoped advisory locks release automatically at commit or
+        rollback; unlike a process lock, these work across API instances.
+        """
+        session.execute(
+            select(
+                func.pg_advisory_xact_lock(
+                    func.hashtextextended(f"arvectum:billing:tenant:{tenant_id}", 0)
+                )
+            )
+        )
 
     @staticmethod
-    def _billing_assignment_payload(
-        row: TenantBillingAssignmentRow,
-    ) -> dict[str, Any]:
-        return {
-            "assignment_id": row.assignment_id,
-            "tenant_id": row.tenant_id,
-            "catalog_id": row.catalog_id,
-            "payment_provider": row.payment_provider,
-            "external_customer_id": row.external_customer_id,
-            "status": row.status,
-            "effective_from": row.effective_from,
-            "effective_to": row.effective_to,
-            "created_at": row.created_at,
-        }
+    def _locked_invoice(session: Session, invoice_id: str) -> InvoiceRow | None:
+        return session.scalar(
+            select(InvoiceRow).where(InvoiceRow.invoice_id == invoice_id).with_for_update()
+        )
+
+    _billing_catalog_payload = staticmethod(_billing_catalog_payload)
+
+    _billing_assignment_payload = staticmethod(_billing_assignment_payload)
 
     @staticmethod
     def _normalize_billing_time(value: datetime, *, field: str) -> datetime:
@@ -73,15 +76,7 @@ class BillingServiceMixin:
             raise ValueError(f"{field} is outside the supported range")
         return normalized
 
-    @staticmethod
-    def _billing_rule_payload(rule: PriceRule) -> dict[str, Any]:
-        return {
-            "operation": rule.operation,
-            "unit": rule.unit,
-            "unit_price_minor": rule.unit_price_minor,
-            "included_quantity": rule.included_quantity,
-            "description": rule.description,
-        }
+    _billing_rule_payload = staticmethod(_billing_rule_payload)
 
     def create_billing_catalog(
         self,
@@ -180,6 +175,7 @@ class BillingServiceMixin:
         )
 
         with self._require_factory()() as session:
+            self._lock_tenant_billing(session, tenant_id)
             catalog = session.get(BillingCatalogRow, catalog_id)
             if catalog is None:
                 raise BillingCatalogNotFound(catalog_id)
@@ -263,31 +259,23 @@ class BillingServiceMixin:
             )
         return row
 
-    @staticmethod
-    def _invoice_line_payload(row: InvoiceLineRow) -> dict[str, Any]:
-        return {
-            "operation": row.operation,
-            "unit": row.unit,
-            "quantity": row.quantity,
-            "included_quantity": row.included_quantity,
-            "chargeable_quantity": row.chargeable_quantity,
-            "unit_price_minor": row.unit_price_minor,
-            "amount_minor": row.amount_minor,
-            "description": row.description,
-        }
+    _invoice_line_payload = staticmethod(_invoice_line_payload)
 
     def _invoice_payload(
         self,
         session: Session,
         row: InvoiceRow,
+        *,
+        lines: Sequence[InvoiceLineRow] | None = None,
     ) -> dict[str, Any]:
-        lines = list(
-            session.scalars(
-                select(InvoiceLineRow)
-                .where(InvoiceLineRow.invoice_id == row.invoice_id)
-                .order_by(InvoiceLineRow.operation, InvoiceLineRow.unit)
+        if lines is None:
+            lines = list(
+                session.scalars(
+                    select(InvoiceLineRow)
+                    .where(InvoiceLineRow.invoice_id == row.invoice_id)
+                    .order_by(InvoiceLineRow.operation, InvoiceLineRow.unit)
+                )
             )
-        )
         snapshot = dict(row.pricing_snapshot or {})
         return {
             "invoice_id": row.invoice_id,
@@ -341,25 +329,38 @@ class BillingServiceMixin:
         if catalog is None:
             raise BillingCatalogNotFound(assignment.catalog_id)
 
-        usage_rows = list(
-            session.scalars(
-                select(UsageEventRow)
-                .where(
-                    UsageEventRow.tenant_id == tenant_id,
-                    UsageEventRow.billable.is_(True),
-                    UsageEventRow.created_at >= period_start,
-                    UsageEventRow.created_at < period_end,
-                )
-                .order_by(UsageEventRow.usage_event_id)
+        # Read only billed columns. Stream the established canonical hash
+        # instead of materializing entire ORM rows (including metadata JSON)
+        # and a second unbounded list of strings in memory.
+        usage_statement = (
+            select(
+                UsageEventRow.usage_event_id,
+                UsageEventRow.operation,
+                UsageEventRow.unit,
+                UsageEventRow.quantity,
             )
+            .where(
+                UsageEventRow.tenant_id == tenant_id,
+                UsageEventRow.billable.is_(True),
+                UsageEventRow.created_at >= period_start,
+                UsageEventRow.created_at < period_end,
+            )
+            .order_by(UsageEventRow.usage_event_id)
+            .execution_options(yield_per=1000)
         )
         usage_by_meter: dict[tuple[str, str], int] = {}
-        snapshot_parts: list[str] = []
-        for row in usage_rows:
+        digest = hashlib.sha256()
+        first_event = True
+        for row in session.execute(usage_statement):
             key = (row.operation, row.unit)
             usage_by_meter[key] = usage_by_meter.get(key, 0) + int(row.quantity)
-            snapshot_parts.append(f"{row.usage_event_id}:{row.operation}:{row.unit}:{row.quantity}")
-        usage_snapshot_hash = hashlib.sha256("\n".join(snapshot_parts).encode("utf-8")).hexdigest()
+            if not first_event:
+                digest.update(b"\n")
+            digest.update(
+                f"{row.usage_event_id}:{row.operation}:{row.unit}:{row.quantity}".encode("utf-8")
+            )
+            first_event = False
+        usage_snapshot_hash = digest.hexdigest()
         rules = normalize_rules(catalog.rules_json or [])
         calculation = calculate_invoice(
             base_fee_minor=int(catalog.base_fee_minor),
@@ -447,6 +448,10 @@ class BillingServiceMixin:
         period_start = self._normalize_billing_time(period_start, field="period_start")
         period_end = self._normalize_billing_time(period_end, field="period_end")
         with self._require_factory()() as session:
+            # The existence check and invoice creation must be serialized.
+            # A UNIQUE constraint alone would raise a duplicate-key error to
+            # a concurrent worker instead of returning the original invoice.
+            self._lock_tenant_billing(session, tenant_id.strip())
             existing = session.scalar(
                 select(InvoiceRow).where(
                     InvoiceRow.tenant_id == tenant_id.strip(),
@@ -532,11 +537,30 @@ class BillingServiceMixin:
                 InvoiceRow.period_end.desc(),
                 InvoiceRow.invoice_id.desc(),
             ).limit(limit)
-            return [self._invoice_payload(session, row) for row in session.scalars(statement)]
+            invoices = list(session.scalars(statement))
+            if not invoices:
+                return []
+            lines_by_invoice: dict[str, list[InvoiceLineRow]] = defaultdict(list)
+            for line in session.scalars(
+                select(InvoiceLineRow)
+                .where(InvoiceLineRow.invoice_id.in_(row.invoice_id for row in invoices))
+                .order_by(
+                    InvoiceLineRow.invoice_id, InvoiceLineRow.operation, InvoiceLineRow.unit
+                )
+            ):
+                lines_by_invoice[line.invoice_id].append(line)
+            return [
+                self._invoice_payload(
+                    session, row, lines=lines_by_invoice[row.invoice_id]
+                )
+                for row in invoices
+            ]
 
     def create_invoice_payment(self, invoice_id: str) -> dict[str, Any]:
         with self._require_factory()() as session:
-            row = session.get(InvoiceRow, invoice_id)
+            # Lock the invoice before checking its status. Concurrent payment
+            # handoffs/reconciliation must observe committed state, not race.
+            row = self._locked_invoice(session, invoice_id)
             if row is None:
                 raise InvoiceNotFound(invoice_id)
             if row.status == "paid":
@@ -567,7 +591,9 @@ class BillingServiceMixin:
 
     def sync_invoice_payment(self, invoice_id: str) -> dict[str, Any]:
         with self._require_factory()() as session:
-            row = session.get(InvoiceRow, invoice_id)
+            # Lock the invoice before checking its status. Concurrent payment
+            # handoffs/reconciliation must observe committed state, not race.
+            row = self._locked_invoice(session, invoice_id)
             if row is None:
                 raise InvoiceNotFound(invoice_id)
             if row.status == "paid":
@@ -606,7 +632,9 @@ class BillingServiceMixin:
         provider_reference: str | None = None,
     ) -> dict[str, Any]:
         with self._require_factory()() as session:
-            row = session.get(InvoiceRow, invoice_id)
+            # Lock the invoice before checking its status. Concurrent payment
+            # handoffs/reconciliation must observe committed state, not race.
+            row = self._locked_invoice(session, invoice_id)
             if row is None:
                 raise InvoiceNotFound(invoice_id)
             if row.status != "paid":
@@ -620,21 +648,7 @@ class BillingServiceMixin:
                 session.refresh(row)
             return self._invoice_payload(session, row)
 
-    @staticmethod
-    def _usage_event_payload(row: UsageEventRow) -> dict[str, Any]:
-        return {
-            "usage_event_id": row.usage_event_id,
-            "tenant_id": row.tenant_id,
-            "consumer_id": row.consumer_id,
-            "operation": row.operation,
-            "unit": row.unit,
-            "quantity": row.quantity,
-            "billable": row.billable,
-            "status_code": row.status_code,
-            "request_id": row.request_id,
-            "metadata": dict(row.metadata_json or {}),
-            "created_at": row.created_at,
-        }
+    _usage_event_payload = staticmethod(_usage_event_payload)
 
     def record_usage_event(
         self,
@@ -682,7 +696,11 @@ class BillingServiceMixin:
                 metadata["duration_ms"] = int(duration_ms)
             if request_bytes is not None:
                 metadata["request_bytes"] = int(request_bytes)
-            row = UsageEventRow(
+            # Two concurrent responses can record the same request ID. The
+            # pre-check above is only the fast idempotent path; a PostgreSQL
+            # conflict guard is required to avoid a duplicate-key 500 and
+            # double-charging. Never overwrite the first recorded event.
+            statement = pg_insert(UsageEventRow).values(
                 usage_event_id=usage_event_id,
                 tenant_id=tenant_id,
                 consumer_id=consumer_id,
@@ -693,11 +711,13 @@ class BillingServiceMixin:
                 status_code=int(status_code),
                 request_id=request_id,
                 metadata_json=metadata,
-            )
-            session.add(row)
+            ).on_conflict_do_nothing(index_elements=(UsageEventRow.usage_event_id,))
+            session.execute(statement)
             session.commit()
-            session.refresh(row)
-            return self._usage_event_payload(row)
+            stored = session.get(UsageEventRow, usage_event_id)
+            if stored is None:
+                raise RuntimeError("usage event missing after idempotent insert")
+            return self._usage_event_payload(stored)
 
     def usage_summary(
         self,

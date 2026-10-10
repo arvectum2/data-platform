@@ -157,3 +157,24 @@ def test_http_maps_tenant_quota_to_429() -> None:
 
     assert response.status_code == 429
     assert response.json()["detail"] == "tenant quota exceeded"
+
+
+def test_reused_resolved_tenant_preserves_allowed_consumers_enforcement() -> None:
+    service = _service()
+    collection = _collection({
+        "tenant_id": "tenant-a", "allowed_consumers": ["agent-a"],
+    })
+    assert service._validate_tenant_search_quota(
+        SearchQuery(query="test", collections=("a",), limit=5), "agent-a"
+    ) == "tenant-a"
+    service._authorize_collection_consumer(
+        collection, "agent-a", resolved_tenant="tenant-a"
+    )
+    with pytest.raises(CollectionAccessDenied):
+        service._authorize_collection_consumer(
+            collection, "agent-a-2", resolved_tenant="tenant-a"
+        )
+    with pytest.raises(CollectionAccessDenied):
+        service._authorize_collection_consumer(
+            collection, "agent-a", resolved_tenant="tenant-b"
+        )

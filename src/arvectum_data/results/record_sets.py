@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
@@ -26,45 +25,16 @@ from .models import (
     payload_hash,
 )
 from .stores import ResultStore
+from .record_identities import (
+    _RECORD_PREFIX as _RECORD_PREFIX,
+    _SET_PREFIX as _SET_PREFIX,
+    parse_record_storage_item_id as parse_record_storage_item_id,
+    record_set_storage_item_id as record_set_storage_item_id,
+    record_storage_item_id as record_storage_item_id,
+)
 
 
 MULTI_RECORD_RESULT_SCHEMA_VERSION = 1
-_RECORD_PREFIX = "__dp_record_v1__:"
-_SET_PREFIX = "__dp_record_set_v1__:"
-
-
-def _b64(value: str) -> str:
-    return base64.urlsafe_b64encode(value.encode("utf-8")).decode("ascii").rstrip("=")
-
-
-def _unb64(value: str) -> str:
-    padding = "=" * (-len(value) % 4)
-    return base64.urlsafe_b64decode((value + padding).encode("ascii")).decode("utf-8")
-
-
-def record_storage_item_id(item_id: str, record_id: str) -> str:
-    if not item_id.strip() or not record_id.strip():
-        raise ValueError("item_id and record_id must not be blank")
-    return f"{_RECORD_PREFIX}{_b64(item_id)}:{_b64(record_id)}"
-
-
-def record_set_storage_item_id(item_id: str) -> str:
-    if not item_id.strip():
-        raise ValueError("item_id must not be blank")
-    return f"{_SET_PREFIX}{_b64(item_id)}"
-
-
-def parse_record_storage_item_id(storage_item_id: str) -> tuple[str, str] | None:
-    if not storage_item_id.startswith(_RECORD_PREFIX):
-        return None
-    encoded = storage_item_id[len(_RECORD_PREFIX) :]
-    parts = encoded.split(":", 1)
-    if len(parts) != 2:
-        raise ResultIntegrityError("Malformed durable record storage item id")
-    try:
-        return _unb64(parts[0]), _unb64(parts[1])
-    except Exception as exc:
-        raise ResultIntegrityError("Malformed durable record storage identity") from exc
 
 
 def _storage_status(status: RecordStatus) -> StoredResultStatus:
@@ -348,14 +318,14 @@ class RecordResultRepository:
         created = self.store.create(record)
         return self._wrap(created, item_id, result.record_id, result.status)
 
-    def load_record(
+    def _load_decoded_record(
         self,
         job_id: str,
         item_id: str,
         record_id: str,
         *,
         expected_definition_hash: str | None = None,
-    ) -> StoredRecordResult | None:
+    ) -> tuple[StoredResultRecord, RecordExtractionResult] | None:
         storage = self.store.load(job_id, record_storage_item_id(item_id, record_id))
         if storage is None:
             return None
@@ -364,6 +334,22 @@ class RecordResultRepository:
         result = self.codec.decode_record(storage.payload)
         if result.record_id != record_id:
             raise ResultIntegrityError("Durable record payload identity mismatch")
+        return storage, result
+
+    def load_record(
+        self,
+        job_id: str,
+        item_id: str,
+        record_id: str,
+        *,
+        expected_definition_hash: str | None = None,
+    ) -> StoredRecordResult | None:
+        loaded = self._load_decoded_record(
+            job_id, item_id, record_id, expected_definition_hash=expected_definition_hash
+        )
+        if loaded is None:
+            return None
+        storage, result = loaded
         return self._wrap(storage, item_id, record_id, result.status)
 
     def load_result(
@@ -374,15 +360,15 @@ class RecordResultRepository:
         *,
         expected_definition_hash: str | None = None,
     ) -> tuple[StoredRecordResult, RecordExtractionResult] | None:
-        stored = self.load_record(
-            job_id,
-            item_id,
-            record_id,
-            expected_definition_hash=expected_definition_hash,
+        # Previously load_record decoded the payload to validate identity, then
+        # load_result decoded it again. Decode exactly once for large record sets.
+        loaded = self._load_decoded_record(
+            job_id, item_id, record_id, expected_definition_hash=expected_definition_hash
         )
-        if stored is None:
+        if loaded is None:
             return None
-        return stored, self.codec.decode_record(stored.storage_record.payload)
+        storage, result = loaded
+        return self._wrap(storage, item_id, record_id, result.status), result
 
     def update_result(
         self,
