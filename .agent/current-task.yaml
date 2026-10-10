@@ -46,7 +46,8 @@ completed:
   - '2026-10-10 cross-repo TA PR #306 dedicated procurement report requirement row projection with explicit adapter/fallback attribution, services/goods semantics and 10-row cap, 3546 local PASS/238 skip plus all exact-head CI green, merged Tender Agent 2646df25951a30c59f0a97eb29631cbfe7c700c6; Data Platform code untouched.'
   - '2026-10-10 cross-repo TA PR #307 candidate business risks/RFQ templates extracted, all exact-head quality/integration CI green and merged Tender Agent e6521689148e0a5a5900511130d24b3a31dfa696; DP code unchanged.'
   - '2026-10-10 cross-repo Tender Agent PR #307 review-only risk/RFQ and PR #308 original file report inventory modules both merged all-green exact-head GitHub CI, latest TA code 879b68c45da7e5b6c2a7835345907d6fdfc1ceea. DP code unchanged.'
-current: 'Data Platform #99-107 modular R2/R3 green merged, code e7393b8b. Tender Agent #298-308 all green merged, latest #308 source-preserving report inventory 879b68c4 after #307 candidate risk templates e6521689. Remaining DP R2 actual authenticated APIv1 SDK0.3 original Russian document resource/document/chunk IDs/hash/offset, OCR/VLM actual quality, R4 non-stub model benchmark and cross-repo R5 >=20 genuine EIS original human reviewed procurements/owner signoff. Status in_progress.'
+  - '2026-10-10 cross-repo TA PR #308 report document inventory projection preserving uploaded original names/source/extraction status with failed/pending UNKNOWN, all exact-head CI green merged TA 879b68c45da7e5b6c2a7835345907d6fdfc1ceea; DP unchanged.'
+current: 'DP #99-107 green merged latest code e7393b8b, TA #298-308 green merged latest #308 879b68c4 including report document source/status preservation. Remaining DP R2 deployed authenticated APIv1 SDK0.3 original Russian resource/document/chunk offsets/hash and actual OCR/VLM model benchmarks; R4 non-stub latency/quality; R5 >=20 independently human-reviewed original EIS cases and owner approval. Status in_progress.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
@@ -58,7 +59,7 @@ test_results:
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Restore DP main after #107 all-green code e7393b8b and TA #308 all-green source 879b68c4; do not redo completed work. Prioritize R2 authenticated deployed DP0.6 APIv1 SDK0.3 original Russian EIS DOCX/PDF/XLS resource/document/chunk hashes/offsets and real OCR/VLM/model latency benchmark. Post official EIS 16.3 maintenance 2026-10-11 20:00 MSK from RU Mac mini direct/no-proxy TLS check and read-only getDocsIP if healthy, original XML/doc DP -> TA saved reports JSON/HTML/PDF/DOCX; >=20 independent human-reviewed cases + owner acceptance. Keep production, private pilot 18083, SSD and disabled watchdog intact.'
+resume_instruction: 'Restore DP main after #107 green, TA #308 exact-head CI green merge 879b68c4; do not repeat already merged work. Next prioritize R2 deployed authenticated DP0.6 APIv1 SDK0.3 actual Russian original PDF/DOCX/XLS resource/document/chunk ID hash offsets and model benchmarks; R5 genuine read-only EIS XML/files after 2026-10-11 20:00 MSK Russian direct/no-proxy TLS check, >=20 independent human-reviewed procurements/owner gate. Production, pilot 18083, SSD and disabled watchdog untouched.'
 execution:
   branch: main
   manual_override: true
