@@ -151,3 +151,46 @@ def test_invalid_embedding_dimension_aborts_ingest_transaction():
         )
     with service.session_factory() as session:
         assert DataRepository(session).collection_chunk_count(collection) == 0
+
+
+def test_second_embedding_batch_failure_rolls_back_whole_ingest():
+    from arvectum_data.indexing import EmbeddingServerUnavailableError
+
+    service = _service()
+    service.settings.embedding_inference_batch_size = 1
+    service.settings.embedding_retry_base_delay_seconds = 0
+    service.settings.embedding_retry_max_delay_seconds = 0
+    service.settings.embedding_retry_max_attempts = 2
+    collection = "atomic-batches:" + uuid.uuid4().hex[:12]
+    service.create_collection(
+        collection_id=collection, owner="test", name="Atomic batches",
+        default_language="russian",
+    )
+    original = service.embedding_provider
+
+    class FlakyProvider:
+        provider_name = original.provider_name
+        model_name = original.model_name
+        dimension = original.dimension
+
+        def __init__(self):
+            self.calls = 0
+
+        def embed_texts(self, texts):
+            self.calls += 1
+            if self.calls >= 2:
+                raise EmbeddingServerUnavailableError("second chunk inference unreachable")
+            return original.embed_texts(texts)
+
+    provider = FlakyProvider()
+    service.embedding_provider = provider
+    with pytest.raises(EmbeddingServerUnavailableError):
+        service.ingest_document_bytes(
+            collection_id=collection,
+            filename="multi-chunks.txt",
+            canonical_uri="test://atomic-multi-batch",
+            content=("Поставка оборудования и услуги по обслуживанию. " * 1200).encode(),
+        )
+    assert provider.calls == 3  # first succeeds, second retries twice
+    with service.session_factory() as session:
+        assert DataRepository(session).collection_chunk_count(collection) == 0

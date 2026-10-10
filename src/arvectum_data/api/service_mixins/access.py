@@ -101,11 +101,17 @@ class AccessServiceMixin:
         consumer: str | None,
         *,
         session: Session | None = None,
+        resolved_tenant: str | None = None,
     ) -> None:
         policy = dict(collection.access_policy or {})
         tenant_id = str(policy.get("tenant_id") or "").strip()
         if tenant_id:
-            if self._consumer_tenant(consumer, session=session) != tenant_id:
+            effective_tenant = (
+                resolved_tenant
+                if resolved_tenant is not None
+                else self._consumer_tenant(consumer, session=session)
+            )
+            if effective_tenant != tenant_id:
                 raise CollectionAccessDenied(collection.collection_id)
         allowed_consumers = tuple(
             str(item) for item in policy.get("allowed_consumers", []) if str(item)
@@ -117,12 +123,14 @@ class AccessServiceMixin:
         self,
         request: SearchQuery,
         consumer: str | None,
-    ) -> None:
+    ) -> str:
+        # Return the resolved identity to reuse for all collection checks in
+        # the same request. Do not cache it across requests or key rotations.
         if consumer is None:
-            return
+            return ""
         tenant_id = self._consumer_tenant(consumer)
         if not tenant_id:
-            return
+            return ""
         quota = dict(self.settings.tenant_quotas.get(tenant_id) or {})
         checks = {
             "max_collections_per_search": len(request.collections),
@@ -141,6 +149,7 @@ class AccessServiceMixin:
                 raise TenantQuotaExceeded(
                     f"tenant {tenant_id!r} quota exceeded: {key}={actual} > {limit}"
                 )
+        return tenant_id
 
     @staticmethod
     def _default_connector_registry() -> ConnectorRegistry:

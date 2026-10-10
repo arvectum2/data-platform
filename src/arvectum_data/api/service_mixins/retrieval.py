@@ -128,22 +128,68 @@ class RetrievalServiceMixin:
         self,
         texts: list[str],
     ) -> tuple[list[list[float]], int]:
+        """Embed bounded input batches while retaining atomic caller semantics.
+
+        A retry applies only to the failed batch. All vectors are validated
+        before the caller persists them, so later inference failures roll back
+        the entire ingest/rebuild transaction instead of partially activating
+        an index.
+        """
         if not texts:
             return [], 0
-        max_attempts = self.settings.embedding_retry_max_attempts
-        for attempt in range(1, max_attempts + 1):
-            try:
-                return self.embedding_provider.embed_texts(texts), attempt
-            except EmbeddingServerUnavailableError:
-                if attempt >= max_attempts:
-                    raise
-                delay = min(
-                    self.settings.embedding_retry_max_delay_seconds,
-                    self.settings.embedding_retry_base_delay_seconds * (2 ** (attempt - 1)),
-                )
-                if delay > 0:
-                    time.sleep(delay)
-        raise RuntimeError("embedding retry loop exited unexpectedly")
+
+        max_size = self.settings.embedding_inference_batch_size
+        max_chars = self.settings.embedding_inference_batch_chars
+        all_vectors: list[list[float]] = []
+        attempts_total = 0
+        batch: list[str] = []
+        batch_chars = 0
+        expected_dimension: int | None = None
+
+        def execute_batch(batch_texts: list[str]) -> None:
+            nonlocal attempts_total, expected_dimension
+            max_attempts = self.settings.embedding_retry_max_attempts
+            for attempt in range(1, max_attempts + 1):
+                attempts_total += 1
+                try:
+                    vectors = self.embedding_provider.embed_texts(batch_texts)
+                except EmbeddingServerUnavailableError:
+                    if attempt >= max_attempts:
+                        raise
+                    delay = min(
+                        self.settings.embedding_retry_max_delay_seconds,
+                        self.settings.embedding_retry_base_delay_seconds * (2 ** (attempt - 1)),
+                    )
+                    if delay > 0:
+                        time.sleep(delay)
+                    continue
+                if len(vectors) != len(batch_texts):
+                    raise RuntimeError("embedding provider returned unexpected vector count")
+                for vector in vectors:
+                    dimension = len(vector)
+                    if not dimension or (
+                        expected_dimension is not None and dimension != expected_dimension
+                    ):
+                        raise EmbeddingContractMismatch(
+                            "embedding provider returned invalid or inconsistent dimensions"
+                        )
+                    expected_dimension = dimension
+                all_vectors.extend(vectors)
+                return
+            raise RuntimeError("embedding retry loop exited unexpectedly")
+
+        for text in texts:
+            # Do not truncate or subdivide a document chunk: changing the text
+            # would silently alter stored source/embedding correspondence.
+            if batch and (len(batch) >= max_size or batch_chars + len(text) > max_chars):
+                execute_batch(batch)
+                batch = []
+                batch_chars = 0
+            batch.append(text)
+            batch_chars += len(text)
+        if batch:
+            execute_batch(batch)
+        return all_vectors, attempts_total
 
     def _persist_and_index(self, result) -> dict[str, Any]:
         if len(result.chunks) > self.settings.max_chunks_per_ingest:
@@ -279,7 +325,7 @@ class RetrievalServiceMixin:
         tuple[QueryExpansion, ...],
         tuple[SearchStageDiagnostic, ...],
     ]:
-        self._validate_tenant_search_quota(request, consumer)
+        resolved_tenant = self._validate_tenant_search_quota(request, consumer)
         with self._require_factory()() as session:
             # Preserve request-order authorization and error precedence, but
             # load all collection policies/contracts with one SQL round-trip.
@@ -295,10 +341,18 @@ class RetrievalServiceMixin:
                 collection = collections.get(collection_id)
                 if collection is None:
                     raise CollectionNotFound(collection_id)
-                self._authorize_collection_consumer(collection, consumer, session=session)
+                self._authorize_collection_consumer(
+                    collection, consumer, session=session, resolved_tenant=resolved_tenant
+                )
                 self._validate_embedding_contract(collection)
 
-            backend = PostgresSearchBackend(DataRepository(session))
+            backend = PostgresSearchBackend(
+                DataRepository(session),
+                collection_languages={
+                    collection_id: collections[collection_id].default_language
+                    for collection_id in request.collections
+                },
+            )
             reasoning_provider = self.model_router.provider(ModelRole.REASONING)
             reranker = None
             if request.rerank:
