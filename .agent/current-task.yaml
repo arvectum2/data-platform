@@ -49,8 +49,10 @@ completed:
   - '2026-10-10 cross-repo TA PR #308 report document inventory projection preserving uploaded original names/source/extraction status with failed/pending UNKNOWN, all exact-head CI green merged TA 879b68c45da7e5b6c2a7835345907d6fdfc1ceea; DP unchanged.'
   - '2026-10-10 read-only Mac mini DP0.6 production-local SDKv0.3 probe: health OK, protected GET /v1/contract returns expected HTTP401 without credentials, require_contract(1) fails HTTP401; authenticated deployed original file/chunk provenance still NOT verified. No credentials surfaced, no mutations.'
   - '2026-10-10 R2 authenticated DP0.6 read-only SDK0.3 require_contract(1) returned HTTP200 contract v1.0 using configured runtime secret without disclosure; canonical TA upload/connector/recovery collections absent, so original file/chunk SHA256/offset still unverified.'
-current: 'R2 authenticated live SDK0.3 require_contract(1) -> DP0.6 contract v1.0 PASS HTTP200. TA upload/connector/recovery collections absent; actual original resource/document/chunk SHA256/offset still unverified. R4 real model and R5 human-reviewed EIS originals remain pending; task in_progress.'
+  - '2026-10-11 live DP0.6 read-only source audit: 24 collections (17 tender); sample 17 tender resources/17 docs/57 chunks with hash shape and coordinate type, one EIS-linked resource 41/41 chunk-text SHA256 matches. DP chunk offsets refer to normalize_text() not raw doc.text; original EIS binary hash and live normalized-offset replay remain pending.'
+current: 'R2 DP0.6 authenticated SDK0.3 contract 1.0 verified. Metadata-only audit across 17 tender collections found persisted resource/document/chunk IDs, 57 typed coordinate/hash fields; one EIS-linked resource had 41/41 text SHA matches. Raw-source binary integrity and normalized coordinate replay still pending, R4 live model and R5 human EIS review gates open; task in_progress.'
 pending:
+  - 'R2 remaining: validate live chunk char_start/end against normalize_text(document.text).strip(), then compare authoritative original EIS attachment binary hash and notice revision. Metadata-only audit is NOT original-file proof.'
   - 'R2 remaining: find previously persisted original-source resource/document/chunk IDs and validate SHA256/offsets using read-only authorized API or isolated non-production fixture; standard TA collections are currently absent.'
   - '2026-10-10 dependency refresh PR #108: merged current main into feature branch, regenerated uv.lock --upgrade. Fresh Python 3.12 SDK/dev install, Ruff and complete new-main pytest PASS. Exact-head Python 3.11/3.13 CI and optional browser/rerank/model backends still need checking; do not merge until gates green.'
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
@@ -58,13 +60,14 @@ pending:
   - 'Verify with Tender Agent consumers and exact-head CI.'
 last_verified_commit: 'e7393b8becbd9d15ab8911262a3db1d0133512e2'
 test_results:
+  - '2026-10-11 live DP metadata audit: 17 tender resource/doc samples, 57 chunks valid hash-shapes/range types; EIS resource 41/41 chunk text SHA256 verified; raw coordinate 0/41 expected because normalized coordinate contract.'
   - '2026-10-10 R2 auth proof: live SDK0.3 require_contract(1) returned v1.0; authorized HTTP200; TA processing collections absent, original source proof pending.'
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'DP0.6 protected SDK0.3 require_contract(1) verified HTTP200 without leaking credentials; do not repeat unless runtime changes. No TA processing collections on deployed instance. Locate stored original EIS file via authorized read-only IDs or test in isolated nonprod fixture; prove source/resource/document/chunk hash/offset. Keep EIS owner review gate, production/pilot safe and watchdog disabled.'
+resume_instruction: 'Authenticated SDKv0.3 contractv1 DP0.6 and read-only metadata audit completed, see TDP-R2-LIVE-METADATA-20261011.yaml. Next compute live offset replay in normalize_text(input) coordinate space (NOT doc.text), then compare actual raw original EIS file bytes SHA256 and notice revision; no production writes. R4 model E2E, R5 >=20 original human reviews/owner gate pending. Keep disabled watchdog.'
 execution:
   branch: main
   manual_override: true

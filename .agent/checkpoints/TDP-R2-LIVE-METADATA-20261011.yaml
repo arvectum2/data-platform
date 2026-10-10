@@ -1,0 +1,46 @@
+version: 2
+repository: arvectum2/data-platform
+task_id: TDP-R2-LIVE-METADATA-20261011
+status: completed
+goal: Read-only inspection of already-persisted tender source metadata and chunk integrity
+  in live DP0.6, without misrepresenting raw-source provenance verification.
+definition_of_done:
+- Enumerate authorized existing DP collections with read-only GET.
+- Sample one resource per tender collection using metadata-only export and verify
+  presence/types of stored source IDs, chunk coordinates and SHA-like hashes.
+- Check one EIS-linked example chunk hashes against authenticated read-only returned
+  text; do not echo original strings or credentials.
+- Explicitly distinguish normalized-coordinate contract and unverified original file
+  binary SHA256.
+completed:
+- Live DP0.6 returned 24 collections; 17 had tender in collection identifier.
+- 'Metadata-only sample of 17 tender collections: 17 resources, 17 documents, 57 chunks;
+  17 document and 57 chunk hashes had 64-character hex shape; 57/57 coordinates were
+  nonnegative increasing integers.'
+- One exported sample had canonical source URL from zakupki.gov.ru; returned 1 resource,
+  1 document, 41 chunks and nonblank resource/document/chunk IDs.
+- Chunk text SHA256 comparisons passed 41 of 41 against returned chunk text without
+  echoing customer data or secrets.
+- Raw doc.text offset slicing did not equal chunk text (0 of 41); documented DP chunking.py
+  ChunkDraft defines char_start/end in normalize_text(input) and piece.strip(), NOT
+  raw extractor text coordinates. Do not treat this comparison as a product failure.
+- Neither canonical source file bytes nor doc SHA256 of raw original EIS attachments
+  was compared. No writes, service changes, credentials logged or raw source text
+  output.
+current: Completed bounded read-only metadata audit. Full live normalized-offset and
+  EIS original-file binary integrity gate remain pending under parent R2.
+pending: []
+last_verified_commit: 4b3e6cffc97701267fec6d70384522485929a7e8
+test_results:
+- GET /v1/collections 24 entries; 17 tender scopes
+- Metadata-only export 17 resources / 17 documents / 57 chunks with IDs/hash-shapes/coordinate
+  types
+- 'One EIS-linked resource: 41/41 chunk SHA256 matches returned chunk text; raw-coordinate
+  direct match 0/41 as expected for normalized coordinate contract'
+- Original raw EIS attachment SHA256 and normalized offset full live replay NOT tested
+resume_instruction: Continue TDP-REFACTOR-20261009 R2. Use DP normalize_text(document.text)
+  for chunk char_start/end and .strip() for chunk text. Complete live read-only normalized-coordinate
+  replay and independently authenticated original EIS binary SHA256/notice revision
+  matching before claiming verified source provenance; 17 tender collections exist
+  but standard TA upload/connector/recovery processing IDs absent. Never leak document
+  text/credentials or mutate production; keep owner-disabled watchdog disabled.
