@@ -40,20 +40,21 @@ completed:
   - '2026-10-10 cross-repo TA PR #301 pure economics upload bounds and #302 source-backed procurement scope classifier both merged exact-head CI green, latest TA code da7907c72ef4a869674526799e33077d85a4bf63; DP service/API/SDK unchanged.'
   - '2026-10-10 DP PR #106 pure deterministic Russian OCR/text/table/field structure/latency percentile scoring extracted into evaluation/corpus_scoring.py with legacy aliases, 14 focused and full local pytest/Ruff PASS, exact-head Python 3.11-3.13/JS SDK/PostgreSQL CI all green, merged main 406a9530a6ca802e2497188972c4f9679c2d2bd2.'
   - '2026-10-10 cross-repo TA PR #303 source-locked original-file collection and DP resource/document/chunk metadata preservation extracted from upload monolith, full local 3520 PASS, all exact-head GitHub quality/integration CI green; merged Tender Agent f21ec09866011b40c354a74f8eb81e7f95f5b54a. DP own PR #106 pure Russian OCR/table/frozen corpus scoring merged green 406a9530.'
-current: 'DP #99-106 all green merged; R2 legacy .xls BIFF extraction isolated as documents/legacy_xls_tables preserving generic extractor facade, ordered Cyrillic rows, numeric/date/bool rendering and fail-closed invalid data. Full local DP pytest/Ruff green, exact-head CI pending. TA #304 persisted quote/economics adapters local full 3533 PASS, GitHub quality pending. R5 real EIS original source and owner acceptance remain.'
+  - '2026-10-10 DP PR #107 standalone legacy BIFF XLS table projection extracted to documents/legacy_xls_tables.py preserving facade identity, Cyrillic row/column order, bool/number/ISO date and corrupt/empty fail-closed behavior; focused and full DP pytest/Ruff PASS, exact-head Python 3.11-3.13/JS SDK/PostgreSQL CI green, merged main e7393b8becbd9d15ab8911262a3db1d0133512e2.'
+current: 'DP modular R2/R3 #99-107 all merged CI green. Latest DP #107 source code e7393b8becbd9d15ab8911262a3db1d0133512e2 extracts original legacy XLS BIFF table rows into standalone documents/legacy_xls_tables; existing extractor facade and fail-closed invalid-file semantics preserved. TA R3 PR #304 persisted quote/economics payload module passes 3533 local tests, exact-head GitHub quality CI still running. Remaining DP deployed authenticated SDK0.3/APIv1 original resource/document/chunk ID/hash/offset evidence, OCR/VLM model benchmarks, R5 >=20 independent owner-reviewed real EIS originals and signoff.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '2626d335cea7c15d111f887a6942d449616d894f'
+last_verified_commit: 'e7393b8becbd9d15ab8911262a3db1d0133512e2'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Review DP PR refactor/tdp-dp-legacy-xls-20261010 after source commit 2626d33, full DP pytest/Ruff and focused XLS tests passed locally. Merge only all-green exact-head Python 3.11-3.13, JS SDK/Postgres CI. Also TA #304 full 3533 PASS pending quality; synchronize both checkpoints after merge. Then R2 real deployed authenticated DP API SDK with original Russian EIS files/offsets/OCR/VLM, R5 >=20 independent human owner-reviewed procurements. EIS downtime until 2026-10-11 20:00 MSK, RU direct no proxy only. No production/pilot/SSD/watchdog changes.'
+resume_instruction: 'Restore Data Platform main after #107 merged all-green exact-head CI source commit e7393b8b; do not redo XLS/Word or earlier DP #99-106 modularization. Check TA PR #304 https://github.com/arvectum2/tender-agent/pull/304: 3533 local PASS/238 skipped, GitHub quality jobs pending and must be fully green before merge. Once merged sync both checkpoints. Next substantial R2 deployed authorized DP0.6 APIv1 SDK0.3 real original Russian EIS docs resource/document/chunk provenance and OCR/VLM accuracy/latency; R5 after EIS maintenance through 2026-10-11 20:00 MSK Russian direct no proxy getDocsIP, >=20 independent original reviews, owner acceptance. Preserve production/private pilot/SSD/disabled watchdog.'
 execution:
-  branch: refactor/tdp-dp-legacy-xls-20261010
+  branch: main
   manual_override: true
   lease_until: null
