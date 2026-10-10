@@ -26,7 +26,8 @@ completed:
   - '2026-10-10 DP #96/#97 merged and verified on main: 92a12f3 and ff115ade; Python 3.11/3.12/3.13, SDK JavaScript, PostgreSQL/mirror green.'
   - 'Read-only dual-repository AST audit after consolidation: zero exact >=12-line function groups and no forbidden import edges; Tender Agent R0 audit PR #296 tracks CI.'
 
-current: 'Data Platform #96/#97 and checkpoint #98 merged; Tender Agent #295/#296 merged with green CI. Generic Word table extraction and atomic profile store consolidation verified; full task remains in_progress pending authentic >=20 independently human-reviewed EIS source corpus, runtime/SDK/LLM consumer acceptance and owner approval.'
+  - '2026-10-10 cross-repository Tender Agent PR #297 direct Russian no-proxy EIS SOAP TLS diagnostics and strict official endpoint guard merged main f5f3f1a8, exact-head CI green; Data Platform runtime/SDK untouched.'
+current: 'Data Platform #96-98 already merged/verified; Tender Agent direct Russian no-proxy EIS TLS preflight PR #297 also merged with green CI. During official EIS 16.3 maintenance through 2026-10-11 20:00 MSK, real new SOAP source acquisition remains unverified. R5 >=20 independent original procurements, Russian OCR/VLM benchmark, SDK consumer E2E and owner acceptance remain in_progress.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
@@ -38,7 +39,7 @@ test_results:
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Continue TDP-REFACTOR-20261009 after DP main #96-98 and TA main #295/#296 (R0 architecture audit completed). Priority: frozen >=20 independently human-reviewed original 44/223-FZ procurements, truth-preserving original-file/DP chunk -> Tender Agent SDK 0.3.0/v1 API -> authenticated JSON/HTML/PDF/DOCX E2E, benchmark Russian OCR/VLM and Gemma latency/cost. Lawful EIS SOAP host still resets peer connection; never bypass TLS, fill missing facts or promote unverified LLM claims. Preserve Mac mini private pilot 18083, disabled watchdog and external SSD; no public deploy or live data mutation.'
+resume_instruction: 'Continue TDP-REFACTOR-20261009 from Data Platform main after #98, TA main after merged #297 (f5f3f1a8). Official EIS 16.3 maintenance until 2026-10-11 20:00 MSK; after that run direct Russian/no-proxy EIS TLS and one actual getDocsIP read-only request with the TA fast-fail operator script, then validate original file -> DP resource/document/chunk IDs -> TA authenticated saved fact/report/PDF/DOCX, plus >=20 independently human-reviewed real EIS procurements. Run measured Russian OCR/VLM accuracy and LLM latency/cost, SDK 0.3.0/v1 API compatibility, owner acceptance. No proxy/TLS bypass, private pilot mutation, public deploy, SSD diagnosis side effects or enabling disabled watchdog.'
 execution:
   branch: main
   manual_override: true
