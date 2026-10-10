@@ -5,7 +5,14 @@ import json
 import httpx
 import pytest
 
-from arvectum_data_client import DataPlatformClient, DataPlatformError
+from arvectum_data_client import (
+    DataPlatformAuthenticationError,
+    DataPlatformClient,
+    DataPlatformConflictError,
+    DataPlatformError,
+    DataPlatformRateLimitError,
+    DataPlatformUnavailableError,
+)
 
 
 def _client(handler) -> DataPlatformClient:
@@ -275,3 +282,43 @@ def test_connector_credential_sdk_contract() -> None:
         ("POST", "/v1/discover"),
         ("POST", "/v1/research"),
     ]
+
+
+@pytest.mark.parametrize(
+    ("http_status", "error_class", "retryable"),
+    [
+        (401, DataPlatformAuthenticationError, False),
+        (403, DataPlatformAuthenticationError, False),
+        (409, DataPlatformConflictError, False),
+        (429, DataPlatformRateLimitError, True),
+        (502, DataPlatformUnavailableError, True),
+        (503, DataPlatformUnavailableError, True),
+        (504, DataPlatformUnavailableError, True),
+        (400, DataPlatformError, False),
+        (404, DataPlatformError, False),
+    ],
+)
+def test_sdk_typed_errors_remain_backwards_compatible(http_status, error_class, retryable):
+    client = _client(lambda request: httpx.Response(http_status, json={"detail": "failed"}))
+    with pytest.raises(error_class) as exc_info:
+        client.collection_stats("test")
+    assert isinstance(exc_info.value, DataPlatformError)
+    assert exc_info.value.status_code == http_status
+    assert exc_info.value.retryable is retryable
+
+
+def test_sdk_network_error_is_typed_unavailable_without_status_code():
+    def handler(request):
+        raise httpx.ConnectError("connection refused", request=request)
+
+    client = _client(handler)
+    with pytest.raises(DataPlatformUnavailableError) as exc_info:
+        client.collection_exists("test")
+    assert exc_info.value.status_code is None
+    assert exc_info.value.retryable is True
+    assert exc_info.value.path == "/v1/collections/test"
+
+
+def test_sdk_404_aware_collection_lookup_still_works():
+    client = _client(lambda request: httpx.Response(404))
+    assert client.collection_exists("missing") is False

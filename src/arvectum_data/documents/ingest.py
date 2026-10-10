@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import mimetypes
 import re
-from dataclasses import dataclass
+import tempfile
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from ..acquisition import AcquisitionEngine, AcquisitionRequest
@@ -125,7 +126,7 @@ def ingest_file(
     uri = canonical_uri or file_path.as_uri()
     media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
     metadata = {"file_name": file_path.name}
-    if content.startswith(b"%PDF-") and ocr_provider is not None:
+    if content.startswith(b"%PDF-"):
         pdf_result = extract_pdf_cascade(
             content,
             max_chars=max_chars,
@@ -142,9 +143,13 @@ def ingest_file(
             }
             for page in pdf_result.pages
         ]
+        metadata["pdf_page_count"] = len(pdf_result.pages)
+        metadata["text_truncated"] = pdf_result.text_truncated
         metadata["ocr"] = {
             "provider": pdf_result.ocr.provider if pdf_result.ocr else None,
             "page_numbers": list(pdf_result.ocr_page_numbers),
+            "skipped_page_numbers": list(pdf_result.skipped_ocr_page_numbers),
+            "unresolved_page_numbers": list(pdf_result.unresolved_page_numbers),
             "mean_confidence": (
                 pdf_result.ocr.mean_confidence if pdf_result.ocr else None
             ),
@@ -167,6 +172,11 @@ def ingest_file(
                 for page in (pdf_result.ocr.pages if pdf_result.ocr else ())
             ],
         }
+        if pdf_result.unresolved_page_numbers:
+            metadata["extraction_warnings"] = [
+                "native text insufficient and OCR/VLM text unavailable on pages: "
+                + ", ".join(str(page) for page in pdf_result.unresolved_page_numbers)
+            ]
         metadata["vlm"] = [
             {
                 "page_number": page.page_number,
@@ -199,6 +209,53 @@ def ingest_file(
         content_hash=content_hash,
         metadata=metadata,
         chunking=resolved_chunking,
+    )
+
+
+def ingest_bytes(
+    content: bytes,
+    *,
+    filename: str,
+    collection_id: str,
+    source_type: str = "file",
+    canonical_uri: str | None = None,
+    title: str | None = None,
+    chunking: ChunkingConfig | None = None,
+    pre_chunked: bool = False,
+    max_chars: int = 2_000_000,
+    ocr_provider: OCRProvider | None = None,
+    vision_provider: VisionProvider | None = None,
+) -> DocumentIngestResult:
+    """Ingest uploaded bytes through the same format-aware pipeline as local files.
+
+    Legacy Office converters require a path, so a short-lived private directory
+    is used for *all* formats. Its random path must not escape into source
+    metadata, IDs or provenance; uploads retain their original logical name.
+    """
+    safe_suffix = Path(filename).suffix[:16]
+    with tempfile.TemporaryDirectory(prefix="arvectum-upload-") as workdir:
+        temporary = Path(workdir) / f"source{safe_suffix}"
+        temporary.write_bytes(content)
+        result = ingest_file(
+            temporary,
+            collection_id=collection_id,
+            source_type=source_type,
+            canonical_uri=canonical_uri or f"upload://{filename}",
+            title=title or filename,
+            chunking=chunking,
+            pre_chunked=pre_chunked,
+            max_chars=max_chars,
+            ocr_provider=ocr_provider,
+            vision_provider=vision_provider,
+        )
+    # All projections must agree on original source metadata. Never mutate the
+    # mappings shared by the frozen models returned from ingest_file().
+    metadata = {**result.document.metadata, "file_name": filename}
+    return replace(
+        result,
+        resource=replace(result.resource, metadata=metadata),
+        document=replace(result.document, metadata=metadata),
+        chunks=tuple(replace(chunk, metadata=metadata) for chunk in result.chunks),
     )
 
 

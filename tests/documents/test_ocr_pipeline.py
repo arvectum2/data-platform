@@ -121,3 +121,62 @@ def test_vlm_default_confidence_gate_matches_real_scan_profiles():
     )
 
     assert pages_requiring_vlm(ocr) == ((1, "ocr-low-confidence"),)
+
+
+def test_long_native_pdf_preserves_pages_beyond_bounded_ocr_budget(monkeypatch):
+    from arvectum_data.documents import pdf_pipeline
+
+    class Page:
+        def __init__(self, number):
+            self.number = number
+
+        def extract_text(self):
+            return f"Страница {self.number}: " + "Технические условия поставки. " * 6
+
+    class Reader:
+        pages = [Page(n) for n in range(1, 14)]
+
+    monkeypatch.setattr(pdf_pipeline, "_read_pdf", lambda content: Reader())
+    result = extract_pdf_cascade(b"pdf", max_chars=50000, ocr_provider=FakeOCR())
+    assert len(result.pages) == 13
+    assert "[Page 13]" in result.text
+    assert "Страница 13" in result.text
+    assert result.ocr_page_numbers == ()
+    assert result.text_truncated is False
+
+
+def test_long_scanned_pdf_exposes_ocr_budget_and_incomplete_pages(tmp_path: Path):
+    source = tmp_path / "long-scan.pdf"
+    writer = PdfWriter()
+    for _ in range(12):
+        writer.add_blank_page(width=595, height=842)
+    with source.open("wb") as handle:
+        writer.write(handle)
+
+    provider = FakeOCR()
+    result = ingest_file(source, collection_id="tenant:long-scan", ocr_provider=provider)
+
+    assert provider.requested == tuple(range(1, 11))
+    assert result.document.metadata["pdf_page_count"] == 12
+    assert result.document.metadata["ocr"]["page_numbers"] == list(range(1, 11))
+    assert result.document.metadata["ocr"]["skipped_page_numbers"] == [11, 12]
+    assert result.document.metadata["ocr"]["unresolved_page_numbers"] == [11, 12]
+    assert "[Page 10]" in result.document.text
+    assert "[Page 11]" not in result.document.text
+    assert "extraction_warnings" in result.document.metadata
+
+
+def test_pdf_extraction_reports_character_budget_truncation(monkeypatch):
+    from arvectum_data.documents import pdf_pipeline
+
+    class Page:
+        def extract_text(self):
+            return "Длинный документ " * 80
+
+    class Reader:
+        pages = [Page()]
+
+    monkeypatch.setattr(pdf_pipeline, "_read_pdf", lambda content: Reader())
+    result = extract_pdf_cascade(b"pdf", max_chars=60)
+    assert len(result.text) == 60
+    assert result.text_truncated is True

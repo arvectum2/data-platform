@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import os
-import tempfile
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import func, select
 
 from ...acquisition.security import validate_public_url
-from ...documents import ingest_file, ingest_url
+from ...documents import ingest_bytes, ingest_url
 from ...processing import ChunkingConfig
 from ...models import ModelRole
 
@@ -389,57 +386,45 @@ class CollectionServiceMixin:
         min_chunk_chars: int = 120,
         max_chars: int = 2_000_000,
     ) -> dict[str, Any]:
-        suffix = Path(filename).suffix[:16]
-        temporary_path: str | None = None
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as handle:
-                handle.write(content)
-                temporary_path = handle.name
-            result = ingest_file(
-                temporary_path,
-                collection_id=collection_id,
-                canonical_uri=canonical_uri or f"upload://{filename}",
-                title=title or filename,
-                chunking=ChunkingConfig(
-                    chunk_size_chars=max(1, int(chunk_size_chars)),
-                    overlap_chars=max(0, int(overlap_chars)),
-                    min_chunk_chars=max(1, int(min_chunk_chars)),
-                ),
-                max_chars=max(1, int(max_chars)),
-                ocr_provider=self.ocr_provider,
-                vision_provider=self.model_router.provider(ModelRole.VISION),
-            )
-            processing_metadata = dict(result.document.metadata or {})
-            processing_metadata["file_name"] = filename
-            return {
-                "collection_id": result.resource.collection_id,
-                "resource_id": result.resource.resource_id,
-                "document_id": result.document.document_id,
-                "canonical_uri": result.resource.canonical_uri,
-                "title": result.document.title,
-                "media_type": result.document.media_type,
-                "extraction_status": result.document.extraction_status,
-                "metadata": processing_metadata,
-                "text": result.document.text,
-                "chunks": [
-                    {
-                        "chunk_id": chunk.chunk_id,
-                        "ordinal": chunk.ordinal,
-                        "text": chunk.text,
-                        "content_hash": chunk.content_hash,
-                        "char_start": chunk.char_start,
-                        "char_end": chunk.char_end,
-                        "token_estimate": chunk.token_estimate,
-                    }
-                    for chunk in result.chunks
-                ],
-            }
-        finally:
-            if temporary_path:
-                try:
-                    os.unlink(temporary_path)
-                except FileNotFoundError:
-                    pass
+        result = ingest_bytes(
+            content,
+            filename=filename,
+            collection_id=collection_id,
+            canonical_uri=canonical_uri or f"upload://{filename}",
+            title=title or filename,
+            chunking=ChunkingConfig(
+                chunk_size_chars=max(1, int(chunk_size_chars)),
+                overlap_chars=max(0, int(overlap_chars)),
+                min_chunk_chars=max(1, int(min_chunk_chars)),
+            ),
+            max_chars=max(1, int(max_chars)),
+            ocr_provider=self.ocr_provider,
+            vision_provider=self.model_router.provider(ModelRole.VISION),
+        )
+        processing_metadata = dict(result.document.metadata or {})
+        return {
+            "collection_id": result.resource.collection_id,
+            "resource_id": result.resource.resource_id,
+            "document_id": result.document.document_id,
+            "canonical_uri": result.resource.canonical_uri,
+            "title": result.document.title,
+            "media_type": result.document.media_type,
+            "extraction_status": result.document.extraction_status,
+            "metadata": processing_metadata,
+            "text": result.document.text,
+            "chunks": [
+                {
+                    "chunk_id": chunk.chunk_id,
+                    "ordinal": chunk.ordinal,
+                    "text": chunk.text,
+                    "content_hash": chunk.content_hash,
+                    "char_start": chunk.char_start,
+                    "char_end": chunk.char_end,
+                    "token_estimate": chunk.token_estimate,
+                }
+                for chunk in result.chunks
+            ],
+        }
 
     def ingest_document_bytes(
         self,
@@ -451,28 +436,17 @@ class CollectionServiceMixin:
         canonical_uri: str | None = None,
         pre_chunked: bool = False,
     ) -> dict[str, Any]:
-        suffix = Path(filename).suffix[:16]
-        temporary_path: str | None = None
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as handle:
-                handle.write(content)
-                temporary_path = handle.name
-            result = ingest_file(
-                temporary_path,
-                collection_id=collection_id,
-                canonical_uri=canonical_uri or f"upload://{filename}",
-                title=title or filename,
-                pre_chunked=pre_chunked,
-                ocr_provider=self.ocr_provider,
-                vision_provider=self.model_router.provider(ModelRole.VISION),
-            )
-            return self._persist_and_index(result)
-        finally:
-            if temporary_path:
-                try:
-                    os.unlink(temporary_path)
-                except FileNotFoundError:
-                    pass
+        result = ingest_bytes(
+            content,
+            filename=filename,
+            collection_id=collection_id,
+            canonical_uri=canonical_uri or f"upload://{filename}",
+            title=title or filename,
+            pre_chunked=pre_chunked,
+            ocr_provider=self.ocr_provider,
+            vision_provider=self.model_router.provider(ModelRole.VISION),
+        )
+        return self._persist_and_index(result)
 
     def ingest_url(
         self,

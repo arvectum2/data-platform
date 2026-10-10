@@ -40,3 +40,25 @@ def test_misspelled_xslx_with_real_xlsx_content_is_extracted(tmp_path) -> None:
     assert status == EXTRACTED_STATUS
     assert "NMCK" in text
     assert "3400000" in text
+
+
+def test_oversized_ooxml_xml_is_rejected_before_decompression(tmp_path, monkeypatch):
+    from arvectum_data.documents import extractor
+
+    payload = tmp_path / "oversized.docx"
+    with zipfile.ZipFile(payload, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("word/document.xml", "<xml>" + "а" * 250 + "</xml>")
+    monkeypatch.setattr(extractor, "_MAX_OOXML_MEMBER_BYTES", 64)
+    assert extract_text(str(payload))[1] == ""
+
+
+def test_oversized_xlsx_member_is_rejected_before_openpyxl(tmp_path, monkeypatch):
+    from arvectum_data.documents import extractor
+
+    payload = tmp_path / "oversized.xlsx"
+    workbook = openpyxl.Workbook()
+    workbook.active.append(["Документ", "Условия поставки"])
+    workbook.save(payload)
+    workbook.close()
+    monkeypatch.setattr(extractor, "_MAX_OOXML_MEMBER_BYTES", 32)
+    assert extract_text(str(payload))[1] == ""

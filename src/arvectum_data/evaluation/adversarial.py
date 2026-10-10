@@ -421,7 +421,7 @@ class PostgresAdversarialRunner:
         )
 
         with patch(
-            "arvectum_data.api.service.ingest_url",
+            "arvectum_data.api.service_mixins.memory_sync.ingest_url",
             side_effect=OSError("synthetic refresh failure"),
         ):
             first = self.service.refresh_resource(resource_id)

@@ -120,3 +120,18 @@ A release that changes the consumer surface must pass:
 2. Python SDK conformance tests;
 3. JavaScript SDK conformance tests;
 4. affected consumer regression tests before duplicated client code is removed.
+
+
+## Typed failure handling (Python SDK 0.3.x, backwards compatible)
+
+`DataPlatformError` remains the base exception and retains `status_code`,
+`method`, and `path`. Its new `retryable` property is `True` for transport
+failures, HTTP 502/503/504, and quota HTTP 429. Consumers can optionally catch
+`DataPlatformUnavailableError`, `DataPlatformAuthenticationError`,
+`DataPlatformRateLimitError`, or `DataPlatformConflictError`; all inherit from
+`DataPlatformError`. This is a client-only improvement: HTTP response bodies,
+consumer contract major version and authentication headers are unchanged.
+
+An HTTP 429 needs tenant-aware backoff, while 401/403 and 409 are not
+retryable without changing credentials or request state. Do not automatically
+retry non-idempotent writes simply because an error is marked retryable.

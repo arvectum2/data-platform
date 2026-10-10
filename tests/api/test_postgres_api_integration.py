@@ -1094,7 +1094,7 @@ def test_continuous_refresh_tracks_unchanged_content_without_reembedding(monkeyp
     )
 
     monkeypatch.setattr(
-        "arvectum_data.api.service.ingest_url",
+        "arvectum_data.api.service_mixins.memory_sync.ingest_url",
         lambda *args, **kwargs: initial,
     )
     result = service.refresh_resource(resource_id)

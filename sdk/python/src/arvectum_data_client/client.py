@@ -36,6 +36,27 @@ class DataPlatformError(RuntimeError):
         self.method = method
         self.path = path
 
+    @property
+    def retryable(self) -> bool:
+        """Whether retry/backoff can reasonably resolve this error."""
+        return isinstance(self, (DataPlatformUnavailableError, DataPlatformRateLimitError))
+
+
+class DataPlatformUnavailableError(DataPlatformError):
+    """Network failure or temporarily unavailable server (502/503/504)."""
+
+
+class DataPlatformAuthenticationError(DataPlatformError):
+    """Invalid or missing consumer/internal credentials (401/403)."""
+
+
+class DataPlatformRateLimitError(DataPlatformError):
+    """Request throttled by tenant quota (429); retry only after backoff."""
+
+
+class DataPlatformConflictError(DataPlatformError):
+    """Request conflicts with current platform state (409)."""
+
 
 class DataPlatformClient:
     def __init__(
@@ -78,22 +99,35 @@ class DataPlatformClient:
         path: str,
     ) -> DataPlatformError:
         detail = response.text.strip()[:500]
-        return DataPlatformError(
+        error_type: type[DataPlatformError] = {
+            401: DataPlatformAuthenticationError,
+            403: DataPlatformAuthenticationError,
+            409: DataPlatformConflictError,
+            429: DataPlatformRateLimitError,
+            502: DataPlatformUnavailableError,
+            503: DataPlatformUnavailableError,
+            504: DataPlatformUnavailableError,
+        }.get(response.status_code, DataPlatformError)
+        return error_type(
             f"Data Platform {method} {path} returned HTTP {response.status_code}: {detail}",
             status_code=response.status_code,
             method=method,
             path=path,
         )
 
-    def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
+    def _raw_request(self, method: str, path: str, **kwargs) -> httpx.Response:
+        """Single transport boundary shared by normal and 404-aware requests."""
         try:
-            response = self._client.request(method, path, **kwargs)
-        except httpx.HTTPError as exc:
-            raise DataPlatformError(
+            return self._client.request(method, path, **kwargs)
+        except httpx.RequestError as exc:
+            raise DataPlatformUnavailableError(
                 f"Data Platform request failed: {exc}",
                 method=method,
                 path=path,
             ) from exc
+
+    def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
+        response = self._raw_request(method, path, **kwargs)
         if response.status_code >= 400:
             raise self._error(response, method, path)
         return response
@@ -142,14 +176,7 @@ class DataPlatformClient:
         access_policy: dict[str, Any] | None = None,
     ) -> Collection:
         path = f"/v1/collections/{collection_id}"
-        try:
-            response = self._client.get(path)
-        except httpx.HTTPError as exc:
-            raise DataPlatformError(
-                f"Data Platform collection lookup failed: {exc}",
-                method="GET",
-                path=path,
-            ) from exc
+        response = self._raw_request("GET", path)
         if response.status_code == 200:
             return cast(Collection, response.json())
         if response.status_code != 404:
@@ -169,14 +196,7 @@ class DataPlatformClient:
 
     def collection_exists(self, collection_id: str) -> bool:
         path = f"/v1/collections/{collection_id}"
-        try:
-            response = self._client.get(path)
-        except httpx.HTTPError as exc:
-            raise DataPlatformError(
-                f"Data Platform request failed: {exc}",
-                method="GET",
-                path=path,
-            ) from exc
+        response = self._raw_request("GET", path)
         if response.status_code == 200:
             return True
         if response.status_code == 404:

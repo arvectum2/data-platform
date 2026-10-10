@@ -242,7 +242,7 @@ class PostgresSyncEfficiencyRunner:
                 return original(candidate)
 
             with (
-                patch("arvectum_data.api.service.ingest_url", side_effect=self._candidate_for_url),
+                patch("arvectum_data.api.service_mixins.memory_sync.ingest_url", side_effect=self._candidate_for_url),
                 patch.object(self.service, "_persist_and_index", side_effect=tracking),
             ):
                 refresh_results = [
