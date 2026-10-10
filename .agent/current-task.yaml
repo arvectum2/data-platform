@@ -23,21 +23,23 @@ completed:
   - 'R2 legacy Word wvHtml table projection extracted into documents/legacy_word_tables.py; compatibility aliases in extractor.py preserved, 27 focused checks + whole platform suite + Ruff passed.'
   - 'DP PR #96 legacy Word projection merged main with all exact-head CI green.'
   - 'R3 two identical 27-line JSON snapshot persistence implementations unified via storage/atomic_json.py preserving original class facades, temp cleanup and fsync+replace ordering.'
+  - '2026-10-10 DP #96/#97 merged and verified on main: 92a12f3 and ff115ade; Python 3.11/3.12/3.13, SDK JavaScript, PostgreSQL/mirror green.'
+  - 'Read-only dual-repository AST audit after consolidation: zero exact >=12-line function groups and no forbidden import edges; Tender Agent R0 audit PR #296 tracks CI.'
 
-current: 'DP R3 27-line duplicate JSON store consolidation verified; PR pending exact-head CI, previous #96 merged. R5 source corpus/owner acceptance still outstanding.'
+current: 'Data Platform #96/#97 merged to main and checkpoints reconciled; remaining R5 authentic independently reviewed Russian source benchmark, runtime/SDK/LLM truthfulness, Tender Agent consumer E2E and owner gate remain in_progress.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: 'c76132414341d1d9bb0387c8e600b00a4800a871'
+last_verified_commit: 'ff115adea1070c5b66d8eb61e5d287247a3118d9'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Check exact-head CI and merge DP R3 shared atomic JSON profile writer PR from refactor/tdp-dp-atomic-profile-20261010 after full local DP suite/Ruff and AST duplicate scan PASSED. TA #295 still needs CI/main merge and R0 cross-repo audit branch. Keep owner pilot 18083, watchdog disabled, external SSD untouched. R5 >=20 original independently reviewed EIS cases not yet available.'
+resume_instruction: 'Resume TDP-REFACTOR-20261009 on DP main after #96/#97 (last source merge ff115ade), 0 exact >=12-line AST clone groups, Python 3.11/3.12/3.13 + PostgreSQL CI green. Next prioritize frozen >=20 original procurement documents with independent human quality verification, run measured Russian PDF/OCR/VLM accuracy and latency/cost, verify Tender Agent SDK 0.3.0 and v1 API with DP runtime 0.6.0. TA R0 PR #296 needs exact-head CI. Keep pilot 18083, watchdog disabled and external SSD untouched; no TLS bypass or production mutations.'
 execution:
-  branch: refactor/tdp-dp-atomic-profile-20261010
+  branch: main
   manual_override: true
   lease_until: null
