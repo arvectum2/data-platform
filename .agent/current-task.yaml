@@ -19,19 +19,22 @@ completed:
   - 'PR #88 unified ingestion, PDF/native page extraction, bounded OCR, SDK transport error contracts merged; TA consumer regressions passed.'
   - 'PR #89 full 158-module AST audit, lazy 126-export facade, bounded collection export queries and PostgreSQL CI merged.'
   - 'PR #90 bounded vector UPSERT batching, retrieval/index lifecycle, deduplicated query expansion, crawl ranking and durable result decoding merged (exact-head all CI green).'
+  - 'DP PRs #91-95 merged (latest #95 hybrid query expansion extraction), audited on Mac mini internal worktree.'
+  - 'R2 legacy Word wvHtml table projection extracted into documents/legacy_word_tables.py; compatibility aliases in extractor.py preserved, 27 focused checks + whole platform suite + Ruff passed.'
 
-current: 'DP PRs #86-90 merged with green exact-head CI: v1 ingestion/SDK, normalized chunk evidence contract, 158-module ownership audit, query/index/storage hot-path refactors and PostgreSQL/pgvector tests. Frozen Russian OCR/quality benchmark, live Tender Agent consumer acceptance, model costs and owner sign-off still pending.'
+current: 'DP R2 Word table extraction verified locally, PR/CI integration pending; broader real original procurement quality and owner acceptance remain pending.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '05abe37a38f5b25571a22c97de45edc5fd12a6a5'
+last_verified_commit: '2da60980446ebecd37fd2d93b6f14443507bda28'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
+  - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
 
-resume_instruction: 'TDP-REFACTOR-20261009 remains in_progress. Standalone Data Platform PRs #86-90 merged to main; latest merge commit 05abe37a38f5b25571a22c97de45edc5fd12a6a5. Next R5: frozen >=20 original Russian procurement corpus with independently checked factual/semantic evidence, quantify OCR/VLM Russian errors and model cost/latency, verify Tender Agent consumer E2E on source-locked private preview after Mac mini external ArvectumSSD reads recover. 158-module audit is complete screening, not complete per-module rewrite. Do not change HTTP v1/SDK compatibility, production data, services, disablement of watchdog, or public deploy without owner gate.'
+resume_instruction: 'Verify the exact-head CI for DP legacy Word projection PR and merge when green; continue real source EIS corpus R5 checks. Internal worktree /private/tmp/tdp-dp-legacy-word-table-20261010, main v0.6.0 API/SDK untouched. Keep Tender Agent watchdog disabled and preserve pilot 18083.'
 execution:
-  branch: refactor/platform-contract-cleanup-20261009
+  branch: refactor/tdp-dp-legacy-word-table-20261010
   manual_override: true
   lease_until: null
