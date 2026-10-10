@@ -33,20 +33,21 @@ completed:
   - '2026-10-10 DP PR #102 pure credential-safe API response projections and connector metadata validation extracted from AccessServiceMixin, original staticmethod facades retained; full DP pytest, Ruff, exact-head Python/JS/Postgres CI green; merged main 01e90bac3b3c5365f0a914d87fd0636e6cc7c6ae.'
   - '2026-10-10 DP PR #103 canonical/federated search hit deduplication policy extracted from RetrievalServiceMixin into pure api/search_hit_policy with old static-method facades retained; full pytest/Ruff and exact-head Python/JS/PostgreSQL CI green, merged main 9f1f132f2512413b39b5554b9114e30ab1ebd880.'
   - '2026-10-10 DP PR #104 five pure billing catalogue/assignment/rule/invoice-line/usage payload projections extracted from billing mixin, full DP pytest/Ruff and exact-head Python/JS/Postgres CI green, merged main 988efcec30d7d668d6b79c58047d1efb0bc5fc45.'
-current: 'R2 bounded SDK 0.3.0 -> actual FastAPI API v1 contract, authenticated processing response and source/chunk evidence offsets regression added with synthetic in-process source; full DP pytest and Ruff green, PR/CI pending. DP R3 #99-104 merged. Real EIS source corpus >=20 reviews and R4 owner gate remain.'
+  - '2026-10-10 DP PR #105 synthetic in-process SDK 0.3.0 -> real authenticated FastAPI API 1.0 contract and provenance offsets integration test, local full DP pytest/Ruff and exact-head GitHub CI passed; merged c50c0aecd0b00d285923d0e042ce7e998025c3b3. Real EIS original corpus not yet verified.'
+current: 'DP #99-104 R3 modules and #105 R2 SDK0.3-to-real-ASGI-API-v1 synthetic authorized contract/provenance test all merged green. Actual deployment remains DP 0.6.0; a read-only unauthenticated /health responds 200, /v1/contract correctly rejects absent internal API key with 401. Remaining R2 real authorized deployed SDK and Russian document corpus, R4 model OCR/VLM benchmarks and R5 true EIS originals >=20 independent human reviews, Tender Agent full report and owner gate. status in_progress.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '265e723503716d69c10898edb0a259d1e9084c98'
+last_verified_commit: 'c50c0aecd0b00d285923d0e042ce7e998025c3b3'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Finish PR from /private/tmp/tdp-dp-sdk-asgi-contract-20261010 test/tdp-dp-sdk-asgi-contract-20261010: SDK 0.3.0 uses real ASGI API v1 contract, verified 401 fail-closed, synthetic process response preserves IDs and offsets; full DP pytest/Ruff green, exact-head CI/merge pending. Then resume live authorized SDK-to-deployed DP provenance and >=20 independent original EIS human source reviews, R4 model benchmarks, owner gate. EIS no live SOAP before 2026-10-11 20:00 MSK, RU direct/no proxy; preserve production/pilot/watchdog.'
+resume_instruction: 'Resume TDP-REFACTOR-20261009 after DP #99-105 already green and merged, latest code c50c0ae; do not redo synthetic SDK-ASGI boundary. Next use securely authorized deployment and original Russian procurement corpus to test SDK v0.3 -> DP 0.6/APIv1 actual resource/document/chunk offsets and provenance, OCR/VLM/model benchmarks, then Tender Agent source-locked report JSON HTML PDF DOCX, >=20 independent manual EIS source reviews and owner signoff. Tender Agent PR #299 filename policy awaits exact-head quality CI; #298 already merged. Live EIS SOAP only after official maintenance 2026-10-11 20:00 MSK, RU direct no proxy and strict TLS. Do not change private pilot, production data, external SSD or disabled watchdog.'
 execution:
-  branch: test/tdp-dp-sdk-asgi-contract-20261010
+  branch: main
   manual_override: true
   lease_until: null
