@@ -1,7 +1,7 @@
 version: 2
 repository: arvectum2/data-platform
 task_id: TDP-R2-NORMALIZED-CHUNKS-20261011
-status: in_progress
+status: completed
 goal: Pure read-only verification of exported chunk hashes and normalized-text offsets;
   not original attachment binary verification.
 definition_of_done:
@@ -17,17 +17,23 @@ completed:
 - Added six validator unit tests and one PostgreSQL collection export assertion.
 - Focused 9 pass with local PostgreSQL test skipped (test DB environment not set).
   Ruff clean; full local Python 3.12 pytest exit 0.
-current: Await exact-head CI, particularly PostgreSQL fixture, before merge.
-pending:
-- Code and tests
-- Full relevant checks and exact-head CI
-- Merge and mark slice completed; original EIS binary proof pending
-last_verified_commit: 3872c1f
+- 'PR #112 merged main 86d85c053eb49cdccf9e0d0afde4eb2695e693de after all GitHub exact-head
+  checks green: Python 3.11/3.12/3.13, PostgreSQL integration, JavaScript SDK and
+  GitVerse.'
+- Six unit regressions + real PostgreSQL collection export assertion validate chunk
+  text hashes and normalized coordinates, fail closed on missing input.
+- Full local Python 3.12 pytest exit 0 and focused Ruff pass; local PostgreSQL-specific
+  test skipped because configured test database absent.
+current: Completed and merged as 86d85c053eb49cdccf9e0d0afde4eb2695e693de
+pending: []
+last_verified_commit: 86d85c053eb49cdccf9e0d0afde4eb2695e693de
 test_results:
 - Ruff targeted clean
 - 9 targeted tests PASS; PostgreSQL test SKIP locally (test database not configured)
 - Full local Python 3.12 pytest EXIT 0
-resume_instruction: Next commit, push PR and await exact-head CI including PostgreSQL.
-  Correct any failures, merge, mark bounded checkpoint completed; overarching TDP-REFACTOR
-  remains in_progress for live EIS original binary source validation, R4 model E2E,
-  R5 human reviews.
+- Exact-head all GitHub CI green including PostgreSQL integration
+- Merged 86d85c053eb49cdccf9e0d0afde4eb2695e693de
+resume_instruction: This bounded R2 normalized chunk checker is complete. Continue
+  overarching task R2 original attached EIS binary SHA256 and source revision; R4
+  actual integrated model quality; R5 >=20 human-reviewed original EIS tenders. No
+  production data changes and owner-disabled watchdog stays disabled.

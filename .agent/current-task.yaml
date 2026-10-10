@@ -50,17 +50,18 @@ completed:
   - '2026-10-10 read-only Mac mini DP0.6 production-local SDKv0.3 probe: health OK, protected GET /v1/contract returns expected HTTP401 without credentials, require_contract(1) fails HTTP401; authenticated deployed original file/chunk provenance still NOT verified. No credentials surfaced, no mutations.'
   - '2026-10-10 R2 authenticated DP0.6 read-only SDK0.3 require_contract(1) returned HTTP200 contract v1.0 using configured runtime secret without disclosure; canonical TA upload/connector/recovery collections absent, so original file/chunk SHA256/offset still unverified.'
   - '2026-10-11 live DP0.6 read-only source audit: 24 collections (17 tender); sample 17 tender resources/17 docs/57 chunks with hash shape and coordinate type, one EIS-linked resource 41/41 chunk-text SHA256 matches. DP chunk offsets refer to normalize_text() not raw doc.text; original EIS binary hash and live normalized-offset replay remain pending.'
-current: 'R2 DP0.6 authenticated SDK0.3 contract 1.0 verified. Metadata-only audit across 17 tender collections found persisted resource/document/chunk IDs, 57 typed coordinate/hash fields; one EIS-linked resource had 41/41 text SHA matches. Raw-source binary integrity and normalized coordinate replay still pending, R4 live model and R5 human EIS review gates open; task in_progress.'
+  - '2026-10-11 DP #112 read-only pure normalized exported chunk verifier: UTF8 SHA256, normalized offsets, IDs and safe-only error codes; six unit tests plus real Postgres export CI on Python 3.11/3.12/3.13 all green, merged 86d85c053eb49cdccf9e0d0afde4eb2695e693de. This is NOT original EIS binary SHA256 proof.'
+current: 'R2 authenticated SDK0.3 -> DP0.6 contract v1.0, live persisted chunk metadata survey and normalized export-text integrity module #112 verified and merged. Still must validate actual original EIS attachment binary SHA256 and notice revision; R4 product-wide non-stub model benchmark, R5 >=20 independent source-locked EIS reviews/owner approval pending. Task in_progress.'
 pending:
-  - 'R2 normalized exported chunk SHA256 and coordinate audit TDP-R2-NORMALIZED-CHUNKS-20261011; no raw text logging or prod changes.'
   - 'R2 remaining: validate live chunk char_start/end against normalize_text(document.text).strip(), then compare authoritative original EIS attachment binary hash and notice revision. Metadata-only audit is NOT original-file proof.'
   - 'R2 remaining: find previously persisted original-source resource/document/chunk IDs and validate SHA256/offsets using read-only authorized API or isolated non-production fixture; standard TA collections are currently absent.'
   - '2026-10-10 dependency refresh PR #108: merged current main into feature branch, regenerated uv.lock --upgrade. Fresh Python 3.12 SDK/dev install, Ruff and complete new-main pytest PASS. Exact-head Python 3.11/3.13 CI and optional browser/rerank/model backends still need checking; do not merge until gates green.'
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: 'e7393b8becbd9d15ab8911262a3db1d0133512e2'
+last_verified_commit: '86d85c053eb49cdccf9e0d0afde4eb2695e693de'
 test_results:
+  - 'DP #112 normalized exported chunk validator: local pytest exit 0, Ruff clean; exact-head Python 3.11/3.12/3.13, PostgreSQL, JS SDK and GitVerse CI green.'
   - '2026-10-11 live DP metadata audit: 17 tender resource/doc samples, 57 chunks valid hash-shapes/range types; EIS resource 41/41 chunk text SHA256 verified; raw coordinate 0/41 expected because normalized coordinate contract.'
   - '2026-10-10 R2 auth proof: live SDK0.3 require_contract(1) returned v1.0; authorized HTTP200; TA processing collections absent, original source proof pending.'
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
@@ -68,7 +69,7 @@ test_results:
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Authenticated SDKv0.3 contractv1 DP0.6 and read-only metadata audit completed, see TDP-R2-LIVE-METADATA-20261011.yaml. Next compute live offset replay in normalize_text(input) coordinate space (NOT doc.text), then compare actual raw original EIS file bytes SHA256 and notice revision; no production writes. R4 model E2E, R5 >=20 original human reviews/owner gate pending. Keep disabled watchdog.'
+resume_instruction: 'Continue TDP-REFACTOR-20261009 from DP main 86d85c053eb49cdccf9e0d0afde4eb2695e693de. R2 verified contracted SDK0.3, metadata sample and software validator for normalized char_start/end, not actual EIS binary hashes. Next source-locked original EIS attachment bytes SHA256 + notice revision verified independently. Continue R4 integrated non-stub model quality and R5 20+ owner-reviewed EIS samples. Do not mutate live Mac mini pilot or reveal secrets; watchdog disabled by owner.'
 execution:
   branch: main
   manual_override: true
