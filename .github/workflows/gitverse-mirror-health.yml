@@ -30,17 +30,25 @@ jobs:
 
           remote_url="https://arvectum:${GITVERSE_TOKEN}@gitverse.ru/arvectum/data-platform.git"
 
+          successful_reads=0
           for attempt in $(seq 1 12); do
-            actual_sha="$(git ls-remote "$remote_url" refs/heads/main | awk '{print $1}')"
-
-            if [ "$actual_sha" = "$expected_sha" ]; then
-              echo "GitVerse main matches current GitHub main: $expected_sha"
-              exit 0
+            # A transient HTTP 502 must not abort the existing retry loop.
+            if actual_sha="$(git ls-remote "$remote_url" refs/heads/main 2>/dev/null | awk '{print $1}')"; then
+              successful_reads=$((successful_reads + 1))
+              if [ "$actual_sha" = "$expected_sha" ]; then
+                echo "GitVerse main matches current GitHub main: $expected_sha"
+                exit 0
+              fi
+              echo "Mirror not converged yet (attempt ${attempt}/12)."
+            else
+              echo "::warning::GitVerse query failed (attempt ${attempt}/12); retrying."
             fi
-
-            echo "Mirror not converged yet (attempt ${attempt}/12)."
             sleep 5
           done
 
-          echo "::error::GitVerse mirror did not converge to current GitHub main ${expected_sha}."
+          if [ "$successful_reads" -eq 0 ]; then
+            echo "::error::GitVerse main could not be queried after 12 attempts (check network/auth)."
+          else
+            echo "::error::GitVerse mirror did not converge to current GitHub main ${expected_sha}."
+          fi
           exit 1
