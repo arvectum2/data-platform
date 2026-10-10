@@ -62,61 +62,7 @@ class HybridSearchEngine:
         candidate_limit = min(300, max(20, target_limit * self.candidate_multiplier))
         accumulated: dict[str, _AccumulatedHit] = {}
 
-        queries = [(request.query, 1.0)]
-        queries.extend(
-            (variant, request.query_variant_weight)
-            for variant in request.query_variants
-        )
-        self.last_expansions = ()
-        if request.expand_query:
-            expansion_started = time.perf_counter()
-            expansion_status = "skipped-unavailable"
-            expansion_provider, expansion_model = self._component_identity(
-                self.query_expander
-            )
-            expansions = ()
-            if self.query_expander is not None:
-                try:
-                    expansions = self.query_expander.expand(
-                        request.query,
-                        limit=request.query_expansion_limit,
-                    )
-                    expansion_status = "executed"
-                except Exception:
-                    expansions = ()
-                    expansion_status = "failed-open"
-            explicit = {
-                request.query.strip().casefold(),
-                *(item.strip().casefold() for item in request.query_variants),
-            }
-            # Custom expanders may return repeated or over-limit variants.
-            # Bound expensive backend/embedding calls and avoid doubling RRF
-            # contributions for the same query, preserving first-seen order.
-            unique_expansions = []
-            for item in expansions:
-                key = item.text.strip().casefold()
-                if not key or key in explicit:
-                    continue
-                explicit.add(key)
-                unique_expansions.append(item)
-                if len(unique_expansions) >= request.query_expansion_limit:
-                    break
-            expansions = tuple(unique_expansions)
-            self.last_expansions = expansions
-            queries.extend((item.text, item.weight) for item in expansions)
-            diagnostics.append(
-                SearchStageDiagnostic(
-                    stage="query-expansion",
-                    status=expansion_status,
-                    duration_ms=round(
-                        (time.perf_counter() - expansion_started) * 1000,
-                        3,
-                    ),
-                    provider=expansion_provider,
-                    model=expansion_model,
-                    metadata={"variants": len(expansions)},
-                )
-            )
+        queries = self._prepare_queries(request, diagnostics)
 
         lexical_ms = 0.0
         vector_ms = 0.0
@@ -279,6 +225,70 @@ class HybridSearchEngine:
         )
         self.last_diagnostics = tuple(diagnostics)
         return final_results
+
+    def _prepare_queries(
+        self,
+        request: SearchQuery,
+        diagnostics: list[SearchStageDiagnostic],
+    ) -> list[tuple[str, float]]:
+        """Prepare bounded queries and diagnostic provenance for a search."""
+        queries = [(request.query, 1.0)]
+        queries.extend(
+            (variant, request.query_variant_weight)
+            for variant in request.query_variants
+        )
+        self.last_expansions = ()
+        if request.expand_query:
+            expansion_started = time.perf_counter()
+            expansion_status = "skipped-unavailable"
+            expansion_provider, expansion_model = self._component_identity(
+                self.query_expander
+            )
+            expansions = ()
+            if self.query_expander is not None:
+                try:
+                    expansions = self.query_expander.expand(
+                        request.query,
+                        limit=request.query_expansion_limit,
+                    )
+                    expansion_status = "executed"
+                except Exception:
+                    expansions = ()
+                    expansion_status = "failed-open"
+            explicit = {
+                request.query.strip().casefold(),
+                *(item.strip().casefold() for item in request.query_variants),
+            }
+            # Custom expanders may return repeated or over-limit variants.
+            # Bound expensive backend/embedding calls and avoid doubling RRF
+            # contributions for the same query, preserving first-seen order.
+            unique_expansions = []
+            for item in expansions:
+                key = item.text.strip().casefold()
+                if not key or key in explicit:
+                    continue
+                explicit.add(key)
+                unique_expansions.append(item)
+                if len(unique_expansions) >= request.query_expansion_limit:
+                    break
+            expansions = tuple(unique_expansions)
+            self.last_expansions = expansions
+            queries.extend((item.text, item.weight) for item in expansions)
+            diagnostics.append(
+                SearchStageDiagnostic(
+                    stage="query-expansion",
+                    status=expansion_status,
+                    duration_ms=round(
+                        (time.perf_counter() - expansion_started) * 1000,
+                        3,
+                    ),
+                    provider=expansion_provider,
+                    model=expansion_model,
+                    metadata={"variants": len(expansions)},
+                )
+            )
+
+        return queries
 
     def _rerank(
         self,

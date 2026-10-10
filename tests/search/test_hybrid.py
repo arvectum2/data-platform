@@ -326,3 +326,32 @@ def test_explicit_query_variants_dedupe_case_insensitively() -> None:
         query_variants=(" original ", "Expanded", "expanded"),
     )
     assert query.query_variants == ("Expanded",)
+
+
+def test_failed_query_expansion_isolated_from_lexical_retrieval():
+    class BrokenExpander:
+        provider_name = "isolated-test"
+        model_name = "no-network"
+
+        def expand(self, query, *, limit):
+            raise RuntimeError("sensitive content must not enter diagnostics")
+
+    engine = HybridSearchEngine(
+        lexical_backend=FakeLexical(),
+        vector_backend=FakeVector(),
+        embedding_provider=HashingEmbeddingProvider(dimension=16),
+        query_expander=BrokenExpander(),
+    )
+    hits = engine.search(SearchQuery(
+        query="private procurement terms", collections=("one",),
+        mode=SearchMode.LEXICAL, expand_query=True,
+    ))
+    assert hits
+    assert engine.last_expansions == ()
+    diagnostics = {item.stage: item for item in engine.last_diagnostics}
+    assert diagnostics["query-expansion"].status == "failed-open"
+    assert diagnostics["query-expansion"].metadata["variants"] == 0
+    assert diagnostics["lexical-retrieval"].metadata["calls"] == 1
+    assert diagnostics["total-search"].metadata["query_count"] == 1
+    assert "sensitive content" not in repr(engine.last_diagnostics)
+    assert "private procurement" not in repr(engine.last_diagnostics)
