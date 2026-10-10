@@ -36,6 +36,27 @@ from ..service_support import (
 
 class BillingServiceMixin:
     @staticmethod
+    def _lock_tenant_billing(session: Session, tenant_id: str) -> None:
+        """Serialize assignment and finalization for a tenant across workers.
+
+        Transaction-scoped advisory locks release automatically at commit or
+        rollback; unlike a process lock, these work across API instances.
+        """
+        session.execute(
+            select(
+                func.pg_advisory_xact_lock(
+                    func.hashtextextended(f"arvectum:billing:tenant:{tenant_id}", 0)
+                )
+            )
+        )
+
+    @staticmethod
+    def _locked_invoice(session: Session, invoice_id: str) -> InvoiceRow | None:
+        return session.scalar(
+            select(InvoiceRow).where(InvoiceRow.invoice_id == invoice_id).with_for_update()
+        )
+
+    @staticmethod
     def _billing_catalog_payload(row: BillingCatalogRow) -> dict[str, Any]:
         return {
             "catalog_id": row.catalog_id,
@@ -182,6 +203,7 @@ class BillingServiceMixin:
         )
 
         with self._require_factory()() as session:
+            self._lock_tenant_billing(session, tenant_id)
             catalog = session.get(BillingCatalogRow, catalog_id)
             if catalog is None:
                 raise BillingCatalogNotFound(catalog_id)
@@ -465,6 +487,10 @@ class BillingServiceMixin:
         period_start = self._normalize_billing_time(period_start, field="period_start")
         period_end = self._normalize_billing_time(period_end, field="period_end")
         with self._require_factory()() as session:
+            # The existence check and invoice creation must be serialized.
+            # A UNIQUE constraint alone would raise a duplicate-key error to
+            # a concurrent worker instead of returning the original invoice.
+            self._lock_tenant_billing(session, tenant_id.strip())
             existing = session.scalar(
                 select(InvoiceRow).where(
                     InvoiceRow.tenant_id == tenant_id.strip(),
@@ -571,7 +597,9 @@ class BillingServiceMixin:
 
     def create_invoice_payment(self, invoice_id: str) -> dict[str, Any]:
         with self._require_factory()() as session:
-            row = session.get(InvoiceRow, invoice_id)
+            # Lock the invoice before checking its status. Concurrent payment
+            # handoffs/reconciliation must observe committed state, not race.
+            row = self._locked_invoice(session, invoice_id)
             if row is None:
                 raise InvoiceNotFound(invoice_id)
             if row.status == "paid":
@@ -602,7 +630,9 @@ class BillingServiceMixin:
 
     def sync_invoice_payment(self, invoice_id: str) -> dict[str, Any]:
         with self._require_factory()() as session:
-            row = session.get(InvoiceRow, invoice_id)
+            # Lock the invoice before checking its status. Concurrent payment
+            # handoffs/reconciliation must observe committed state, not race.
+            row = self._locked_invoice(session, invoice_id)
             if row is None:
                 raise InvoiceNotFound(invoice_id)
             if row.status == "paid":
@@ -641,7 +671,9 @@ class BillingServiceMixin:
         provider_reference: str | None = None,
     ) -> dict[str, Any]:
         with self._require_factory()() as session:
-            row = session.get(InvoiceRow, invoice_id)
+            # Lock the invoice before checking its status. Concurrent payment
+            # handoffs/reconciliation must observe committed state, not race.
+            row = self._locked_invoice(session, invoice_id)
             if row is None:
                 raise InvoiceNotFound(invoice_id)
             if row.status != "paid":
