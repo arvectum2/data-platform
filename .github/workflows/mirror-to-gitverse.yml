@@ -56,9 +56,22 @@ jobs:
 
           # Mirror only normal branches and tags.
           # GitHub-specific refs/pull/* are intentionally excluded.
-          git push --force --prune gitverse \
-            'refs/heads/*:refs/heads/*' \
-            'refs/tags/*:refs/tags/*'
+          # Mirror push is idempotent for a fixed clone and may hit intermittent
+          # GitVerse HTTP 502. Retry transport failures without masking a
+          # persistent error, and never echo a credential-bearing remote URL.
+          for attempt in $(seq 1 5); do
+            if git push --force --prune gitverse \
+              'refs/heads/*:refs/heads/*' \
+              'refs/tags/*:refs/tags/*' >/dev/null 2>&1; then
+              echo "GitVerse mirror push completed (attempt ${attempt}/5)."
+              exit 0
+            fi
+            echo "::warning::GitVerse mirror push failed (attempt ${attempt}/5); retrying."
+            sleep 10
+          done
+
+          echo "::error::GitVerse mirror push failed after five attempts (check network/auth)."
+          exit 1
 
       - name: Summary
         if: success()

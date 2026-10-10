@@ -1,0 +1,34 @@
+version: 2
+repository: arvectum2/data-platform
+task_id: TDP-CI-GITVERSE-PUSH-20261011
+status: in_progress
+goal: Retry transient mirror push transport failures to GitVerse, preserving force/prune
+  semantics and hard failure on persistent errors.
+definition_of_done:
+- Wrap mirror git push with bounded retries, without leaking credentials
+- Simulate transient recovery and permanent failure locally
+- Exact-head CI green, merged and checkpoint completed
+completed:
+- Confirmed existing mirror-to-gitverse.yml pushes only once; GitVerse returned intermittent
+  HTTP502 during prior Tender Agent/DP mirrored PRs.
+- Added five bounded attempts for idempotent --force --prune mirror push; preserves
+  hard failure after 5 unsuccessful pushes and suppresses credential-bearing remote
+  error logs.
+- Workflow YAML and extracted Bash syntax checks passed.
+- 'Two local offline mock scenarios passed: transient two failed push attempts then
+  success at third; persistent failure all five attempts exits nonzero and produces
+  no mock secret in output.'
+current: Pending exact-head GitHub workflow CI and safe merge.
+pending:
+- Patch and offline simulation
+- Exact-head CI and merge
+- Complete checkpoint
+last_verified_commit: f7ca058cdde521292e5b8cf77d9dcdce80419ae4
+test_results:
+- YAML parse / bash -n PASS
+- mock 2 transient failures -> 3rd success
+- mock persistent -> 5 failures, nonzero, no secret output
+resume_instruction: Continue /Volumes/ArvectumSSD/Arvectum/worktrees/tdp-gitverse-push-retry-20261011,
+  commit and open PR. Await exact-head GitHub CI including mirror-to-GitVerse and
+  health; merge only all-green, then checkpoint completed. Do not enable disabled
+  watchdog or alter live pilot.

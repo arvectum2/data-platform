@@ -1,7 +1,7 @@
 version: 2
 repository: arvectum2/data-platform
 task_id: TDP-CI-GITVERSE-RETRY-20261011
-status: in_progress
+status: completed
 goal: Keep exact-main GitVerse mirror verification fail-closed while retrying intermittent
   GitVerse HTTP 502 automatically.
 definition_of_done:
@@ -20,17 +20,19 @@ completed:
 - 'Parsed workflow YAML and executed 3 isolated offline shell mocks: transient HTTP-like
   failure twice then recovery (3 tries PASS), persistent failure (12 tries FAIL),
   wrong remote SHA (12 tries FAIL).'
-current: Await exact-head workflow CI then merge.
-pending:
-- Implement retry guard
-- Validate syntax and exact-head CI
-- Merge green and mark completed
-last_verified_commit: 38ba15f
+- 'All exact-head GitHub PR #116 Python3.11/3.12/3.13, PostgreSQL, JavaScript SDK
+  and GitVerse mirror/health CI green.'
+- Merged main f7ca058cdde521292e5b8cf77d9dcdce80419ae4.
+current: Completed, mirror health retry verified and merged.
+pending: []
+last_verified_commit: f7ca058cdde521292e5b8cf77d9dcdce80419ae4
 test_results:
 - YAML parsed
 - mock transient 3 attempts -> success
 - mock permanent outage 12 attempts -> fail
 - mock divergent main 12 attempts -> fail
-resume_instruction: Continue worktree /Volumes/ArvectumSSD/Arvectum/worktrees/tdp-gitverse-transient-retry-20261011.
-  Push PR and await GitHub exact-head checks. Do not merge if divergence or auth failure
-  is hidden. Complete bounded checkpoint after green CI. No live service impact.
+- GitHub CI all green
+- Merged f7ca058cdde521292e5b8cf77d9dcdce80419ae4
+resume_instruction: Completed health-check retry. Continue separate GitVerse push
+  retry improvement to avoid HTTP502 abort; preserve exact-main mirror checks and
+  fail-closed behavior. Parent task still in_progress, watchdog remains disabled.
