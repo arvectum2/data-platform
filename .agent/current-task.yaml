@@ -21,20 +21,23 @@ completed:
   - 'PR #90 bounded vector UPSERT batching, retrieval/index lifecycle, deduplicated query expansion, crawl ranking and durable result decoding merged (exact-head all CI green).'
   - 'DP PRs #91-95 merged (latest #95 hybrid query expansion extraction), audited on Mac mini internal worktree.'
   - 'R2 legacy Word wvHtml table projection extracted into documents/legacy_word_tables.py; compatibility aliases in extractor.py preserved, 27 focused checks + whole platform suite + Ruff passed.'
+  - 'DP PR #96 legacy Word projection merged main with all exact-head CI green.'
+  - 'R3 two identical 27-line JSON snapshot persistence implementations unified via storage/atomic_json.py preserving original class facades, temp cleanup and fsync+replace ordering.'
 
-current: 'DP R2 Word table extraction verified locally, PR/CI integration pending; broader real original procurement quality and owner acceptance remain pending.'
+current: 'DP R3 27-line duplicate JSON store consolidation verified; PR pending exact-head CI, previous #96 merged. R5 source corpus/owner acceptance still outstanding.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '2da60980446ebecd37fd2d93b6f14443507bda28'
+last_verified_commit: 'c76132414341d1d9bb0387c8e600b00a4800a871'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
+  - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Verify the exact-head CI for DP legacy Word projection PR and merge when green; continue real source EIS corpus R5 checks. Internal worktree /private/tmp/tdp-dp-legacy-word-table-20261010, main v0.6.0 API/SDK untouched. Keep Tender Agent watchdog disabled and preserve pilot 18083.'
+resume_instruction: 'Check exact-head CI and merge DP R3 shared atomic JSON profile writer PR from refactor/tdp-dp-atomic-profile-20261010 after full local DP suite/Ruff and AST duplicate scan PASSED. TA #295 still needs CI/main merge and R0 cross-repo audit branch. Keep owner pilot 18083, watchdog disabled, external SSD untouched. R5 >=20 original independently reviewed EIS cases not yet available.'
 execution:
-  branch: refactor/tdp-dp-legacy-word-table-20261010
+  branch: refactor/tdp-dp-atomic-profile-20261010
   manual_override: true
   lease_until: null
