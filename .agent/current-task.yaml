@@ -15,18 +15,22 @@ completed:
   - 'Added strict ProcessedChunkResponse offsets/IDs validation without changing existing v1 wire schema.'
   - 'Added 8 negative/positive chunk source contract cases and product boundary AST regression tests.'
   - 'Local full Data Platform pytest suite reached 100% with existing local SDK via PYTHONPATH matching CI install; Ruff passed after fixing unused legacy test import.'
+  - 'PR #87 normalized source chunk coordinate/SHA256 contract merged.'
+  - 'PR #88 unified ingestion, PDF/native page extraction, bounded OCR, SDK transport error contracts merged; TA consumer regressions passed.'
+  - 'PR #89 full 158-module AST audit, lazy 126-export facade, bounded collection export queries and PostgreSQL CI merged.'
+  - 'PR #90 bounded vector UPSERT batching, retrieval/index lifecycle, deduplicated query expansion, crawl ranking and durable result decoding merged (exact-head all CI green).'
 
-current: 'DP PR #86 merged, package consumer v1 intact. Normalized text chunk offset and SHA256 contract documented with regression coverage, exact-head CI/merge pending; later Russian OCR/source quality benchmarks outstanding.'
+current: 'DP PRs #86-90 merged with green exact-head CI: v1 ingestion/SDK, normalized chunk evidence contract, 158-module ownership audit, query/index/storage hot-path refactors and PostgreSQL/pgvector tests. Frozen Russian OCR/quality benchmark, live Tender Agent consumer acceptance, model costs and owner sign-off still pending.'
 pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: '0da0e945e40ac943bb2e3b9a88fb8f9b5a6d4a51'
+last_verified_commit: '05abe37a38f5b25571a22c97de45edc5fd12a6a5'
 test_results:
   - 'Data Platform: 27 focused source contract/v1 API tests passed; full pytest suite passed to 100%, 6 expected skips (with SDK pythonpath set to match CI install).'
   - 'Ruff src tests sdk/python/src passed.'
 
-resume_instruction: 'Data Platform canonical TDP-REFACTOR-20261009 in_progress, source ownership+v1 locator PR #86 merged as 0da0e94. Current worktree /Volumes/ArvectumSSD/Arvectum/worktrees/data-platform-chunk-coordinate-contract-20261009 adds explicit normalized chunk offsets + exact UTF8 SHA256 contract docs and regression tests; finish exact-head CI/merge, then evaluate OCR/VLM Russian sample provenance and SDK usage. Tender Agent complement PR #271 fixes incorrect raw-original coordinate claims and needs integration. No schema changes or public deployment.'
+resume_instruction: 'TDP-REFACTOR-20261009 remains in_progress. Standalone Data Platform PRs #86-90 merged to main; latest merge commit 05abe37a38f5b25571a22c97de45edc5fd12a6a5. Next R5: frozen >=20 original Russian procurement corpus with independently checked factual/semantic evidence, quantify OCR/VLM Russian errors and model cost/latency, verify Tender Agent consumer E2E on source-locked private preview after Mac mini external ArvectumSSD reads recover. 158-module audit is complete screening, not complete per-module rewrite. Do not change HTTP v1/SDK compatibility, production data, services, disablement of watchdog, or public deploy without owner gate.'
 execution:
   branch: refactor/platform-contract-cleanup-20261009
   manual_override: true
