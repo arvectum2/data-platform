@@ -1,0 +1,25 @@
+task_id: DP-CORE-REFACTOR-20261011
+status: in_progress
+goal: Reconcile and port bounded service mixin refactor onto current Data Platform main without regression.
+definition_of_done:
+  - Use latest origin/main rather than stale branch, preserve concurrent credential issuance and usage idempotency.
+  - Isolate coherent service responsibilities with stable API and SDK behavior.
+  - Add architecture/ownership contract tests and module documentation.
+  - Run Ruff and full pytest; record commit and test evidence.
+  - Publish a safe, reviewable branch; do not touch production or merge main without gates.
+completed:
+  - Reviewed old refactor/core-architecture against origin/main and found existing upstream route decomposition and new security/concurrency protections.
+  - Preserved all 25 access and 19 billing original methods exactly at AST level across new bounded modules.
+  - Extracted consumer key, connector credential, connector discovery, model readiness and usage service modules.
+  - Added architecture ownership/import tests and dependency documentation.
+  - Full local pytest suite PASS; Ruff src/tests/sdk PASS; AST method comparison PASS; diff --check PASS.
+current: Main-based service responsibility extraction complete and locally verified; review CI/merge gate pending.
+pending:
+  - Commit/push review-ready branch; verify exact-head CI and authorized integration.
+last_verified_commit: af5c373 (base main); implementation verified locally before commit
+resume_instruction: Review exact-head CI for refactor/dp-service-boundaries-current-20261011; integrate only after required Python/JS/PostgreSQL checks. Do not touch canonical main .agent/current-task.yaml or production.
+test_results:
+  - Full pytest: PASS (with SDK pythonpath); skipped tests include PostgreSQL-only checks.
+  - Ruff src/tests/sdk: PASS.
+  - 25 access and 19 billing original methods AST-equivalent: PASS.
+  - git diff --check: PASS.
