@@ -54,6 +54,11 @@ from .service_support import (
 
 from .service_mixins import (
     AccessServiceMixin,
+    ConsumerKeyServiceMixin,
+    ConnectorCredentialServiceMixin,
+    ConnectorDiscoveryServiceMixin,
+    ModelReadinessServiceMixin,
+    UsageServiceMixin,
     BillingServiceMixin,
     CollectionServiceMixin,
     ExtractionServiceMixin,
@@ -65,7 +70,12 @@ from .service_mixins import (
 
 class DataPlatformService(
     AccessServiceMixin,
+    ConsumerKeyServiceMixin,
+    ConnectorCredentialServiceMixin,
+    ConnectorDiscoveryServiceMixin,
+    ModelReadinessServiceMixin,
     BillingServiceMixin,
+    UsageServiceMixin,
     CollectionServiceMixin,
     MemorySyncServiceMixin,
     RetrievalServiceMixin,
