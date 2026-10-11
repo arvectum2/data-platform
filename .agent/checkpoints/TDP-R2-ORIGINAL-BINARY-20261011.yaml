@@ -1,7 +1,7 @@
 version: 2
 repository: arvectum2/data-platform
 task_id: TDP-R2-ORIGINAL-BINARY-20261011
-status: in_progress
+status: completed
 goal: Provide fail-closed original binary SHA256 and deterministic Data Platform source-ID
   verifier, separating cryptographic file equivalence from independently established
   authoritative EIS notice revision.
@@ -26,19 +26,23 @@ completed:
 - Added 10 unit tests using real DP ingest_file against synthetic fixture plus tamper,
   wrong IDs/URI, ambiguous docs and missing revision; 19 focused tests passed.
 - Full local Python 3.12 pytest exit0, Ruff src/tests/SDK all green.
-current: Ready for exact-head Python 3.11/3.12/3.13 and PostgreSQL/JS CI; actual lawful
-  EIS original retrieval pending after maintenance.
-pending:
-- Code and focused tests
-- Full suite and CI
-- Merge and checkpoint completed while R2 live EIS source retrieval remains pending
-last_verified_commit: 08c2607
+- 'PR #119 exact-head GitHub CI all green on Python3.11/3.12/3.13, PostgreSQL integration,
+  JS SDK and GitVerse.'
+- Merged Data Platform main c84af44793b70e3aaa0ef866ed011129070beb84.
+- Actual independent EIS original attachment and authoritative notice revision review
+  were not performed; still pending in overarching R2.
+current: Verifier implementation completed and merged as c84af44793b70e3aaa0ef866ed011129070beb84
+pending: []
+last_verified_commit: c84af44793b70e3aaa0ef866ed011129070beb84
 test_results:
 - 19 focused tests PASS
 - Full Python3.12 pytest EXIT0
 - Ruff all source/tests/SDK PASS
 - Original EIS bytes not yet checked
-resume_instruction: Continue worktree /Volumes/ArvectumSSD/Arvectum/worktrees/tdp-r2-original-binary-20261011.
-  Commit/push PR and await exact-head DP CI; merge all green. This is only pure binary-to-store
-  checker, not authoritative EIS original/revision proof. Keep parent task in_progress,
-  no production writes or owner-disabled watchdog changes.
+- All exact-head GitHub CI including PostgreSQL PASS
+- Merged c84af44793b70e3aaa0ef866ed011129070beb84
+resume_instruction: Bounded DP binary-vs-store verifier completed. Do not treat stored
+  metadata comparison as proof of independent EIS source. Next retrieve lawful authoritative
+  source binary after maintenance and compare against stored resource/document digests,
+  validate notice revision and 20+ human reviewed cases. R4 product benchmark still
+  pending; owner-disabled watchdog stays disabled.
