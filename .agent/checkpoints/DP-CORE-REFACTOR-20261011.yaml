@@ -1,5 +1,5 @@
 task_id: DP-CORE-REFACTOR-20261011
-status: in_progress
+status: completed
 goal: Reconcile and port bounded service mixin refactor onto current Data Platform main without regression.
 definition_of_done:
   - Use latest origin/main rather than stale branch, preserve concurrent credential issuance and usage idempotency.
@@ -13,11 +13,12 @@ completed:
   - Extracted consumer key, connector credential, connector discovery, model readiness and usage service modules.
   - Added architecture ownership/import tests and dependency documentation.
   - Full local pytest suite PASS; Ruff src/tests/sdk PASS; AST method comparison PASS; diff --check PASS.
-current: Main-based service responsibility extraction complete and locally verified; review CI/merge gate pending.
-pending:
-  - Commit/push review-ready branch; verify exact-head CI and authorized integration.
-last_verified_commit: af5c373 (base main); implementation verified locally before commit
-resume_instruction: Review exact-head CI for refactor/dp-service-boundaries-current-20261011; integrate only after required Python/JS/PostgreSQL checks. Do not touch canonical main .agent/current-task.yaml or production.
+  - PR #121 exact-head GitHub CI: Python 3.11/3.12/3.13, PostgreSQL, JavaScript SDK, GitVerse mirror all PASS; merged on main as 6cfdef7.
+current: Completed; PR #121 merged on main with all required exact-head CI successful.
+pending: []
+
+last_verified_commit: 6cfdef7249e3ec62b80b1b921f44c4f57aed9c87 (squash merge of verified e049cbf)
+resume_instruction: Task completed. Do not repeat the refactor. Continue with separately tracked TDP R2 original-evidence/human R4/R5 gates in canonical .agent/current-task.yaml; do not alter production.
 test_results:
   - Full pytest: PASS (with SDK pythonpath); skipped tests include PostgreSQL-only checks.
   - Ruff src/tests/sdk: PASS.
