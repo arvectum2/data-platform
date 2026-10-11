@@ -56,7 +56,8 @@ completed:
   - '2026-10-11 DP #117 GitVerse mirror push bounded 5 retry attempts with no secret-bearing logs, persistent failure still nonzero; offline mocks transient/pass vs permanent/fail, all CI Python3.11-3.13/Postgres/JS/mirror green; merged a1c2afc5db29caa8b6156d12f204e0f5f63d63c4.'
   - '2026-10-11 DP #119 pure original binary-vs-store SHA256 and deterministic resource/document ID checker, separate notice revision metadata match; 19 targeted, full Python3.12, Ruff and all exact-head CI Python3.11-3.13/Postgres/JS/mirror green, merged c84af44793b70e3aaa0ef866ed011129070beb84. Independent authoritative EIS bytes still unverified.'
   - '2026-10-11 Cross-repository R2 audit: Tender Agent public EIS 0372200172326000015 five original file bytes retrieved, 5/5 independently rehashed from durable ArvectumSSD cache; Tender Agent #337-#339 merged, including exact DP resource/document SHA256 stable-ID compatibility checks. Live DP 0.6.0 /health HTTP200, unauthenticated /v1/collections HTTP401 (correct security boundary), hence no authorized actual DP export and NO provenance match, no authoritative EIS notice XML revision; both remain UNKNOWN. DP storage identity and normalized chunk audit helpers #112/#119 previously green. No live mutation.'
-current: 'R2 cross-repo public EIS evidence now 5/5 independently rehashed source bytes on ArvectumSSD; TA #337-#339 matching code CI green. DP live 0.6.0 health OK, anonymous export 401; no authorized live DP resource/document/chunk ID comparison and no independent current EIS XML revision. Status remains in_progress. R4 human-backed model testing and R5 owner-reviewed >=20 procurement decisions pending.'
+  - '2026-10-11 R2 isolated real public EIS original replay using current DP main e3855a8: 5/5 receipt source binary SHA, ingest, deterministic resource/document identity; 127/127 DP chunk SHA and normalized char_start/end verified; zero empty/failed. Proof report on Mac mini evidence/tdp-r2/0372200172326000015-20261011/isolated-replay-summary.json. This is NOT persisted live DP identity or independently established current EIS revision. Live export UNKNOWN.'
+current: 'Service boundary refactor PR #121/#122 already completed; parent TDP R2 remains in_progress. Real five-file public EIS isolated DP main replay binary IDs 5/5 and 127/127 normalized chunk hashes/offset PASS; no persisted live original export and authoritative EIS revision. R4/R5 remain human-reviewed pending.'
 pending:
   - 'R2 remaining: validate live chunk char_start/end against normalize_text(document.text).strip(), then compare authoritative original EIS attachment binary hash and notice revision. Metadata-only audit is NOT original-file proof.'
   - 'R2 remaining: find previously persisted original-source resource/document/chunk IDs and validate SHA256/offsets using read-only authorized API or isolated non-production fixture; standard TA collections are currently absent.'
@@ -64,7 +65,7 @@ pending:
   - 'Baseline overlap and verify existing DP service and model/SDK contract.'
   - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
   - 'Verify with Tender Agent consumers and exact-head CI.'
-last_verified_commit: 'c84af44793b70e3aaa0ef866ed011129070beb84'
+last_verified_commit: 'e3855a87c7d8ec0717341d0565b68ac1e6cd95ad'
 test_results:
   - 'DP #119 original binary-to-store helper: local 19 focused/full Python3.12/Ruff PASS; all GitHub Python3.11/12/13, PostgreSQL, JS and GitVerse CI passed. No independent EIS source binary retrieval.'
   - 'DP CI #116 health + #117 push retries: offline mock recovery/permanent fail; GitHub all jobs Python3.11/12/13, JS, Postgres and GitVerse green.'
@@ -77,7 +78,7 @@ test_results:
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'Resume TDP-REFACTOR-20261009 Data Platform on main. EIS public five originals are already rehashed 5/5 in /Volumes/ArvectumSSD/Arvectum/evidence/tdp-r2/0372200172326000015-20261011; TA #337-#339 completed; do NOT repeat source download. Next obtain existing authorized read-only DP collection export without extracting/logging secrets; test stored resource/document stable IDs, original bytes hashes and normalized chunk coordinates and independently verify official current EIS XML notice revision. Anonymous DP /v1/collections correctly returns 401. Keep UNKNOWN on unavailable proofs. R4 human-gold model tests and R5 >=20 independent human-reviewed procurement owner signoff outstanding. Never alter production, tenders, passwords, or watchdog.'
+resume_instruction: 'Do NOT repeat isolated five-file EIS replay; audited SHA and 127/127 chunks saved on Mac mini. Need obtain authorized read-only live DP resource/document/chunk export and compare original binaries/IDs/chunk normalized coordinates; existing receipts list persisted IDs null and current EIS notice revision not independently verified. Keep UNKNOWN. Then cross-consumer R4 human-gold benchmark and R5 >=20 case owner acceptance. Do not touch live/prod data or disabled watchdog.'
 execution:
   branch: main
   manual_override: true
