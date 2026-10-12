@@ -1,7 +1,7 @@
 version: 2
 repository: arvectum2/data-platform
 task_id: TDP-REFACTOR-20261009
-status: in_progress
+status: blocked
 authority: OWNER_DIRECTIVE
 goal: 'Refactor shared Data Platform without duplicating Tender Agent product logic or breaking the consumer contract.'
 definition_of_done:
@@ -67,16 +67,18 @@ completed:
   - '2026-10-11 historic APR-06 operator Docker volume read-only audit: 20/20 stored run metadata, 9 saved reports lack current EIS revision attestation, one unverified stored participate_conditionally; targeted Tender Agent PR #361 branch d78176c32188fd807daa7a95b6adf03cc2fb56a7 safely masks read-time API/HTML summaries and blocks archived unverified EIS canonical PDF/DOCX export HTTP409. Real nine cached report projection 9/9 review-only, local full 3803 PASS/238 skipped/one prior R9 excluded, exact-head CI in progress, PR NOT MERGED. Source files unchanged, human R5 owner 0/20. Evidence path Mac evidence/tdp-r5/legacy-saved-runs-readonly-audit-20261011.json.'
   - '2026-10-11 cross-product R5 historical archived EIS report protection PR #361 in Tender Agent merged code main 60c75185c197f721cdbc0735763035c62e5591f1 after exact-head nine GitHub CI green. Stale unauthenticated-current-version historical getDocsIP reports now rendered review-only via in-memory API/HTML mask; unverified PDF/DOCX canonical exports HTTP409 before writing. Real staging nine saved JSON and twelve HTML projections passed read-only, original bytes preserved; Mac full 3803 PASS/238 skip/known R9 test deselected. Running DP production untouched.'
   - '2026-10-11 R5 private authorized EIS ZIP archive source-by-source highest-version XML facts: 20 procurement cases, 17 authenticated official archives, 3 SOAP no_data; full unique last-version endDT and maxPrice present 16, one source EPNotificationEZT2020 partial maxPrice=3853453 no endDT and direct notice version 1 (nested versionNumber 33 is NOT revision). Source SHA verified and manual status still 0/20. Owner file package delivered: Arvectum_R5_package_verified_20261011.zip in conversation.'
-current: 'Data Platform core refactor completed, live DP port8094 production unmodified. R2 five originals EIS isolated authenticated pgvector API persisted IDs 5/5 and 127/127 normalized chunks; no target originals in 24 live DP collections/2034 resources. R5 official read-only 20-case EIS ZIP batch 17/20, structured archive endDT+maxPrice 16 complete/1 partial EZT/3 no_data, historic Docker 9 unverified reports and one conditional GO; Tender Agent #361 merged 60c75185 exact-head CI green, API/HTML review and unsafe PDF/DOCX 409, 0/20 human signoffs. R4 automated benchmark done but human-gold missing.'
+  - "2026-10-12 cross-product PR #366 source-locked local Gemma4 12B on 17 official latest archived EIS XML: all 17 ZIP SHA256/revisions verified; 67/68 model XML fields exact, 16/17 full; exact-head all 9 Tender Agent GitHub CI PASS, merged SHA 082fd8ef. Machine oracle is NOT independent human legal gold."
+  - "2026-10-12 EIS external transport barrier resolved for known corpus: 72/72 official filestore binary originals freshly re-fetched under verified TLS, SHA256 and size exact, 28,519,849 bytes over 13 procurements. Previously 96/96 official XML archive members matched byte hashes; 168/168 historic cached original source files now official-byte-confirmed; separate live DP target resource persistence remains missing."
+current: "BLOCKED on owner authorization/human acceptance, not core Data Platform refactor. DP v0.6.0 and consumer SDK v0.3 contract tests passed; isolated five real EIS originals/127 chunks persisted in temporary pgvector, but none of target five in 24 live collections/2034 scanned resources. All 72 binary source bytes and 96 XML bytes revalidated from official EIS; R4 human gold and R5 20 human signoffs still absent. Production live DP untouched."
 pending:
-  - 'R2 remaining: validate live chunk char_start/end against normalize_text(document.text).strip(), then compare authoritative original EIS attachment binary hash and notice revision. Metadata-only audit is NOT original-file proof.'
-  - 'R2 remaining: find previously persisted original-source resource/document/chunk IDs and validate SHA256/offsets using read-only authorized API or isolated non-production fixture; standard TA collections are currently absent.'
-  - '2026-10-10 dependency refresh PR #108: merged current main into feature branch, regenerated uv.lock --upgrade. Fresh Python 3.12 SDK/dev install, Ruff and complete new-main pytest PASS. Exact-head Python 3.11/3.13 CI and optional browser/rerank/model backends still need checking; do not merge until gates green.'
-  - 'Baseline overlap and verify existing DP service and model/SDK contract.'
-  - 'Implement proven owner-approved shared boundaries in bounded, independently tested changes.'
-  - 'Verify with Tender Agent consumers and exact-head CI.'
+  - "Owner-authorized R2 live/approved staging target original resource/document/chunk identity proof. Isolated 5/5 and 127/127 chunks are valid but NOT live persistence; production DP must stay unwritten without separate approval."
+  - "R4 independent human-labeled procurement legal-source and commercial-risk benchmark; structured source-XML 67/68 machine fields are not human gold."
+  - "R5 20 owner-approved and time-stamped individual EIS procurement assessments; 0/20 signed, three SOAP no_data remain UNKNOWN."
+  - "Owner-approved final Tender Agent consumer E2E on permitted Data Platform original dataset, plus exact-head CI; no production deployments, bids, legal conclusions, private data exposure or watchdog reactivation."
 last_verified_commit: 'e3855a87c7d8ec0717341d0565b68ac1e6cd95ad'
 test_results:
+  - "2026-10-12 TA PR #366 actual local Gemma4 17 cases, 67/68 XML fields, 16/17 full, exact-head 9/9 GitHub CI green."
+  - "2026-10-12 EIS 72/72 official binary SHA and size real live verified-TLS retrieval, 28,519,849 bytes; offline completeness nine new tests and Ruff PASS. Existing DP service not written."
   - 'DP #119 original binary-to-store helper: local 19 focused/full Python3.12/Ruff PASS; all GitHub Python3.11/12/13, PostgreSQL, JS and GitVerse CI passed. No independent EIS source binary retrieval.'
   - 'DP CI #116 health + #117 push retries: offline mock recovery/permanent fail; GitHub all jobs Python3.11/12/13, JS, Postgres and GitVerse green.'
   - 'DP #114 resolved 97 packages, NumPy only updated for py>=3.12. Locked Python3.12 pytest/Ruff, CI Python3.11/12/13, Postgres, JS, mirror PASS.'
@@ -88,7 +90,7 @@ test_results:
   - '2026-10-10 DP legacy Word projector 27 focused tests PASS, full Data Platform suite PASS (100% with expected skips), Ruff src/tests/sdk PASS; no production changes.'
   - '2026-10-10 profile snapshot 30 tests PASS, complete DP suite PASS, Ruff src/tests/sdk PASS; exact AST clone groups reduced to zero in combined source roots (>=12-line threshold). No runtime mutation.'
 
-resume_instruction: 'DP core refactor already DONE, do not repeat. Production DP version 0.6.0 on port8094 must NOT be written; five target EIS originals absent across 24 collections/2034 scanned although isolated authorized HTTP+pgvector 5/5 originals and 127/127 chunks pass. TA R5 PR #361 already merged code 60c75185c197f721cdbc0735763035c62e5591f1 after all CI success; old EIS report 9/9 and HTML 12/12 masks prevent stale GO, binary PDF/DOCX HTTP409. 20 read-only EIS archives: 17 ZIP; 16 notices complete price/deadline, 1 EZT partial price only, 3 SOAP no_data. Human R5 approvals 0/20 and R4 gold not complete. Keep task in_progress and watchdog off; no production or bid writes.'
+resume_instruction: "DP core refactor and official EIS source byte transport are complete. Task blocked until owner permits target DP staging/live source persistence, authentic R4 human gold and R5 20 signed decisions. Then run final consumer end-to-end and exact-head CI; production DP, public bids and disabled watchdog stay untouched without explicit authority."
 execution:
   branch: main
   manual_override: true
