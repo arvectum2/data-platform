@@ -18,7 +18,7 @@ current: Completed; PR #121 merged on main with all required exact-head CI succe
 pending: []
 
 last_verified_commit: 6cfdef7249e3ec62b80b1b921f44c4f57aed9c87 (squash merge of verified e049cbf)
-resume_instruction: Task completed. Do not repeat the refactor. Continue with separately tracked TDP R2 original-evidence/human R4/R5 gates in canonical .agent/current-task.yaml; do not alter production.
+resume_instruction: Task completed. Do not repeat the refactor. R2/R4/R5 external acceptance is tracked in Tender Agent TA-DP-ACCEPTANCE-20261013; current Data Platform task is completed. Do not alter production.
 test_results:
   - Full pytest: PASS (with SDK pythonpath); skipped tests include PostgreSQL-only checks.
   - Ruff src/tests/sdk: PASS.
