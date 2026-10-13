@@ -32,6 +32,12 @@ Tender Agent cross-repository consumer regression passed **59** tests using the 
 
 The ordinary test suite, Ruff, and JavaScript SDK passed as well. Existing FastAPI/Starlette deprecation warning is third-party compatibility noise; no new test warnings were introduced. Live external OCR/VLM/LLM throughput/accuracy, provider availability and production deployment are deliberately **not** claimed by this code-only acceptance.
 
+## Closure / ownership handoff — 2026-10-13
+
+The **technical Data Platform code refactor is completed** on `main` (`daa0719` at handoff): service boundary PR #121 and checkpoint PR #122 merged, full local Data Platform pytest/Ruff passed, and isolated Data Platform → Tender Agent source-provenance/report/export behavior was verified. This does **not** claim owner-accepted live-current EIS processing or production promotion.
+
+The historical `TDP-REFACTOR-20261009` blocked parent state is preserved under `.agent/checkpoints/TDP-REFACTOR-HISTORICAL-20261013.yaml`. Open R2 approved-stage persistence/current-EIS revision, R4 independent human-gold and R5 dated 20-case owner signoff move to the **Tender Agent acceptance** task `TA-DP-ACCEPTANCE-20261013`, maintained in `arvectum2/tender-agent` (`.agent/checkpoints/TA-DP-ACCEPTANCE-20261013.yaml`, `docs/acceptance/TA_DP_ACCEPTANCE_HANDOFF_2026-10-13.md`). No production writes or deployment were authorized by this transfer. This external acceptance does **not** block future Data Platform implementation work.
+
 ## Non-regression requirements
 
 - Keep the v1 wire schema and SDK 0.3.x import surface backward compatible.
