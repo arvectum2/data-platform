@@ -46,6 +46,7 @@ _SUPPORTED_EXTENSIONS = (
     ".md",
     ".doc",
     ".docx",
+    ".odt",
     ".rtf",
     ".pdf",
     ".xlsx",
@@ -94,6 +95,11 @@ def _sniff_supported_extension(content: bytes) -> str | None:
         return None
     try:
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            # ODF has a fixed ZIP mimetype marker; do not trust only the .odt suffix.
+            if "content.xml" in archive.namelist() and "mimetype" in archive.namelist():
+                marker = archive.getinfo("mimetype")
+                if marker.file_size <= 128 and archive.read(marker) == b"application/vnd.oasis.opendocument.text":
+                    return ".odt"
             try:
                 archive.getinfo("word/document.xml")
                 return ".docx"
@@ -124,6 +130,8 @@ def _extract_by_ext(
             if local_path is not None
             else ""
         )
+    if ext == ".odt":
+        return _extract_odt(content, max_chars)
     if ext == ".docx":
         return _extract_docx(content)
     if ext == ".pdf":
@@ -142,6 +150,90 @@ def _extract_by_ext(
         return _extract_txt(content)
     return None
 
+
+
+def _extract_odt(content: bytes, max_chars: int) -> str:
+    """Extract ODF text paragraphs and table rows directly, without subprocesses.
+
+    Only the canonical content.xml is read, with an explicit decompression
+    budget. No OCR, hidden macro execution, external entities or non-ODT ZIPs.
+    """
+    if not content.startswith(b"PK") or max_chars < 1:
+        return ""
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            names = archive.namelist()
+            if (len(names) > 250 or names.count("content.xml") != 1
+                    or names.count("mimetype") != 1
+                    or archive.getinfo("mimetype").file_size > 128
+                    or archive.read("mimetype") != b"application/vnd.oasis.opendocument.text"):
+                return ""
+            info = archive.getinfo("content.xml")
+            if (info.flag_bits & 0x1 or info.file_size > 8 * 1024 * 1024
+                    or (info.compress_size > 0 and info.file_size / info.compress_size > 300)):
+                return ""
+            raw = archive.read(info)
+        if b"<!DOCTYPE" in raw.upper() or b"<!ENTITY" in raw.upper():
+            return ""
+        root = ElementTree.fromstring(raw)
+        def local(tag: str) -> str:
+            return tag.rsplit("}", 1)[-1]
+        if local(root.tag) != "document-content":
+            return ""
+        ns = {"office": "urn:oasis:names:tc:opendocument:xmlns:office:1.0"}
+        body = root.find(".//office:body/office:text", ns)
+        if body is None:
+            return ""
+
+        def text_of(node: ElementTree.Element) -> str:
+            pieces = [node.text or ""]
+            for child in node:
+                name = local(child.tag)
+                if name == "s":
+                    raw_count = next((val for key, val in child.attrib.items()
+                                      if local(key) == "c"), "1")
+                    try:
+                        count = min(24, max(1, int(raw_count)))
+                    except ValueError:
+                        count = 1
+                    pieces.append(" " * count)
+                elif name == "tab":
+                    pieces.append("\t")
+                elif name == "line-break":
+                    pieces.append("\n")
+                else:
+                    pieces.append(text_of(child))
+                pieces.append(child.tail or "")
+            return "".join(pieces)
+
+        lines: list[str] = []
+
+        def walk(node: ElementTree.Element) -> None:
+            tag = local(node.tag)
+            if tag == "table-row":
+                cells = []
+                for child in node:
+                    if local(child.tag) not in ("table-cell", "covered-table-cell"):
+                        continue
+                    paragraphs = [text_of(p).strip() for p in child.iter()
+                                  if local(p.tag) in ("p", "h")]
+                    cells.append(" ".join(p for p in paragraphs if p))
+                if cells:
+                    lines.append("\t".join(cells))
+                return
+            if tag in ("p", "h"):
+                value = text_of(node).strip()
+                if value:
+                    lines.append(value)
+                return
+            for child in node:
+                walk(child)
+
+        walk(body)
+        return "\n".join(lines)[:max_chars]
+    except (OSError, ValueError, KeyError, RuntimeError, zipfile.BadZipFile,
+            zipfile.LargeZipFile, ElementTree.ParseError):
+        return ""
 
 def _is_unsupported_ext(ext: str) -> bool:
     return ext not in _SUPPORTED_EXTENSIONS
