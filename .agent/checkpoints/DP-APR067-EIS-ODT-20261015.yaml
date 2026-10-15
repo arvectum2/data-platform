@@ -2,23 +2,36 @@ version: 1
 repository: arvectum2/data-platform
 task_id: DP-APR067-EIS-ODT-20261015
 parent_tender_agent_task: TA-APR067-R4-FOUR-REVISIONS-20261015
-status: in_progress
-goal: Add bounded read-only original OpenDocument ODT text extraction to Data Platform, verified against a genuine archived EIS procurement attachment, without duplicating extraction logic in Tender Agent.
+status: completed
+goal: Add bounded read-only original OpenDocument ODT text extraction to Data Platform, verified against a genuine archived EIS
+  procurement attachment, without duplicating extraction logic in Tender Agent.
 definition_of_done:
-  - Recognize canonical ODF ODT, including mismatched filenames by trustworthy ODF MIME ZIP marker.
-  - Extract title, paragraphs, text whitespace, source table rows, with explicit XML/ZIP safety budgets.
-  - Confirm actual ODT in original R4 development procurement 0162200011826003089 extracts through the real local Data Platform HTTP endpoint.
-  - Test malformed ZIP, wrong mime, corrupt XML, XML entities, huge member, duplicate members; run relevant DP regression, commit and CI.
-  - Tender Agent rerun with complete 17 source documents must remain separate, no legal bid/production authority granted.
+- Recognize canonical ODF ODT, including mismatched filenames by trustworthy ODF MIME ZIP marker.
+- Extract title, paragraphs, text whitespace, source table rows, with explicit XML/ZIP safety budgets.
+- Confirm actual ODT in original R4 development procurement 0162200011826003089 extracts through the real local Data Platform HTTP
+  endpoint.
+- Test malformed ZIP, wrong mime, corrupt XML, XML entities, huge member, duplicate members; run relevant DP regression, commit
+  and CI.
+- Tender Agent rerun with complete 17 source documents must remain separate, no legal bid/production authority granted.
 completed:
-  - DP source updated with local bounded OpenDocument ZIP content.xml parser and exact mimetype guard, without shell converters.
-  - Real original ODT verified locally: 3447 characters and 24 lines.
-  - New Data Platform API on localhost18095 processed first-party EIS ODT: extracted=success, 3447 chars, 3 chunks.
-  - Focused ODT and adjacent original formats: 21 passed; Ruff clean.
-current_stage: document_regression_and_pr
-remaining: [documents_regression, checkpoint_commit_push_pr, github_ci, full_tender_agent_rerun]
-last_verified_commit: c46a3e3
-last_tests: 21 targeted passed, Ruff passed; private EIS ODT 3447 characters, API DP localhost18095 successfully produced 3 chunks.
-resume_instruction: Continue Data Platform ODT branch, inspect real 17-document Tender Agent replay PID48547; do not start another inference. Test docs and commit PR. Source reproduction under private Mac mini, no raw documents committed.
+- DP source updated with local bounded OpenDocument ZIP content.xml parser and exact mimetype guard, without shell converters.
+- Real original ODT verified locally: 3447 characters and 24 lines.
+- New Data Platform API on localhost18095 processed first-party EIS ODT: extracted=success, 3447 chars, 3 chunks.
+- Focused ODT and adjacent original formats: 21 passed; Ruff clean.
+- 2026-10-15 all Data Platform documents/* tests pass (61) and Ruff PASS; actual original private ODT native extraction 3447 chars
+  and DP API HTTP extracted in 3 chunks.
+- '2026-10-15 GitHub Data Platform PR125 code commit bc13d8bf17b663d09f83bc5eba99c79b04566020, CI data-platform-ci #347 SUCCESS,
+  GitVerse Mirror Health #133 SUCCESS.'
+- '2026-10-15 Tender Agent isolated second real 17-source E2E reran with corrected DP localhost18095: 17/17 extracted, 4 local
+  Gemma calls, analysis 150.08 sec, original hashes preserved; source-cited archived v4 notice, pdf/docx409.'
+current_stage: native_odt_original_source_extraction_ci_verified
+remaining:
+- Manual code review and merge only after authorized stack acceptance; no production deployment within this technical source task.
+last_verified_commit: bc13d8bf17b663d09f83bc5eba99c79b04566020
+last_tests: 61 documents tests PASS, Ruff PASS; DP code CI and mirror CI success; actual source 3447 chars; Tender Agent actual
+  17/17 E2E.
+resume_instruction: Completed source ODT extraction and verified main CI on substantive bc13d8bf. PR125 open Draft. Subsequent
+  DP work only for new scoped tasks. Tender Agent child TA-APR067-R4-FOUR-REVISIONS-20261015 independently records its LLM run
+  and corrected source revisions. Do not rerun previous Gemma4 calls.
 execution:
   branch: fix/eis-odt-original-extraction-20261015
