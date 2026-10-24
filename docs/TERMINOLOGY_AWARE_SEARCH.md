@@ -4,7 +4,7 @@ Implementation: `src/arvectum_data/search/terminology.py`, generic `SearchQuery`
 
 ## Contract
 
-The existing `POST /v1/search` endpoint supports two optional fields:
+The existing `POST /v1/search` endpoint supports optional terminology fields. The authenticated `GET /v1/contract` advertises capability `terminology_search_v1`; callers should refuse to issue terminology requests to older backends rather than misclassifying unexpanded results.
 
 - `terminology_groups`: 0–12 per-request groups. Each group contains a stable `id`, 1–20 `aliases`, optional 0–16 `contexts`, 0–16 `exclusions`, and 0–16 `ambiguous_aliases` (must be present among `aliases`). Every term is 2–120 characters. Validation is fail-closed.
 - `terminology_version`: optional version label from the caller, echoed in annotated search hit metadata for reproducibility (e.g. `power-quality-ontology/0.1`).

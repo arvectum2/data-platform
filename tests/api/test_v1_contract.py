@@ -472,6 +472,7 @@ def test_consumer_contract_is_versioned_and_capability_driven() -> None:
         "document_ingest",
         "url_ingest",
         "search",
+        "terminology_search_v1",
         "discovery",
         "entities",
         "entity_relations",
