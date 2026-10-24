@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+import re
 from typing import Any, Mapping
 
-from ..modes import ExecutionMode, validate_search_envelope
+from ..modes import ExecutionMode, mode_profile, validate_search_envelope
+from .terminology import TerminologyGroup
 
 
 class SearchMode(StrEnum):
@@ -81,6 +83,9 @@ class SearchQuery:
     vector_weight: float = 1.0
     query_variants: tuple[str, ...] = ()
     query_variant_weight: float = 0.5
+    terminology_groups: tuple[TerminologyGroup, ...] = ()
+    terminology_expansion_limit: int = 5
+    terminology_version: str | None = None
     expand_query: bool = False
     query_expansion_limit: int = 4
     collapse_by_canonical_uri: bool = False
@@ -104,6 +109,20 @@ class SearchQuery:
             raise ValueError("hybrid search requires at least one positive fusion weight")
         if self.query_variant_weight < 0 or self.query_variant_weight > 1:
             raise ValueError("query_variant_weight must be between 0 and 1")
+        if not 1 <= self.terminology_expansion_limit <= 8:
+            raise ValueError("terminology expansion limit must be 1..8")
+        if self.terminology_version is not None and (
+            not isinstance(self.terminology_version, str)
+            or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/-]{1,127}", self.terminology_version)
+        ):
+            raise ValueError("terminology version must be a safe version label")
+        if len(self.terminology_groups) > 12 or any(
+            not isinstance(group, TerminologyGroup) for group in self.terminology_groups
+        ):
+            raise ValueError("at most 12 valid terminology groups are allowed")
+        ids = [group.id for group in self.terminology_groups]
+        if len(ids) != len(set(ids)):
+            raise ValueError("terminology group IDs must be unique")
         if self.query_expansion_limit < 1 or self.query_expansion_limit > 8:
             raise ValueError("query_expansion_limit must be between 1 and 8")
         if self.rerank_candidates < 1 or self.rerank_candidates > 100:
@@ -119,6 +138,13 @@ class SearchQuery:
             rerank=self.rerank,
             rerank_candidates=self.rerank_candidates,
         )
+        if resolved_execution_mode is not None and self.terminology_groups:
+            max_expansions = mode_profile(resolved_execution_mode).max_query_expansions
+            if max_expansions == 0 or self.terminology_expansion_limit > max_expansions:
+                raise ValueError(
+                    f"{resolved_execution_mode.value} execution mode does not allow "
+                    "this terminology expansion depth"
+                )
         object.__setattr__(self, "execution_mode", resolved_execution_mode)
         normalized_variants: list[str] = []
         seen = {self.query.strip().casefold()}

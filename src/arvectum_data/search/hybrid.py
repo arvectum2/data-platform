@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import time
 from collections.abc import Callable, Iterable
 
@@ -17,6 +17,7 @@ from .models import (
 )
 from .protocols import LexicalBackend, VectorBackend
 from .rerank import Reranker
+from .terminology import expand_terminology, match_terminology
 
 
 @dataclass
@@ -212,6 +213,22 @@ class HybridSearchEngine:
             )
 
         final_results = results[: request.limit]
+        if request.terminology_groups:
+            # Technical terms are a generic, source-chunk annotation only.
+            # No unreviewed industry-specific claim is promoted to fact.
+            final_results = [
+                replace(
+                    hit,
+                    metadata={
+                        **hit.metadata,
+                        "terminology_matches": list(match_terminology(
+                            hit.text or hit.preview, request.terminology_groups,
+                        )),
+                        "terminology_version": request.terminology_version,
+                    },
+                )
+                for hit in final_results
+            ]
         diagnostics.append(
             SearchStageDiagnostic(
                 stage="total-search",
@@ -238,6 +255,32 @@ class HybridSearchEngine:
             for variant in request.query_variants
         )
         self.last_expansions = ()
+        if request.terminology_groups:
+            started = time.perf_counter()
+            # Runs even if no reasoning model is configured, without setting
+            # expand_query=True (which remains the LLM expansion flag).
+            terminology_budget = max(0, 8 - len(request.query_variants))
+            terminology_expansions = expand_terminology(
+                request.query,
+                request.terminology_groups,
+                limit=min(request.terminology_expansion_limit, terminology_budget),
+            )
+            explicit = {
+                request.query.strip().casefold(),
+                *(q.strip().casefold() for q in request.query_variants),
+            }
+            chosen = []
+            for item in terminology_expansions:
+                if item.text.casefold() not in explicit:
+                    chosen.append(item)
+                    explicit.add(item.text.casefold())
+            queries.extend((item.text, item.weight) for item in chosen)
+            self.last_expansions = tuple(chosen)
+            diagnostics.append(SearchStageDiagnostic(
+                stage="terminology-expansion", status="executed",
+                duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                provider="dictionary", metadata={"variants": len(chosen)},
+            ))
         if request.expand_query:
             expansion_started = time.perf_counter()
             expansion_status = "skipped-unavailable"
@@ -245,11 +288,20 @@ class HybridSearchEngine:
                 self.query_expander
             )
             expansions = ()
-            if self.query_expander is not None:
+            if request.terminology_groups:
+                # Combined explicit + terminology + reasoning variants are
+                # bounded to 8 for technical search, protecting tenant budgets.
+                expansion_limit = max(
+                    0, min(request.query_expansion_limit,
+                           8 - len(request.query_variants) - len(self.last_expansions)),
+                )
+            else:
+                expansion_limit = request.query_expansion_limit
+            if self.query_expander is not None and expansion_limit:
                 try:
                     expansions = self.query_expander.expand(
                         request.query,
-                        limit=request.query_expansion_limit,
+                        limit=expansion_limit,
                     )
                     expansion_status = "executed"
                 except Exception:
@@ -258,6 +310,7 @@ class HybridSearchEngine:
             explicit = {
                 request.query.strip().casefold(),
                 *(item.strip().casefold() for item in request.query_variants),
+                *(item.text.strip().casefold() for item in self.last_expansions),
             }
             # Custom expanders may return repeated or over-limit variants.
             # Bound expensive backend/embedding calls and avoid doubling RRF
@@ -269,10 +322,10 @@ class HybridSearchEngine:
                     continue
                 explicit.add(key)
                 unique_expansions.append(item)
-                if len(unique_expansions) >= request.query_expansion_limit:
+                if len(unique_expansions) >= expansion_limit:
                     break
             expansions = tuple(unique_expansions)
-            self.last_expansions = expansions
+            self.last_expansions = (*self.last_expansions, *expansions)
             queries.extend((item.text, item.weight) for item in expansions)
             diagnostics.append(
                 SearchStageDiagnostic(

@@ -11,7 +11,7 @@ from arvectum_data.api.service import (
     TenantQuotaExceeded,
 )
 from arvectum_data.indexing import HashingEmbeddingProvider
-from arvectum_data.search import SearchQuery
+from arvectum_data.search import SearchQuery, TerminologyGroup
 from arvectum_data.storage.postgres import CollectionRow
 
 
@@ -178,3 +178,22 @@ def test_reused_resolved_tenant_preserves_allowed_consumers_enforcement() -> Non
         service._authorize_collection_consumer(
             collection, "agent-a", resolved_tenant="tenant-b"
         )
+
+
+
+def test_terminology_expansion_counts_against_tenant_query_quota() -> None:
+    service = _service()
+    request = SearchQuery(
+        query="STATCOM", collections=("tenant:docs",), limit=2,
+        terminology_groups=(
+            TerminologyGroup(
+                id="statcom", aliases=("STATCOM", "СТАТКОМ", "СГРМ"),
+            ),
+        ),
+        terminology_expansion_limit=4,
+    )
+    with pytest.raises(TenantQuotaExceeded, match="max_query_variants"):
+        service._validate_tenant_search_quota(request, "agent-a")
+
+    # Consumer from another tenant still requires collection ACL before search.
+    service._validate_tenant_search_quota(request, "agent-b")
