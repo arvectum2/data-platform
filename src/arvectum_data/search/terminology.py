@@ -61,7 +61,7 @@ def _near_contexts(text: str, term: str, contexts: tuple[str, ...]) -> list[str]
     if not contexts:
         return []
     accepted = []
-    pattern = r"(?<!\\w)" + re.escape(term) + r"(?!\\w)"
+    pattern = r"(?<!\w)" + re.escape(term) + r"(?!\w)"
     for match in re.finditer(pattern, text, re.IGNORECASE):
         fragment = text[
             max(0, match.start() - CONTEXT_NEARBY_CHARS):
