@@ -10,6 +10,7 @@ from fastapi import (
 
 from ...modes import mode_profile
 from ...search import SearchQuery
+from ...search.terminology import TerminologyGroup
 from ..schemas import (
     SearchHitResponse,
     SearchExecutionDiagnosticsResponse,
@@ -64,6 +65,18 @@ def register_search_routes(router: APIRouter, context: RouteContext) -> None:
                 vector_weight=payload.vector_weight,
                 query_variants=tuple(payload.query_variants),
                 query_variant_weight=payload.query_variant_weight,
+                terminology_groups=tuple(
+                    TerminologyGroup(
+                        id=g.id,
+                        aliases=tuple(g.aliases),
+                        contexts=tuple(g.contexts),
+                        exclusions=tuple(g.exclusions),
+                        ambiguous_aliases=tuple(g.ambiguous_aliases),
+                    )
+                    for g in payload.terminology_groups
+                ),
+                terminology_expansion_limit=payload.terminology_expansion_limit,
+                terminology_version=payload.terminology_version,
                 expand_query=payload.expand_query,
                 query_expansion_limit=payload.query_expansion_limit,
                 collapse_by_canonical_uri=payload.collapse_by_canonical_uri,

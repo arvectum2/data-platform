@@ -129,7 +129,12 @@ class AccessServiceMixin:
             "max_collections_per_search": len(request.collections),
             "max_results_per_search": request.limit,
             "max_rerank_candidates": (request.rerank_candidates if request.rerank else 0),
-            "max_query_variants": len(request.query_variants),
+            "max_query_variants": (
+                len(request.query_variants)
+                + (min(request.terminology_expansion_limit,
+                       max(0, 8 - len(request.query_variants)))
+                   if request.terminology_groups else 0)
+            ),
         }
         for key, actual in checks.items():
             raw_limit = quota.get(key)

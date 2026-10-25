@@ -13,10 +13,14 @@ from .models import (
 )
 from .postgres import PostgresSearchBackend
 from .protocols import LexicalBackend, VectorBackend
+from .terminology import TerminologyGroup, expand_terminology, match_terminology
 from .rerank import CrossEncoderReranker, CrossEncoderScorer, HttpCrossEncoderScorer, ReasoningReranker, Reranker, RerankScore, SentenceTransformersCrossEncoderScorer
 
 __all__ = [
     "BackendHit",
+    "TerminologyGroup",
+    "expand_terminology",
+    "match_terminology",
     "CrossEncoderReranker",
     "CrossEncoderScorer",
     "DictionaryQueryExpander",
