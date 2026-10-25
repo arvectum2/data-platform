@@ -1,7 +1,7 @@
 version: 2
 repository: arvectum2/data-platform
 task_id: DP-MI-014-CONTEXT-PROXIMITY-20261025
-status: in_progress
+status: blocked
 authority: OWNER_DIRECTIVE
 goal: Keep generic Data Platform terminology matching trustworthy when mining long mixed EPC specifications for equipment references.
 definition_of_done:
@@ -11,11 +11,12 @@ definition_of_done:
   - Run focused and full CI tests on exact branch head; log evidence in checkpoint.
 completed:
   - Identified nonlocal-context false-positive risk in existing generic terminology matcher.
-current: Review-ready isolated branch with generic source and regression tests; CI pending.
+current: Implementation and regression verified; review-gated draft PR #129, no automatic merge authorization.
 pending:
-  - Verify exact head checks and resolve regressions.
   - Merge only after applicable review and AM-4 authority checks; no production mutation.
-last_verified_commit: null
+last_verified_commit: 27f188016283329600e00932d76f302dd1bf35b9
 test_results:
-  - Added regression for distant-context ambiguous alias and mixed explicit/ambiguous long chunks; CI pending.
+  - Added regression for distant-context ambiguous alias and mixed explicit/ambiguous long chunks.
+  - GitHub Actions data-platform-ci run 40213854010 SUCCESS on code commit 27f188016283329600e00932d76f302dd1bf35b9; Python 3.11/3.12/3.13, PostgreSQL and JS SDK jobs all SUCCESS.
+  - GitVerse Mirror Health run 40213854040 SUCCESS.
 resume_instruction: Start from fix/terminology-ambiguous-proximity-20261025, inspect exact head CI and reproduce tests. Keep scope domain-neutral. Preserve prior DP-CORE-REFACTOR completed checkpoint; do not alter external Tender Agent acceptance, persistent staging, or model promotion.
