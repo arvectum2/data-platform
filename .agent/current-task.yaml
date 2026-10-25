@@ -1,41 +1,22 @@
 version: 2
 repository: arvectum2/data-platform
-task_id: DP-CORE-REFACTOR-20261011
-status: completed
+task_id: DP-MI-014-CONTEXT-PROXIMITY-20261025
+status: blocked
 authority: OWNER_DIRECTIVE
-goal: Complete the Data Platform technical modularization and preserve its public consumer contract.
+goal: Keep generic Data Platform terminology matching trustworthy when mining long mixed EPC specifications for equipment references.
 definition_of_done:
-  - Isolate API routes, bounded service mixins and shared ingestion/extraction/retrieval responsibilities.
-  - Preserve Data Platform 0.6.0, Python SDK 0.3.0, HTTP v1, security and tenant boundaries.
-  - Run full Data Platform regressions and CI; verify independent Tender Agent consumer contract.
-  - Record the architectural boundaries, merged changes and safe handoff.
+  - Ambiguous aliases are not accepted using technical context only in a distant unrelated section.
+  - Explicit nonambiguous equipment terminology remains a candidate, independently of unrelated ambiguous aliases.
+  - Preserve existing HTTP v1, tenant isolation, query-expansion and public DP contracts.
+  - Run focused and full CI tests on exact branch head; log evidence in checkpoint.
 completed:
-  - API/service refactor merged in PR #121 (6cfdef7); checkpoint merged in PR #122.
-  - R2 ingestion/provenance, chunk offsets/hash, Russian extraction and legacy document protections merged.
-  - Python 3.11/3.12/3.13, PostgreSQL, JavaScript SDK and mirror CI passed for the verified refactor.
-  - Full local pytest and Ruff passed against Data Platform main daa0719 on 2026-10-12.
-  - 2026-10-13 read-only check confirmed GitHub main and Mac mini canonical main at daa0719, clean git status and healthy local HTTP endpoints 8081/8094.
-  - Technical source proof includes five real EIS originals, five stable resource/document identities and 127/127 normalized chunks in disposable PostgreSQL.
-  - Tender Agent isolated real-source HTTP-to-report checks passed, including valid manual DOCX/PDF and fail-closed archived-EIS export HTTP 409.
-  - Separate business/legal/source-currentness acceptance retained in Tender Agent, not promoted to technical refactor done.
-current: Technical Data Platform refactor CLOSED. Future feature work is not blocked by external Tender Agent owner acceptance.
-pending: []
-handoff:
-  owner_repository: arvectum2/tender-agent
-  acceptance_task: TA-DP-ACCEPTANCE-20261013
-  acceptance_file: docs/acceptance/TA_DP_ACCEPTANCE_HANDOFF_2026-10-13.md
-  outstanding_gates:
-    - R2 owner-authorized current-revision persistent staging-to-report end-to-end acceptance; no live DP write permission granted.
-    - R4 genuinely independent human-labeled procurement legal/commercial/citation benchmark; machine XML oracle is not human gold.
-    - R5 human review and dated owner signoff for 20-case cohort (0/20 at handoff); separate APR-06 broader cohort remains distinct.
-  historical_blocked_parent: .agent/checkpoints/TDP-REFACTOR-HISTORICAL-20261013.yaml
-last_verified_commit: daa0719da31f989afcf49283ffa295cfb5f2ccac
+  - Identified nonlocal-context false-positive risk in existing generic terminology matcher.
+current: Implementation and regression verified; review-gated draft PR #129, no automatic merge authorization.
+pending:
+  - Merge only after applicable review and AM-4 authority checks; no production mutation.
+last_verified_commit: 27f188016283329600e00932d76f302dd1bf35b9
 test_results:
-  - Data Platform full pytest PASS and Ruff PASS on 2026-10-12; known skips and Starlette deprecation warning.
-  - Refactor PR #121 Python 3.11/3.12/3.13, PostgreSQL, JavaScript SDK and GitVerse mirror PASS.
-  - No production deployment or database mutation in this handoff.
-resume_instruction: Do not reopen or re-merge the stale refactor/core-architecture branch. Continue Data Platform roadmap independently; track R2/R4/R5 business acceptance under Tender Agent TA-DP-ACCEPTANCE-20261013, requiring separate owner permission for staging/live writes and any consequential action.
-execution:
-  branch: main
-  manual_override: true
-  lease_until: null
+  - Added regression for distant-context ambiguous alias and mixed explicit/ambiguous long chunks.
+  - GitHub Actions data-platform-ci run 40213854010 SUCCESS on code commit 27f188016283329600e00932d76f302dd1bf35b9; Python 3.11/3.12/3.13, PostgreSQL and JS SDK jobs all SUCCESS.
+  - GitVerse Mirror Health run 40213854040 SUCCESS.
+resume_instruction: Start from fix/terminology-ambiguous-proximity-20261025, inspect exact head CI and reproduce tests. Keep scope domain-neutral. Preserve prior DP-CORE-REFACTOR completed checkpoint; do not alter external Tender Agent acceptance, persistent staging, or model promotion.

@@ -186,3 +186,19 @@ def test_manual_and_domain_variants_share_eight_variant_budget():
     eng.search(req)
     assert len(lexical.queries) == 9  # original + seven manual + one domain
     assert len(eng.last_expansions) == 1
+
+
+def test_ambiguous_alias_context_must_be_near_occurrence_not_elsewhere_in_large_chunk():
+    g = _pq()
+    distant = "SVG для брендбука и презентации. " + ("Общее описание закупки. " * 40) + "Строительство подстанции 220 кВ"
+    assert match_terminology(distant, (g,)) == ()
+    local = "SVG для компенсации: реактивная мощность, 25 МВАр"
+    assert match_terminology(local, (g,))[0]["terms"] == ["SVG"]
+
+
+def test_unrelated_ambiguous_alias_does_not_contaminate_explicit_candidate():
+    g = _pq()
+    content = "SVG для фирменной палитры. " + ("Общие сведения. " * 30) + "На подстанции монтируется СТАТКОМ 10 МВАр."
+    result = match_terminology(content, (g,))
+    assert len(result) == 1
+    assert result[0]["terms"] == ["СТАТКОМ"]
