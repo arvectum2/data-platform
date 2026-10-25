@@ -14,6 +14,7 @@ CONSUMER_CONTRACT_CAPABILITIES = (
     "document_ingest",
     "url_ingest",
     "search",
+    "terminology_search_v1",
     "execution_modes",
     "discovery",
     "research",

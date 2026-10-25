@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, model_validator
 
-from ..modes import ExecutionMode, validate_research_envelope, validate_search_envelope
+from ..modes import ExecutionMode, mode_profile, validate_research_envelope, validate_search_envelope
 from ..search import RerankStrategy, SearchMode
+from ..search.terminology import TerminologyGroup
 
 
 class ConsumerKeyCreateRequest(BaseModel):
@@ -361,6 +362,23 @@ class ExtractResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class SearchTerminologyGroup(BaseModel):
+    id: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]{1,63}$")
+    aliases: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(min_length=1, max_length=20)
+    contexts: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(default_factory=list, max_length=16)
+    exclusions: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(default_factory=list, max_length=16)
+    ambiguous_aliases: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(default_factory=list, max_length=16)
+
+    @model_validator(mode="after")
+    def valid_group(self):
+        TerminologyGroup(
+            id=self.id, aliases=tuple(self.aliases),
+            contexts=tuple(self.contexts), exclusions=tuple(self.exclusions),
+            ambiguous_aliases=tuple(self.ambiguous_aliases),
+        )
+        return self
+
+
 class SearchRequest(BaseModel):
     query: str = Field(min_length=1)
     collections: list[str] = Field(min_length=1)
@@ -371,6 +389,12 @@ class SearchRequest(BaseModel):
     vector_weight: float = Field(default=1.0, ge=0.0, le=20.0)
     query_variants: list[str] = Field(default_factory=list, max_length=8)
     query_variant_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    terminology_groups: list[SearchTerminologyGroup] = Field(default_factory=list, max_length=12)
+    terminology_expansion_limit: int = Field(default=5, ge=1, le=8)
+    terminology_version: str | None = Field(
+        default=None, min_length=2, max_length=128,
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._/-]{1,127}$",
+    )
     expand_query: bool = False
     query_expansion_limit: int = Field(default=4, ge=1, le=8)
     collapse_by_canonical_uri: bool = False
@@ -381,6 +405,9 @@ class SearchRequest(BaseModel):
 
     @model_validator(mode="after")
     def normalize_query_variants(self):
+        ids = [g.id for g in self.terminology_groups]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate terminology group IDs")
         seen = {self.query.strip()}
         normalized: list[str] = []
         for variant in self.query_variants:
@@ -399,6 +426,10 @@ class SearchRequest(BaseModel):
             rerank=self.rerank,
             rerank_candidates=self.rerank_candidates,
         )
+        if self.execution_mode is not None and self.terminology_groups:
+            max_expansions = mode_profile(self.execution_mode).max_query_expansions
+            if max_expansions == 0 or self.terminology_expansion_limit > max_expansions:
+                raise ValueError("execution mode does not allow terminology expansion depth")
         return self
 
 

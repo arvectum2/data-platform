@@ -49,6 +49,7 @@ _SUPPORTED_EXTENSIONS = (
     ".rtf",
     ".pdf",
     ".xlsx",
+    ".pptx",
     ".xls",
     ".html",
     ".htm",
@@ -104,6 +105,11 @@ def _sniff_supported_extension(content: bytes) -> str | None:
                 return ".xlsx"
             except KeyError:
                 pass
+            try:
+                archive.getinfo("ppt/presentation.xml")
+                return ".pptx"
+            except KeyError:
+                pass
     except (OSError, zipfile.BadZipFile, zipfile.LargeZipFile):
         return None
     return None
@@ -130,6 +136,8 @@ def _extract_by_ext(
         return _extract_pdf(content, max_chars)
     if ext == ".xlsx":
         return _extract_xlsx(content)
+    if ext == ".pptx":
+        return _extract_pptx(content)
     if ext == ".xls":
         return _extract_xls(content)
     if ext in (".html", ".htm"):
@@ -340,6 +348,94 @@ def _extract_docx(content: bytes) -> str:
     except Exception:
         return ""
 
+
+
+def _extract_pptx(content: bytes) -> str:
+    """Extract PPTX slide text in presentation order, preserving slide/table locators.
+
+    Data Platform owns format-aware extraction. Native XML only; images, drawings,
+    charts and embedded objects without text are deliberately not OCR'd.
+    """
+    import re
+
+    p_ns = "http://schemas.openxmlformats.org/presentationml/2006/main"
+    a_ns = "http://schemas.openxmlformats.org/drawingml/2006/main"
+    r_ns = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    rel_ns = "http://schemas.openxmlformats.org/package/2006/relationships"
+    pattern = re.compile(r"ppt/slides/slide([0-9]+)\.xml\Z")
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            if not _safe_ooxml_archive(archive):
+                return ""
+            names = archive.namelist()
+            ordered = sorted(
+                (name for name in names if pattern.fullmatch(name)),
+                key=lambda name: int(pattern.fullmatch(name).group(1)),
+            )
+            if not ordered:
+                return ""
+            if "ppt/presentation.xml" in names and "ppt/_rels/presentation.xml.rels" in names:
+                presentation_bytes = archive.read("ppt/presentation.xml")
+                relation_bytes = archive.read("ppt/_rels/presentation.xml.rels")
+                if any(b"<!DOCTYPE" in v.upper() or b"<!ENTITY" in v.upper()
+                       for v in (presentation_bytes, relation_bytes)):
+                    return ""
+                root = ElementTree.fromstring(presentation_bytes)
+                rel_root = ElementTree.fromstring(relation_bytes)
+                rels = {
+                    item.get("Id"): item.get("Target")
+                    for item in rel_root.iter(f"{{{rel_ns}}}Relationship")
+                }
+                true_order = []
+                for slide in root.iter(f"{{{p_ns}}}sldId"):
+                    target = rels.get(slide.get(f"{{{r_ns}}}id"))
+                    if not target:
+                        continue
+                    candidate = "ppt/" + target.lstrip("/")
+                    # Some packages use ../slides/slideN.xml links; restrict to
+                    # known files in the fixed slide directory, never traverse.
+                    if candidate not in ordered:
+                        candidate = "ppt/slides/" + target.rsplit("/", 1)[-1]
+                    if candidate in ordered and candidate not in true_order:
+                        true_order.append(candidate)
+                if true_order:
+                    ordered = true_order + [x for x in ordered if x not in true_order]
+            lines = []
+            for ordinal, name in enumerate(ordered, 1):
+                xml = archive.read(name)
+                if b"<!DOCTYPE" in xml.upper() or b"<!ENTITY" in xml.upper():
+                    return ""
+                root = ElementTree.fromstring(xml)
+                slide_lines = []
+                for element in root.iter():
+                    if element.tag == f"{{{p_ns}}}sp":
+                        tx = element.find(f"{{{p_ns}}}txBody")
+                        if tx is None:
+                            continue
+                        for para in tx.iter(f"{{{a_ns}}}p"):
+                            line = "".join(
+                                node.text or "" for node in para.iter(f"{{{a_ns}}}t")
+                            ).strip()
+                            if line:
+                                slide_lines.append(line)
+                    elif element.tag == f"{{{a_ns}}}tbl":
+                        for row in element.iter(f"{{{a_ns}}}tr"):
+                            cells = []
+                            for cell in row.findall(f"{{{a_ns}}}tc"):
+                                value = " ".join(
+                                    "".join(t.text or "" for t in para.iter(f"{{{a_ns}}}t"))
+                                    for para in cell.iter(f"{{{a_ns}}}p")
+                                ).strip()
+                                cells.append(value)
+                            if any(cells):
+                                slide_lines.append("\t".join(cells))
+                if slide_lines:
+                    lines.append(f"=== Slide {ordinal} ({name}) ===")
+                    lines.extend(slide_lines)
+            return "\n".join(lines)
+    except (OSError, ValueError, ElementTree.ParseError,
+            zipfile.BadZipFile, zipfile.LargeZipFile, KeyError):
+        return ""
 
 def _extract_pdf(content: bytes, max_chars: int) -> str:
     from .pdf_pipeline import extract_pdf_cascade

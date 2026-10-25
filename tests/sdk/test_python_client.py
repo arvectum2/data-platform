@@ -322,3 +322,48 @@ def test_sdk_network_error_is_typed_unavailable_without_status_code():
 def test_sdk_404_aware_collection_lookup_still_works():
     client = _client(lambda request: httpx.Response(404))
     assert client.collection_exists("missing") is False
+
+
+def test_sdk_sends_generic_ontology_to_data_platform_not_handcrafted_variants() -> None:
+    """Supplier products beyond Power Quality can use same generic DP contract."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/v1/search"
+        body = json.loads(request.content)
+        assert body["query"] == "МРТ в техническом задании"
+        assert body["query_variants"] == []
+        assert body["terminology_expansion_limit"] == 3
+        assert body["terminology_version"] == "medical-imaging/0.1"
+        assert body["terminology_groups"] == [{
+            "id": "medical-imaging",
+            "aliases": ["МРТ", "MRI", "магнитно-резонансная томография"],
+            "contexts": ["диагностика"],
+            "exclusions": [],
+            "ambiguous_aliases": [],
+        }]
+        return httpx.Response(200, json={"hits": [{
+            "chunk_id": "c-1", "document_id": "d-1", "resource_id": "r-1",
+            "canonical_uri": "https://example.org/medical-technical.xml",
+            "title": "Medical",
+            "text": "Поставка МРТ", "preview": "Поставка МРТ",
+            "scores": {"lexical": 0.5, "vector": 0.8, "fusion": 0.75},
+            "evidence": [], "metadata": {"terminology_matches": [{
+                "id": "medical-imaging", "terms": ["МРТ"],
+                "contexts": [], "classification": "explicit_technical_candidate"
+            }]}
+        }]})
+
+    client = _client(handler)
+    hits = client.search(
+        query="МРТ в техническом задании",
+        collections=["tenant:medical-source"],
+        limit=10,
+        terminology_groups=[{
+            "id": "medical-imaging",
+            "aliases": ["МРТ", "MRI", "магнитно-резонансная томография"],
+            "contexts": ["диагностика"], "exclusions": [],
+            "ambiguous_aliases": [],
+        }],
+        terminology_expansion_limit=3,
+        terminology_version="medical-imaging/0.1",
+    )
+    assert hits[0]["metadata"]["terminology_matches"][0]["id"] == "medical-imaging"
