@@ -1,0 +1,10 @@
+task_id: DP-HTTP-RESPONSIVENESS-20261115
+status: in_progress
+goal: Reproduce and fix event-loop blocking by synchronous upload operations on canonical main without live runtime changes.
+definition_of_done: [regression reproduces on original code, isolated fix passes concurrent health and API regressions, publish review candidate without deployment]
+completed: [canonical main d3417316 and historical runtime source both contain sync calls in async upload endpoints]
+current_stage: regression_reproduction
+remaining: [write regression, fix, verify, publish]
+last_verified_commit: d341731664bdc4bc6bb5e8fdeef3df00706c72bd
+test_results: []
+resume_instruction: Run isolated concurrency regression on original code, then offload synchronous calls through bounded Starlette threadpool; no production effects.
