@@ -1,0 +1,10 @@
+task_id: DP-HTTP-RUNTIME-BACKPORT-20261115
+status: in_progress
+goal: Prepare minimal isolated patch for exact live DP release 9d4266d without switching any running services.
+definition_of_done: [verify exact release route, reproduce and fix using release dependencies, verify minimal code diff and preserve rollback release]
+completed: [live launcher and release route confirmed; canonical main fix PR130 green]
+current_stage: backport_test
+remaining: [apply minimal code change, run exact-release tests, publish review evidence]
+last_verified_commit: 9d4266daa6cccb4a1c675ebaa357ae254ffaa9be
+test_results: []
+resume_instruction: use release Python environment read-only; no changes to live checkout, launcher, services, DB or collection workload.
