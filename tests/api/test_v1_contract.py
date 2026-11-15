@@ -1202,3 +1202,52 @@ def test_python_sdk_v03_auth_and_provenance_through_live_v1_asgi_routes() -> Non
             )
             with pytest.raises(DataPlatformAuthenticationError):
                 unauthenticated_sdk.require_contract(1)
+
+
+@pytest.mark.parametrize("route,method", [
+    ("/v1/process/document", "process_document_bytes"),
+    ("/v1/ingest/document", "ingest_document_bytes"),
+])
+def test_slow_upload_does_not_block_health(route, method):
+    import asyncio
+    import threading
+
+    import httpx
+
+    entered = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+    platform = FakePlatformService()
+    original = getattr(platform, method)
+
+    def slow_operation(**kwargs):
+        entered.set()
+        try:
+            release.wait(timeout=1.5)
+            return original(**kwargs)
+        finally:
+            finished.set()
+
+    setattr(platform, method, slow_operation)
+    app = create_app(Settings(environment="test", database_url="",
+                              internal_api_key="secret"), platform_service=platform)
+
+    async def scenario():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                     base_url="http://test") as client:
+            upload = asyncio.create_task(client.post(
+                route, headers={"X-Arvectum-Key": "secret"},
+                data={"collection_id": "tests:knowledge"},
+                files={"file": ("test.txt", b"short", "text/plain")},
+            ))
+            try:
+                assert await asyncio.to_thread(entered.wait, 2)
+                response = await client.get("/health")
+                assert response.status_code == 200
+                assert not finished.is_set(), "health waited for synchronous upload"
+            finally:
+                release.set()
+                result = await upload
+            assert result.status_code == 200
+
+    asyncio.run(scenario())

@@ -10,6 +10,8 @@ from fastapi import (
     UploadFile,
 )
 
+from starlette.concurrency import run_in_threadpool
+
 from ..schemas import (
     IngestResponse,
     ProcessDocumentResponse,
@@ -69,7 +71,8 @@ def register_ingest_routes(router: APIRouter, context: RouteContext) -> None:
                 detail="overlap_chars must be smaller than chunk_size_chars",
             )
         try:
-            return runtime_service.process_document_bytes(
+            return await run_in_threadpool(
+                runtime_service.process_document_bytes,
                 collection_id=collection_id,
                 filename=filename,
                 content=content,
@@ -101,7 +104,8 @@ def register_ingest_routes(router: APIRouter, context: RouteContext) -> None:
             raise HTTPException(status_code=413, detail="uploaded document is too large")
         filename = file.filename or "document.bin"
         try:
-            return runtime_service.ingest_document_bytes(
+            return await run_in_threadpool(
+                runtime_service.ingest_document_bytes,
                 collection_id=collection_id,
                 filename=filename,
                 content=content,
