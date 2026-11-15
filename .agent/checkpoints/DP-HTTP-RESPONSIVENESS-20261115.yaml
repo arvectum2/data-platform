@@ -1,10 +1,27 @@
 task_id: DP-HTTP-RESPONSIVENESS-20261115
-status: in_progress
-goal: Reproduce and fix event-loop blocking by synchronous upload operations on canonical main without live runtime changes.
-definition_of_done: [regression reproduces on original code, isolated fix passes concurrent health and API regressions, publish review candidate without deployment]
-completed: [canonical main d3417316 and historical runtime source both contain sync calls in async upload endpoints]
-current_stage: regression_reproduction
-remaining: [write regression, fix, verify, publish]
-last_verified_commit: d341731664bdc4bc6bb5e8fdeef3df00706c72bd
-test_results: []
-resume_instruction: Run isolated concurrency regression on original code, then offload synchronous calls through bounded Starlette threadpool; no production effects.
+status: completed
+goal: Reproduce and fix event-loop blocking by synchronous upload operations on canonical
+  main without live runtime changes.
+definition_of_done:
+- regression reproduces on original code
+- isolated fix passes concurrent health and API regressions
+- publish review candidate without deployment
+completed:
+- canonical main d3417316 and historical runtime source both contain sync calls in
+  async upload endpoints
+- 'Both old-code concurrency regression cases failed: GET health could not respond
+  until synchronous upload completed.'
+- Offloaded both upload service calls using Starlette run_in_threadpool; auth, input
+  validation and error mapping unchanged.
+- 44 relevant API and SDK tests PASS, Ruff PASS, git diff check PASS. First test invocation
+  lacked SDK import path, corrected by including repository SDK source.
+current_stage: offline_review_candidate_verified
+remaining: []
+last_verified_commit: cc42d04896769636255d307bd668eea3d026eaf3
+test_results:
+- 'Original regression: 2 failed for expected event-loop blocking'
+- 'Patched API/SDK: 44 passed, 1 warning, 3.37s'
+- Ruff and diff check PASS
+resume_instruction: Review candidate on canonical main, verify CI and plan separate
+  authorized deployment; this demonstrates blocking bug, not proof of live root cause
+  or production remediation. Do not change running DP, database or research workload.
