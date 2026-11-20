@@ -1,0 +1,23 @@
+name: Native roadmap criterion review
+on:
+  pull_request:
+    paths:
+      - 'specs/001-consumer-roadmap-traceability/**'
+      - 'docs/ROADMAP.md'
+      - '.agent/current-task.yaml'
+      - '.github/workflows/native-roadmap-review.yml'
+permissions:
+  contents: read
+jobs:
+  native-roadmap-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python specs/001-consumer-roadmap-traceability/checks/check_native_review.py
+      - run: python -m unittest discover -s specs/001-consumer-roadmap-traceability/checks -p test_native_review.py
