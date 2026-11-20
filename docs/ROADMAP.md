@@ -905,3 +905,8 @@ The first code task is deliberately not “write a new search engine”. It is t
 - [ ] Separately authorize and execute production release, live LLM/OCR/VLM quality/performance comparison, and any model/runtime change. No automatic deployment in this refactor.
 
 See [refactor acceptance and reproducibility](REFACTOR_ACCEPTANCE_2026-10-09.md).
+
+
+## Spec Kit — candidate roadmap linkage (2026-11-20)
+
+[Specification](../specs/001-consumer-roadmap-traceability/spec.md) · [Plan](../specs/001-consumer-roadmap-traceability/plan.md) · [Integration tasks](../specs/001-consumer-roadmap-traceability/tasks.md). The original DP roadmap, checkpoint, product contracts and priorities remain unchanged; the new package tracks integration/verification only.
