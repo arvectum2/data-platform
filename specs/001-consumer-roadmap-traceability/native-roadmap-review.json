@@ -1,0 +1,50 @@
+{
+  "schema": "arvectum.native-roadmap-review/1",
+  "source_commit": "3900d42cfe76ba47c4d0b7ec98ce7620a0f31f11",
+  "review_baseline": "8b7d2cb0b98a463eb827b603101a83bd0bf0a192",
+  "scope": "All unresolved marker-bearing source rows; exact full source remains authoritative; review references, not unique execution tasks.",
+  "execution_authorized": false,
+  "actual_acceptance_verified": false,
+  "sources": [
+    {
+      "key": "DP",
+      "path": "docs/ROADMAP.md",
+      "sha256": "013c96b47041ddd70716cf340d9911b8af57d15c8163dca54d3ff6db986dcb9f",
+      "expected_count": 27
+    },
+    {
+      "key": "CHECKPOINT",
+      "path": ".agent/current-task.yaml",
+      "sha256": "e11a3ad95bcfd711166ca88d3fc9de372481b4b7e5bc91aee8a6fd9b56f01de9",
+      "expected_count": 0
+    }
+  ]
+,"rows":[
+{"id":"DP-0238","source":"docs/ROADMAP.md","line":238,"heading_line":227,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0295","source":"docs/ROADMAP.md","line":295,"heading_line":290,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0520","source":"docs/ROADMAP.md","line":520,"heading_line":513,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]},
+{"id":"DP-0521","source":"docs/ROADMAP.md","line":521,"heading_line":513,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]},
+{"id":"DP-0522","source":"docs/ROADMAP.md","line":522,"heading_line":513,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]},
+{"id":"DP-0523","source":"docs/ROADMAP.md","line":523,"heading_line":513,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]},
+{"id":"DP-0524","source":"docs/ROADMAP.md","line":524,"heading_line":513,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]},
+{"id":"DP-0567","source":"docs/ROADMAP.md","line":567,"heading_line":555,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0586","source":"docs/ROADMAP.md","line":586,"heading_line":574,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0607","source":"docs/ROADMAP.md","line":607,"heading_line":595,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0611","source":"docs/ROADMAP.md","line":611,"heading_line":595,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0758","source":"docs/ROADMAP.md","line":758,"heading_line":743,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0759","source":"docs/ROADMAP.md","line":759,"heading_line":743,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0773","source":"docs/ROADMAP.md","line":773,"heading_line":765,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0774","source":"docs/ROADMAP.md","line":774,"heading_line":765,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0775","source":"docs/ROADMAP.md","line":775,"heading_line":765,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0776","source":"docs/ROADMAP.md","line":776,"heading_line":765,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0777","source":"docs/ROADMAP.md","line":777,"heading_line":765,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0778","source":"docs/ROADMAP.md","line":778,"heading_line":765,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]},
+{"id":"DP-0791","source":"docs/ROADMAP.md","line":791,"heading_line":782,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0792","source":"docs/ROADMAP.md","line":792,"heading_line":782,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0793","source":"docs/ROADMAP.md","line":793,"heading_line":782,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]},
+{"id":"DP-0802","source":"docs/ROADMAP.md","line":802,"heading_line":797,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0805","source":"docs/ROADMAP.md","line":805,"heading_line":797,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0806","source":"docs/ROADMAP.md","line":806,"heading_line":797,"markers":" ","review_state":"unverified","disposition":"reconcile_required","evidence":[]},
+{"id":"DP-0820","source":"docs/ROADMAP.md","line":820,"heading_line":810,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]},
+{"id":"DP-0905","source":"docs/ROADMAP.md","line":905,"heading_line":896,"markers":" ","review_state":"unverified","disposition":"conditional_or_deferred","evidence":[]}
+]}

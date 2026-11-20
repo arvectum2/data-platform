@@ -1,0 +1,3 @@
+# Plan — traceability
+
+Read the exact pinned roadmap and checkpoint; conserve all markers, list/table entries and nonempty source anchors. Reconcile actual main and local feature work without overwriting. Resolve native DP-* scope and consumer dependencies; build per-criterion task/test/evidence crosswalk from existing contracts, roadmap and source. Confirm version and runtime evidence independently; preserve missing, failed and deferred items. Verify public interface and targeted regressions only with applicable authorization. Provide a Company-derived read-only brief, not a second backlog. No change to product priorities, deployment or platform contracts.
