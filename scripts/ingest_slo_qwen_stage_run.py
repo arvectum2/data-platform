@@ -290,7 +290,7 @@ def main() -> int:
             "reason_code": code,
             "production_http_requests_sent": False,
             "production_database_writes": 0,
-            "isolated_stage_launch_may_have_occurred": True,
+            "isolated_stage_launch_may_have_occurred": code != "resource_admission_blocked",
         }))
         return 2
     print(json.dumps(report, sort_keys=True))
