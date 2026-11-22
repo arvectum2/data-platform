@@ -8,6 +8,12 @@ The prior `_persist_and_index` implementation obtained a SQLAlchemy session, per
 
 A minimal in-process test using *only SQLite* `QueuePool(pool_size=1, max_overflow=0)`, a synthetic collection and a mocked inference provider reproduced the original fact that a second independent connection could not be obtained during inference. No live database, original source text, model server or network was involved. The source change now makes the same test observe `pool.checkedout()==0` during inference and allows an independent second `SELECT 1`.
 
+### Dedicated PostgreSQL17 integration regression
+
+The additional CI-only `tests/api/test_ingest_tx_connection_postgres.py` uses a **unique generated synthetic collection** on the GitHub Actions ephemeral `pgvector/pgvector:pg17` service. The test creates a real SQLAlchemy Postgres QueuePool with `pool_size=1, max_overflow=0`, confirms a separate `SELECT 1` is available inside the mocked embedding call, validates actual vector persistence, idempotent repeated ingest, no source write after a mocked model outage, and deletes the synthetic collection after completion. **No real Qwen inference or production PostgreSQL is used.** The test requires an explicit local `ARVECTUM_DATA_TEST_DATABASE_URL` and skips when absent; the protected PG job supplies that variable as `127.0.0.1:5432`.
+
+Source head `afec8db93ba19daa513e69fbffc3941c85ae6ee0`: protected GitHub CI `45047389966` **SUCCESS 5/5**, including the new Postgres test; GitVerse `45047390052` SUCCESS. Final documentation/checkpoint-only head must also remain CI green.
+
 **Do not generalize that single-connection synthetic starvation to production:** the live connection-pool size, SQL wait events, actual concurrent load, per-inference wall/queue time and host readiness are not established by this test.
 
 ## Conservative draft change
