@@ -66,7 +66,13 @@ def _percentile(values: list[int], q: float) -> int:
 
 
 def _size_bucket(size: int) -> str:
-    return "up_to_64KiB" if size <= 65536 else ("up_to_256KiB" if size <= 262144 else "above_256KiB")
+    if size <= 8192:
+        return "up_to_8KiB"
+    if size <= 65536:
+        return "up_to_64KiB"
+    if size <= 262144:
+        return "up_to_256KiB"
+    return "above_256KiB"
 
 
 def _concurrency_bucket(concurrency: int) -> str:
@@ -102,9 +108,13 @@ def analyze(path: Path) -> dict[str, object]:
     rows = _read_numeric_only(path)
     by_size: dict[str, list[dict[str, int]]] = defaultdict(list)
     by_concurrency: dict[str, list[dict[str, int]]] = defaultdict(list)
+    by_cell: dict[str, list[dict[str, int]]] = defaultdict(list)
     for row in rows:
-        by_size[_size_bucket(row["bytes"])].append(row)
-        by_concurrency[_concurrency_bucket(row["concurrency"])].append(row)
+        size = _size_bucket(row["bytes"])
+        concurrency = _concurrency_bucket(row["concurrency"])
+        by_size[size].append(row)
+        by_concurrency[concurrency].append(row)
+        by_cell[f"{size}__{concurrency}"].append(row)
     return {
         "scope": "synthetic_staging_only",
         "production_slo_proven": False,
@@ -113,6 +123,9 @@ def analyze(path: Path) -> dict[str, object]:
         "overall": _summary(rows),
         "by_input_size": {name: _summary(group) for name, group in sorted(by_size.items())},
         "by_concurrency": {name: _summary(group) for name, group in sorted(by_concurrency.items())},
+        "by_size_and_concurrency": {
+            name: _summary(group) for name, group in sorted(by_cell.items())
+        },
         "note": "Phase comparisons identify hypotheses, not causal root cause or live release acceptance.",
     }
 
