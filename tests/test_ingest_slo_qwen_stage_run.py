@@ -39,14 +39,19 @@ def test_bad_synthetic_profiles_rejected(length, index) -> None:
 
 
 def test_balanced_plan_has_exact_20_per_cell() -> None:
-    plan = runmod.planned_cells()
-    assert len(plan) == 80
-    assert plan == runmod.planned_cells()
-    assert len(set(plan)) == 80
-    assert plan[0] != (128, 1, 0)
+    plan = runmod.planned_blocks()
+    assert len(plan) == 20
+    assert plan == runmod.planned_blocks()
+    assert len(set(plan)) == 20
+    assert all(len(numbers) == 4 for _, _, numbers in plan)
     for length in (128, 512):
         for concurrency in (1, 4):
-            assert sum(x == length and y == concurrency for x, y, _ in plan) == 20
+            numbers = [
+                number
+                for x, y, group in plan if x == length and y == concurrency
+                for number in group
+            ]
+            assert sorted(numbers) == list(range(20))
 
 
 def test_aggregates_have_no_source_fields_and_no_prod_slo_claim():
@@ -97,3 +102,62 @@ def test_watchdog_trips_when_governor_becomes_reduced(monkeypatch):
     monkeypatch.setattr(stop, "wait", lambda _: False)
     runmod._watch_resources(stop, tripped)
     assert tripped.is_set()
+
+def test_generated_chunks_have_distinct_content_within_a_batch():
+    chunks = runmod.synthetic_chunks(128, 9)
+    assert len(set(chunks)) == 8
+
+
+def test_bounded_http_embedding_validates_response_and_never_uses_live_port(monkeypatch):
+    import urllib.request
+
+    payloads = []
+    class Response:
+        status = 200
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, length):
+            assert length == runmod.MAX_HTTP_BYTES + 1
+            return json.dumps({
+                "data": [{"embedding": [0.1, 0.2], "index": i} for i in range(8)]
+            }).encode()
+
+    class Opener:
+        def open(self, req, timeout):
+            assert req.full_url == "http://127.0.0.1:18190/v1/embeddings"
+            assert req.get_method() == "POST"
+            payload = json.loads(req.data)
+            assert payload["model"] == runmod.ALIAS
+            assert len(payload["input"]) == 8
+            assert len(set(payload["input"])) == 8
+            payloads.append(payload["model"])
+            return Response()
+
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *_: Opener())
+    ms, count = runmod._embed_once(runmod.synthetic_chunks(128, 3))
+    assert ms >= 0
+    assert count == 8
+    assert payloads == [runmod.ALIAS]
+
+
+def test_invalid_model_response_fails_closed(monkeypatch):
+    import urllib.request
+
+    class Response:
+        status = 200
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, _):
+            return b'{"data":[{"embedding":[0.1]}]}'
+
+    class Opener:
+        def open(self, *_args, **_kwargs):
+            return Response()
+
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *_: Opener())
+    with pytest.raises(runmod.StageAborted, match="staging_embedding_response_invalid"):
+        runmod._embed_once(runmod.synthetic_chunks(128, 3))
