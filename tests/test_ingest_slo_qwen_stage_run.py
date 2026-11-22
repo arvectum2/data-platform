@@ -161,3 +161,22 @@ def test_invalid_model_response_fails_closed(monkeypatch):
     monkeypatch.setattr(urllib.request, "build_opener", lambda *_: Opener())
     with pytest.raises(runmod.StageAborted, match="staging_embedding_response_invalid"):
         runmod._embed_once(runmod.synthetic_chunks(128, 3))
+
+def test_cli_refuses_execute_with_clear_no_launch_claim(monkeypatch, capsys):
+    monkeypatch.setattr(runmod, "live_preflight", lambda: {
+        "admission": "blocked",
+        "reason_codes": ["governor_not_normal"],
+    })
+    monkeypatch.setattr(sys, "argv", ["stage", "--execute"])
+
+    def forbidden(*a, **kw):
+        raise AssertionError("must not launch a model when admission denied")
+
+    monkeypatch.setattr(runmod.subprocess, "Popen", forbidden)
+    assert runmod.main() == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "blocked_or_failed"
+    assert payload["reason_code"] == "resource_admission_blocked"
+    assert payload["isolated_stage_launch_may_have_occurred"] is False
+    assert payload["production_http_requests_sent"] is False
+    assert payload["production_database_writes"] == 0
