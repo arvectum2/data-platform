@@ -1,5 +1,5 @@
 task_id: DP-INGEST-SLO-STAGING-20261122
-status: in_progress
+status: blocked
 goal: 'Build a privacy-preserving synthetic staging phase-latency diagnostic for issue #133 without touching production.'
 definition_of_done:
   - 'Strict numerical-only source-safe trace input, no source texts, URLs, credentials or network actions.'
@@ -16,13 +16,13 @@ completed:
   - '22-Nov read-only whitelist of actual DP PID1105 environment confirms embedding provider llama_cpp, Qwen3-Embedding-4B, base endpoint localhost8090/v1 and inference batch size8; matching live model server context8192/parallel1/health200. No model inference issued; queue wait and production root cause still unmeasured. Source-safe result docs/INGEST_SLO_SYNTHETIC_RESULTS_20261122.md.'
   - '22-Nov read-only Mac mini resource gate: governor status pass BUT mode reduced, free memory34%, pressure2, swap >6GiB; alternate MacBook Air 16GiB, swap >6GiB, model absent. Independent second Qwen launch unsafe and not attempted.'
   - 'Fail-closed Qwen stage admission and bounded CPU-only isolated runner on dedicated localhost18190, runtime monitor, 420s cap, balanced 80 synthetic model-only requests. Actual Mac mini --check-only exit2 BLOCKED with four documented reasons. 37 local focused/stub tests PASS and Ruff PASS, code head aca952e3. No model launched, live model unchanged. Runbook docs/INGEST_SLO_QWEN_STAGE_ADMISSION_20261122.md.'
-current_stage: synthetic hashing control verified; isolated Qwen stage blocked on Mac mini resource admission; code and runbook review
+current_stage: blocked_resource_admission_prevents_second_Qwen_model_without_harming_production
 remaining:
   - 'Verify exact-head protected CI after checkpoint/results additions; keep PR #134 draft until source-safe analysis accepted.'
   - 'First require resource admission (normal governor, >=50% free RAM, pressure0, <=2GiB swap and fresh safe telemetry); only then a bounded independent CPU-only Qwen stage, without requests to production model. Separate server queue-vs-inference proof remains.'
   - 'Compare warmed, randomized representative staging model timings to source-safe live aggregate 18,887ms P95 without accessing originals.'
   - 'If supported, patch root cause, verify regression, and separately approve deployment.'
-last_verified_commit: 'aca952e3174df5125cc12e628bdc89dd19d1b94a (37 local stage-focused pytest PASS, Ruff PASS); earlier 20945404 full CI 5/5 SUCCESS; latest source/runbook exact-head CI pending'
-test_results: '37 focused Qwen guard/mock runner pytest PASS + Ruff PASS on Mac mini, actual --check-only resource BLOCKED; second Qwen launches=0. Prior synthetic hashing stages 80/80 twice with corrected p95 33ms. Production read-only ingest p95 20152ms/256 and overall RED; no correction accepted. Final GitHub CI pending.'
-resume_instruction: 'Use Data Platform issue #133, draft PR #134 and scoped runbook/checkpoint. Verify latest exact-head CI. Never repeat the two verified 80-case hashing controls. Before any second Qwen model launch, run read-only gate and require governor normal, no pressure, >=50% free memory, swap<=2GiB, fresh telemetry, exact model and unused port. If blocked, do NOT load models, restart services, alter production, move 4GiB model to MacBook or simulate success; continue independent safe P0 work. On safe host, bounded isolated CPU-only synthetic model stage can be run after gate, but is non-equivalent to production GPU and cannot independently measure model queue wait. Live 20.15s P95 and Core/PRICE release remain BLOCKED until real sustained SLO, Gemma acceptance and Owner approval.'
+last_verified_commit: 'a92780263b13e36f864968d43b5be378f690bc48 (58 locally focused tests PASS, Ruff PASS; protected GitHub CI 5/5 and GitVerse SUCCESS on source HEAD); checkpoint-only final CI pending'
+test_results: '58 focused tests PASS, Ruff PASS, GitHub code head a9278026 CI 5/5 and GitVerse PASS. Actual Mac mini execute denied resource_admission_blocked exit2: no second model, stage port18190 free, live health 8094/8090/8001 200. Prior two 80-case isolated hashing control runs P95 33ms corrected; live production ingest P95 20152ms latest256 remains RED. No SLO or deployment accepted.'
+resume_instruction: 'Check issue arvectum2/data-platform#133 and draft PR134. Current stage BLOCKED by real host resource governor reduced, memory free34%, pressure2 and used swap>6GiB. Protected CI code a9278026 5/5 PASS; verify any final checkpoint-only HEAD. Do not repeat hash controls. Do not launch second Qwen, send live model inference, restart production services or move 4GiB model to MacBook while gate blocked. On a separately verified safe host, only bounded isolated CPU-only synthetic experiment; model wall alone is not actual production queue wait nor live GPU P95. Keep Tender Agent Core/PRICE production release closed pending sustained representative real SLO, independent Gemma acceptance and Owner approval.'
 production_modified: false
