@@ -1,15 +1,14 @@
-"""Synthetic in-process SQLAlchemy queue proof, NOT a production bottleneck proof.
+"""Prove an independent SQL connection is available during mocked inference.
 
-Uses a single-connection in-memory SQLite QueuePool, with no PostgreSQL,
-customer data, localhost API calls or llama.cpp requests. Demonstrates only
-the lifetime of the current _persist_and_index session during model inference.
+This has a one-connection in-memory SQLite pool. It verifies session lifetime
+and rollback/commit behavior without production data, live model or network.
+It does NOT prove that this is the cause of production ingest P95.
 """
 from __future__ import annotations
 
 from types import SimpleNamespace
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.exc import TimeoutError as SQLPoolTimeout
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
@@ -27,23 +26,18 @@ class SyntheticBlockedPoolProbe:
         self.session_factory = session_factory
         self.engine = engine
         self.checked_out_during_embedding = -1
-        self.other_client_blocked = False
+        self.other_client_unblocked = False
         self.called = 0
 
     def embed_texts(self, texts):
         self.called += 1
         self.checked_out_during_embedding = self.engine.pool.checkedout()
-        try:
-            with self.session_factory() as unrelated:
-                unrelated.execute(text("SELECT 1"))
-        except SQLPoolTimeout:
-            # A synthetic single-connection pool was deliberately selected to
-            # make checked-out connection occupancy observable with no sleep.
-            self.other_client_blocked = True
+        with self.session_factory() as unrelated:
+            self.other_client_unblocked = unrelated.execute(text("SELECT 1")).scalar_one() == 1
         return [[0.0, 1.0] for _ in texts]
 
 
-def test_current_ingest_retains_sql_connection_during_unrelated_model_inference(
+def test_ingest_releases_sql_connection_during_unrelated_model_inference(
     monkeypatch,
 ):
     engine = create_engine(
@@ -112,8 +106,8 @@ def test_current_ingest_retains_sql_connection_during_unrelated_model_inference(
         response = service._persist_and_index(synthetic)
         assert response["embedding_attempts"] == 1
         assert provider.called == 1
-        assert provider.checked_out_during_embedding == 1
-        assert provider.other_client_blocked is True
+        assert provider.checked_out_during_embedding == 0
+        assert provider.other_client_unblocked is True
         assert engine.pool.checkedout() == 0
     finally:
         engine.dispose()
