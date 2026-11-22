@@ -59,6 +59,10 @@ def test_single_connection_pool_released_during_inference_and_ingest_atomic():
     database_url = os.getenv("ARVECTUM_DATA_TEST_DATABASE_URL", "").strip()
     if os.environ.get("GITHUB_ACTIONS") != "true":
         pytest.skip("PostgreSQL mutation test requires ephemeral GitHub Actions CI")
+    if not database_url:
+        # Generic Python matrix jobs do not declare a PostgreSQL test service.
+        # Only the dedicated postgres-integration job configures this DSN.
+        pytest.skip("no isolated PostgreSQL test service in this CI job")
     # An arbitrary 'localhost' database can be a forwarded production port.
     # Pin ALL identity fields to the audited CI workflow fixture, not merely
     # the hostname. Any changed CI configuration fails closed before DDL.
