@@ -86,3 +86,27 @@ def test_disjoint_categorical_grouping(tmp_path):
     assert sorted(result["by_input_size"]) == ["up_to_256KiB", "up_to_64KiB"]
     assert sorted(result["by_concurrency"]) == ["five_plus", "one"]
     assert all(bucket["observations"] == 20 for bucket in result["by_concurrency"].values())
+
+def test_exact_synthetic_sizes_and_joint_cells_have_independent_sample_gates(tmp_path):
+    rows = [
+        _sample(size=size, concurrency=concurrency)
+        for size in (8192, 65536)
+        for concurrency in (1, 4)
+        for _ in range(20)
+    ]
+    result = analyze(_make(tmp_path, rows))
+    assert {name: data["observations"] for name, data in result["by_input_size"].items()} == {
+        "up_to_8KiB": 40,
+        "up_to_64KiB": 40,
+    }
+    assert sorted(result["by_size_and_concurrency"]) == [
+        "up_to_64KiB__one",
+        "up_to_64KiB__two_to_four",
+        "up_to_8KiB__one",
+        "up_to_8KiB__two_to_four",
+    ]
+    assert all(
+        group["observations"] == 20 and group["status"] == "green"
+        for group in result["by_size_and_concurrency"].values()
+    )
+    assert result["production_slo_proven"] is False
