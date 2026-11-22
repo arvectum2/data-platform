@@ -196,8 +196,14 @@ def run() -> dict[str, object]:
             cwd="/tmp",
             start_new_session=True,
         )
+        # Heavy GGUF allocation begins before /health is ready. Start
+        # continuous host-pressure monitoring DURING model loading, not after.
+        watchdog = threading.Thread(target=_watch_resources, args=(stop, tripped), daemon=True)
+        watchdog.start()
         startup_end = time.monotonic() + 90
         while time.monotonic() < startup_end:
+            if tripped.is_set() or time.monotonic() - started > MAX_RUN_SECONDS:
+                raise StageAborted("resource_or_time_limit_during_startup")
             if child.poll() is not None:
                 raise StageAborted("isolated_model_exited_before_ready")
             if _http_get_health():
@@ -205,8 +211,6 @@ def run() -> dict[str, object]:
             time.sleep(1)
         else:
             raise StageAborted("isolated_model_startup_timeout")
-        watchdog = threading.Thread(target=_watch_resources, args=(stop, tripped), daemon=True)
-        watchdog.start()
         for i in range(WARMUP_REQUESTS):
             if tripped.is_set() or time.monotonic() - started > MAX_RUN_SECONDS:
                 raise StageAborted("resource_or_time_limit_during_warmup")
@@ -279,6 +283,7 @@ def main() -> int:
             "isolated_model_exited_before_ready",
             "isolated_model_startup_timeout",
             "resource_or_time_limit",
+            "resource_or_time_limit_during_startup",
             "resource_or_time_limit_during_warmup",
             "staging_incomplete_sample_count",
             "staging_incomplete_per_cell",
