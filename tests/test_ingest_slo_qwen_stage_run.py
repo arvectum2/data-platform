@@ -225,3 +225,41 @@ def test_ci_postgres_guard_requires_exact_local_ephemeral_fixture():
     assert "database_url != allowed_ci_dsn" in source
     assert '("arvectum_ci", "arvectum_ci")' in source
     assert "postgresql+psycopg://arvectum_ci:local_ci_only" in source
+
+@pytest.mark.parametrize("invalid", [
+    None, {}, {"admission": "blocked", "reason_codes": []},
+    {"admission": "pass", "reason_codes": ["memory_headroom_low"]},
+])
+def test_watchdog_fails_closed_when_admission_missing_or_inconsistent(
+    monkeypatch, invalid
+):
+    import threading
+    monkeypatch.setattr(runmod, "live_preflight", lambda: invalid)
+    stop, tripped = threading.Event(), threading.Event()
+    monkeypatch.setattr(stop, "wait", lambda _: False)
+    runmod._watch_resources(stop, tripped)
+    assert tripped.is_set()
+
+
+def test_watchdog_fails_closed_on_governor_read_exception(monkeypatch):
+    import threading
+    def broken_governor():
+        raise OSError("synthetic governor disappeared")
+    monkeypatch.setattr(runmod, "live_preflight", broken_governor)
+    stop, tripped = threading.Event(), threading.Event()
+    monkeypatch.setattr(stop, "wait", lambda _: False)
+    runmod._watch_resources(stop, tripped)
+    assert tripped.is_set()
+
+
+def test_watchdog_allows_occupied_isolated_port_only(monkeypatch):
+    import threading
+    results = iter([
+        {"admission": "blocked", "reason_codes": ["stage_port_in_use"]},
+        {"admission": "blocked", "reason_codes": ["stage_port_in_use", "memory_headroom_low"]},
+    ])
+    monkeypatch.setattr(runmod, "live_preflight", lambda: next(results))
+    stop, tripped = threading.Event(), threading.Event()
+    monkeypatch.setattr(stop, "wait", lambda _: False)
+    runmod._watch_resources(stop, tripped)
+    assert tripped.is_set()
