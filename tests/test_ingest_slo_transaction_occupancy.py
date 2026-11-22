@@ -301,3 +301,88 @@ def test_synthetic_embedding_failure_never_opens_write_transaction(monkeypatch):
         assert engine.pool.checkedout() == 0
     finally:
         engine.dispose()
+
+
+def test_contract_change_during_inference_fails_before_any_source_write(monkeypatch):
+    from arvectum_data.api.service_support import EmbeddingContractMismatch
+
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        poolclass=QueuePool,
+        pool_size=1,
+        max_overflow=0,
+        pool_timeout=0.05,
+        connect_args={"check_same_thread": False},
+    )
+    try:
+        CollectionRow.__table__.create(engine)
+        factory = sessionmaker(bind=engine)
+        with factory() as session:
+            session.add(
+                CollectionRow(
+                    collection_id="synthetic:contract:change",
+                    owner="synthetic",
+                    name="Synthetic contract",
+                    default_language="simple",
+                    embedding_provider="synthetic_proof",
+                    embedding_model="synthetic_mock",
+                    embedding_dimension=2,
+                )
+            )
+            session.commit()
+
+        class MidflightContractChange:
+            provider_name = "synthetic_proof"
+            model_name = "synthetic_mock"
+            dimension = 2
+
+            def embed_texts(self, texts):
+                assert engine.pool.checkedout() == 0
+                with factory() as session:
+                    row = session.get(CollectionRow, "synthetic:contract:change")
+                    row.embedding_model = "changed-concurrently"
+                    session.commit()
+                return [[0.0, 1.0] for _ in texts]
+
+        writes = []
+        monkeypatch.setattr(
+            DataRepository, "existing_embedding_chunk_ids", lambda *_, **__: set()
+        )
+        monkeypatch.setattr(
+            DataRepository, "persist_ingest", lambda *_: writes.append("persist")
+        )
+        monkeypatch.setattr(
+            DataRepository,
+            "upsert_embeddings",
+            lambda *_, **__: writes.append("embeddings"),
+        )
+        service = DataPlatformService(
+            Settings(
+                _env_file=None,
+                environment="synthetic-test",
+                cross_encoder_provider="disabled",
+                reasoning_policy="disabled",
+                vision_policy="disabled",
+                embedding_retry_max_attempts=1,
+            ),
+            session_factory=factory,
+            embedding_provider=MidflightContractChange(),
+        )
+        synthetic = SimpleNamespace(
+            resource=SimpleNamespace(
+                collection_id="synthetic:contract:change",
+                resource_id="synth:resource",
+                canonical_uri="synthetic://contract",
+            ),
+            document=SimpleNamespace(
+                document_id="synth:doc",
+                extraction_status="extracted",
+            ),
+            chunks=(SimpleNamespace(chunk_id="synth:chunk", text="generated synthetic"),),
+        )
+        with pytest.raises(EmbeddingContractMismatch):
+            service._persist_and_index(synthetic)
+        assert not writes
+        assert engine.pool.checkedout() == 0
+    finally:
+        engine.dispose()
