@@ -54,20 +54,26 @@ def synthetic_chunks(length: int, number: int) -> list[str]:
     if length not in CHUNK_LENGTHS or not 0 <= number < 10_000:
         raise ValueError("unapproved synthetic profile")
     prefix = f"synthetic staging vector probe number {number:04d} "
-    return [(prefix * ((length // len(prefix)) + 1))[:length] for _ in range(CHUNKS_PER_REQUEST)]
+    return [
+        (
+            (prefix + f" distinct synthetic chunk {index} ")
+            * ((length // len(prefix + f" distinct synthetic chunk {index} ")) + 1)
+        )[:length]
+        for index in range(CHUNKS_PER_REQUEST)
+    ]
 
 
-def planned_cells() -> list[tuple[int, int, int]]:
-    """Counterbalance sequence across profiles instead of cold-first-by-size."""
-    plan = [
-        (length, concurrency, sample)
-        for sample in range(SAMPLES_PER_CELL)
+def planned_blocks() -> list[tuple[int, int, tuple[int, ...]]]:
+    """Five counterbalanced blocks per profile, four distinct calls per block."""
+    blocks = [
+        (length, concurrency, tuple(range(round_index * 4, round_index * 4 + 4)))
+        for round_index in range(SAMPLES_PER_CELL // 4)
         for length in CHUNK_LENGTHS
         for concurrency in CONCURRENCIES
     ]
-    random.Random(20261122).shuffle(plan)
-    assert len(plan) == MAX_ROWS
-    return plan
+    random.Random(20261122).shuffle(blocks)
+    assert sum(len(numbers) for _, _, numbers in blocks) == MAX_ROWS
+    return blocks
 
 
 def _http_get_health() -> bool:
@@ -166,7 +172,7 @@ def run() -> dict[str, object]:
     admission = live_preflight()
     if admission["admission"] != "pass":
         raise StageAborted("resource_admission_blocked")
-    if MAX_ROWS != len(planned_cells()):
+    if sum(len(numbers) for _, _, numbers in planned_blocks()) != MAX_ROWS:
         raise StageAborted("unapproved_sample_budget")
     started = time.monotonic()
     stop = threading.Event()
@@ -208,14 +214,7 @@ def run() -> dict[str, object]:
         rows: list[dict[str, int]] = []
         # Repeated interleaved balanced blocks, rather than four cold-first
         # contiguous cohorts. Every block has four distinct synthetic calls.
-        blocks = [
-            (length, concurrency, tuple(range(round_index * 4, round_index * 4 + 4)))
-            for round_index in range(SAMPLES_PER_CELL // 4)
-            for length in CHUNK_LENGTHS
-            for concurrency in CONCURRENCIES
-        ]
-        random.Random(20261122).shuffle(blocks)
-        for length, concurrency, numbers in blocks:
+        for length, concurrency, numbers in planned_blocks():
             if tripped.is_set() or time.monotonic() - started > MAX_RUN_SECONDS:
                 raise StageAborted("resource_or_time_limit")
             executor = ThreadPoolExecutor(max_workers=concurrency)
@@ -286,7 +285,13 @@ def main() -> int:
             "unexpected_embedded_chunk_count",
         }
         code = str(exc) if isinstance(exc, StageAborted) and str(exc) in allowed else "stage_aborted"
-        print(json.dumps({"status": "blocked_or_failed", "reason_code": code, "production_touched": False}))
+        print(json.dumps({
+            "status": "blocked_or_failed",
+            "reason_code": code,
+            "production_http_requests_sent": False,
+            "production_database_writes": 0,
+            "isolated_stage_launch_may_have_occurred": True,
+        }))
         return 2
     print(json.dumps(report, sort_keys=True))
     return 0
