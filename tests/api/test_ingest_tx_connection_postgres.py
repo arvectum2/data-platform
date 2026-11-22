@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import uuid
-from urllib.parse import urlsplit
 
 import pytest
 from alembic import command
@@ -58,13 +57,27 @@ class UnavailableSyntheticEmbedding(SyntheticPostgresEmbedding):
 
 def test_single_connection_pool_released_during_inference_and_ingest_atomic():
     database_url = os.getenv("ARVECTUM_DATA_TEST_DATABASE_URL", "").strip()
-    if not database_url:
-        pytest.skip("ARVECTUM_DATA_TEST_DATABASE_URL not configured")
-    # Fail closed on remote/server-style accidental targets. CI uses a local
-    # ephemeral service, not an externally routable database.
-    host = urlsplit(database_url).hostname
-    if host not in {"127.0.0.1", "localhost", "::1", "postgres"}:
-        pytest.skip("PostgreSQL test requires the isolated local CI service")
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        pytest.skip("PostgreSQL mutation test requires ephemeral GitHub Actions CI")
+    # An arbitrary 'localhost' database can be a forwarded production port.
+    # Pin ALL identity fields to the audited CI workflow fixture, not merely
+    # the hostname. Any changed CI configuration fails closed before DDL.
+    allowed_ci_dsn = (
+        "postgresql+psycopg://arvectum_ci:local_ci_only"
+        "@127.0.0.1:5432/arvectum_ci"
+    )
+    if database_url != allowed_ci_dsn:
+        pytest.fail("unsafe or absent isolated PostgreSQL CI test identity")
+    preflight_engine = create_engine(database_url)
+    try:
+        with preflight_engine.connect() as connection:
+            identity = connection.execute(
+                text("SELECT current_database(), current_user")
+            ).one()
+        if tuple(identity) != ("arvectum_ci", "arvectum_ci"):
+            pytest.fail("unexpected PostgreSQL CI database identity")
+    finally:
+        preflight_engine.dispose()
 
     previous = os.environ.get("ARVECTUM_DATA_DATABASE_URL")
     os.environ["ARVECTUM_DATA_DATABASE_URL"] = database_url
