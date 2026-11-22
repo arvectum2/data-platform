@@ -180,3 +180,50 @@ def test_cli_refuses_execute_with_clear_no_launch_claim(monkeypatch, capsys):
     assert payload["isolated_stage_launch_may_have_occurred"] is False
     assert payload["production_http_requests_sent"] is False
     assert payload["production_database_writes"] == 0
+
+def test_resource_monitor_starts_during_model_load_and_aborts_before_health(monkeypatch):
+    import threading
+
+    launched = []
+    class Child:
+        def poll(self):
+            return None
+        def terminate(self):
+            launched.append("terminated")
+        def wait(self, timeout):
+            launched.append("waited")
+
+    class ImmediatePressureMonitor:
+        def __init__(self, target, args, daemon):
+            assert target is runmod._watch_resources
+            assert daemon is True
+            self.stop, self.tripped = args
+        def start(self):
+            launched.append("monitor_started")
+            self.tripped.set()
+        def join(self, timeout):
+            launched.append("monitor_joined")
+
+    monkeypatch.setattr(runmod, "live_preflight", lambda: {
+        "admission": "pass",
+        "reason_codes": [],
+    })
+    monkeypatch.setattr(runmod.subprocess, "Popen", lambda *_args, **_kwargs: Child())
+    monkeypatch.setattr(runmod.threading, "Thread", ImmediatePressureMonitor)
+    def forbidden_health():
+        raise AssertionError("resource trip must abort before any health or embedding HTTP")
+    monkeypatch.setattr(runmod, "_http_get_health", forbidden_health)
+    with pytest.raises(runmod.StageAborted, match="resource_or_time_limit_during_startup"):
+        runmod.run()
+    assert launched == ["monitor_started", "terminated", "waited", "monitor_joined"]
+
+
+def test_ci_postgres_guard_requires_exact_local_ephemeral_fixture():
+    source = (
+        Path(__file__).resolve().parents[1] /
+        "tests/api/test_ingest_tx_connection_postgres.py"
+    ).read_text()
+    assert '"GITHUB_ACTIONS"' in source
+    assert "database_url != allowed_ci_dsn" in source
+    assert '("arvectum_ci", "arvectum_ci")' in source
+    assert "postgresql+psycopg://arvectum_ci:local_ci_only" in source
