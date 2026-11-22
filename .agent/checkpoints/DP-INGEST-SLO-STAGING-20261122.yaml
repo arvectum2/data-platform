@@ -11,14 +11,16 @@ completed:
   - 'Observed existing Data Platform support readiness RED: ingest p95 18887ms over 256 recent samples; no evidence of causal phase.'
   - 'Reviewed existing ingest_bytes and _persist_and_index boundaries; upload endpoints already threadpool-offloaded in merged PR130.'
   - 'Implemented numeric-only local analyzer with source-bound privacy gate and phase/size/concurrency cohorts; local synthetic pytest 13 PASS.'
-  - 'Draft PR #134 reviewed at code/docs head 6e4cf2ec; 22-Nov GitHub CI run 45040719147 all 5 jobs SUCCESS, GitVerse health 45040719102 SUCCESS. No staging ingestion, data changes or runtime rollout.'
-current_stage: analyzer code and documentation CI green at 6e4cf2ec; no actual staging load has been run
+  - 'Draft PR #134 code/docs head 6e4cf2ec protected CI 5/5 SUCCESS and GitVerse PASS; subsequent source/head 5f274c54 5/5 CI plus mirror PASS.'
+  - '22-Nov actual disposable Docker pgvector PG17: two synthetic TXT 80-case bounded runs, SHA 4e80d6df87 and 23582d3f6c. First size-group result invalidated by analyzer bucket defect, then fixed and reran. Corrected run 80/80, 0 errors, 0 retries, P95 33ms/max 50ms, four 20-sample size x concurrency cells. No production DB/API/model inference used; ephemeral stage removed.'
+  - 'Mac mini process-only observation: separate live Qwen3-Embedding-4B llama.cpp embedding server at loopback 8090, parallel 1; active DP mapping to it and production root cause unproven. Saved source-safe results docs/INGEST_SLO_SYNTHETIC_RESULTS_20261122.md.'
+current_stage: synthetic hashing control stage verified; real deployment-model stage and production causal diagnosis remain open
 remaining:
-  - 'After subsequent checkpoint-only commits, verify final exact-head protected CI; keep draft awaiting synthetic producer.'
-  - 'Create separately authorized synthetic-only staging producer with pinned embedding model, disposable storage and bounded samples.'
-  - 'Measure representative stage timings and compare against live SLO without accessing private originals.'
+  - 'Verify exact-head protected CI after checkpoint/results additions; keep PR #134 draft until source-safe analysis accepted.'
+  - 'Attest production embedding server mapping read-only; stage representative isolated provider with balanced input order and constrained resources, not live inference.'
+  - 'Compare warmed, randomized representative staging model timings to source-safe live aggregate 18,887ms P95 without accessing originals.'
   - 'If supported, patch root cause, verify regression, and separately approve deployment.'
-last_verified_commit: '6e4cf2ec0b120f0f7b0f84e8352b8835f789ba0b (GitHub CI 45040719147 SUCCESS 5/5; mirror 45040719102 SUCCESS)'
-test_results: '13 synthetic offline pytest PASS; GitHub code/docs head 6e4cf2ec CI 5/5 SUCCESS including Python 3.11, 3.12, 3.13 and PostgreSQL integration, GitVerse Mirror Health SUCCESS.'
-resume_instruction: 'Use DP issue #133 and this draft branch. Do not run ingestion against production, alter service models, reindex live data, or relax SLO. Verify PR exact-head CI; then design bounded synthetic staging experiment under an explicit source/storage/embedding authorization. Preserve Tender Agent Core release gate.'
+last_verified_commit: '5f274c542674f32502db21a0a5178dc6472c2c6c (corrected synthetic runner and analysis CI 5/5 success, GitVerse mirror success); results/doc SHA pending final CI'
+test_results: 'PR #134 corrected code 5f274c54 full CI 5/5 SUCCESS (Python3.11/3.12/3.13, PostgreSQL and JS) plus GitVerse PASS. Two actual 80-case isolated synthetic runs completed (160 total), zero errors/retries; corrected P95 33ms, maximum 50ms. Does not meet/deny production SLO. Final docs/checkpoint exact-head CI pending.'
+resume_instruction: 'Use DP issue #133, PR #134 and source-safe two-run results doc. Never repeat the two verified 80-case hashing controls. Verify final exact-head CI, then confirm actual DP embedding model binding using authorized read-only metadata; design only a separate isolated warmed and order-balanced representative synthetic model stage with strict resource cap, excluding production inference/originals. Keep production Core/PRICE rollout blocked until sustained representative SLO, independent Gemma acceptance and owner release approval.'
 production_modified: false
