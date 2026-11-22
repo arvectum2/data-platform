@@ -10,7 +10,7 @@ case "$profile" in
   quality)
     exec /opt/homebrew/bin/llama-server \
       -m /Users/master/arvectum-runtime/models/gemma4-12b-qat-q4.gguf \
-      --host 127.0.0.1 --port 8081 -c 32768 -np 1 -ngl 99 \
+      --host 127.0.0.1 --port 8081 -c 32768 -np 1 -ngl 99 --sleep-idle-seconds 120 \
       -b 512 -ub 512 --flash-attn auto --reasoning off \
       --reasoning-budget 0 --alias arvectum-gemma4-12b-it-qat-q4_0 ;;
   fast)
