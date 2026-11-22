@@ -1,0 +1,23 @@
+task_id: DP-INGEST-SLO-STAGING-20261122
+status: in_progress
+goal: 'Build a privacy-preserving synthetic staging phase-latency diagnostic for issue #133 without touching production.'
+definition_of_done:
+  - 'Strict numerical-only source-safe trace input, no source texts, URLs, credentials or network actions.'
+  - 'Per-cohort SLO analysis with explicit >=20 sample gate and existing ingest p95 10s/error 1% thresholds.'
+  - 'Prove deterministic positive and negative tests; pass exact protected PR CI.'
+  - 'Produce independent synthetic staging measurements for decode/chunk/embed/db and concurrency, then propose evidence-driven code fix if bottleneck established.'
+  - 'Keep production ingest SLO and live Core rollout blocked until representative live validation and Owner approval.'
+completed:
+  - 'Observed existing Data Platform support readiness RED: ingest p95 18887ms over 256 recent samples; no evidence of causal phase.'
+  - 'Reviewed existing ingest_bytes and _persist_and_index boundaries; upload endpoints already threadpool-offloaded in merged PR130.'
+  - 'Implemented numeric-only local analyzer with source-bound privacy gate and phase/size/concurrency cohorts; local synthetic pytest 13 PASS.'
+current_stage: draft review and exact-head CI; no actual staging load has been run
+remaining:
+  - 'Run full protected CI and independent review on the proposed branch.'
+  - 'Create separately authorized synthetic-only staging producer with pinned embedding model, disposable storage and bounded samples.'
+  - 'Measure representative stage timings and compare against live SLO without accessing private originals.'
+  - 'If supported, patch root cause, verify regression, and separately approve deployment.'
+last_verified_commit: 'local-only 13 pytest PASS; GitHub commit/CI pending'
+test_results: '13 synthetic offline tests PASS in 0.08s; Ruff unavailable in local container and requires protected CI.'
+resume_instruction: 'Use DP issue #133 and this draft branch. Do not run ingestion against production, alter service models, reindex live data, or relax SLO. Verify PR exact-head CI; then design bounded synthetic staging experiment under an explicit source/storage/embedding authorization. Preserve Tender Agent Core release gate.'
+production_modified: false
