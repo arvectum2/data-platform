@@ -182,8 +182,6 @@ def test_cli_refuses_execute_with_clear_no_launch_claim(monkeypatch, capsys):
     assert payload["production_database_writes"] == 0
 
 def test_resource_monitor_starts_during_model_load_and_aborts_before_health(monkeypatch):
-    import threading
-
     launched = []
     class Child:
         def poll(self):
