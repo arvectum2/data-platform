@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 import random
 import subprocess
 import threading
@@ -19,9 +18,8 @@ import urllib.request
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
-from pathlib import Path
 
-from ingest_slo_qwen_stage_gate import BINARY, MODEL, ISOLATED_PROFILE, live_preflight
+from ingest_slo_qwen_stage_gate import BINARY, MODEL, live_preflight
 
 HOST = "http://127.0.0.1:18190"
 ALIAS = "Qwen3-Embedding-4B-isolated"
@@ -208,17 +206,23 @@ def run() -> dict[str, object]:
                 raise StageAborted("resource_or_time_limit_during_warmup")
             _embed_once(synthetic_chunks(CHUNK_LENGTHS[i % 2], i))
         rows: list[dict[str, int]] = []
-        # One cell per pool; random order of cells and within each cell avoids
-        # interpreting the cold model as a deterministic input-size effect.
-        cells = [(length, concurrent) for length in CHUNK_LENGTHS for concurrent in CONCURRENCIES]
-        random.Random(20261122).shuffle(cells)
-        for length, concurrency in cells:
+        # Repeated interleaved balanced blocks, rather than four cold-first
+        # contiguous cohorts. Every block has four distinct synthetic calls.
+        blocks = [
+            (length, concurrency, tuple(range(round_index * 4, round_index * 4 + 4)))
+            for round_index in range(SAMPLES_PER_CELL // 4)
+            for length in CHUNK_LENGTHS
+            for concurrency in CONCURRENCIES
+        ]
+        random.Random(20261122).shuffle(blocks)
+        for length, concurrency, numbers in blocks:
             if tripped.is_set() or time.monotonic() - started > MAX_RUN_SECONDS:
                 raise StageAborted("resource_or_time_limit")
-            with ThreadPoolExecutor(max_workers=concurrency) as executor:
+            executor = ThreadPoolExecutor(max_workers=concurrency)
+            try:
                 jobs = [
                     executor.submit(_embed_once, synthetic_chunks(length, number + 2))
-                    for number in range(SAMPLES_PER_CELL)
+                    for number in numbers
                 ]
                 for job in jobs:
                     if tripped.is_set() or time.monotonic() - started > MAX_RUN_SECONDS:
@@ -226,7 +230,17 @@ def run() -> dict[str, object]:
                     elapsed_ms, vectors = job.result(timeout=REQUEST_TIMEOUT_SECONDS + 2)
                     if vectors != CHUNKS_PER_REQUEST:
                         raise StageAborted("unexpected_embedded_chunk_count")
-                    rows.append({"chunk_chars": length, "concurrency": concurrency, "latency_ms": elapsed_ms})
+                    rows.append({
+                        "chunk_chars": length,
+                        "concurrency": concurrency,
+                        "latency_ms": elapsed_ms,
+                    })
+            except BaseException:
+                # Never enqueue further traffic after a resource trip.
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise
+            else:
+                executor.shutdown(wait=True)
         report = aggregate(rows)
         report["stage_duration_seconds"] = round(time.monotonic() - started, 2)
         report["completed_at_utc"] = datetime.now(UTC).isoformat()
