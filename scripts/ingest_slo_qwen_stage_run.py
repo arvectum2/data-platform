@@ -159,11 +159,24 @@ def aggregate(rows: list[dict[str, int]]) -> dict[str, object]:
 
 def _watch_resources(stop: threading.Event, tripped: threading.Event) -> None:
     while not stop.wait(3):
-        report = live_preflight()
-        # Stage port is now legitimately bound by our isolated server; don't
-        # treat that one startup-only precondition as runtime failure.
-        unsafe = set(report.get("reason_codes", [])) - {"stage_port_in_use"}
-        if unsafe:
+        try:
+            report = live_preflight()
+            if not isinstance(report, dict) or not isinstance(
+                report.get("reason_codes"), list
+            ):
+                raise ValueError("missing live admission evidence")
+            reasons = set(report["reason_codes"])
+            # Stage port must be occupied by the isolated server during a
+            # run; it is the ONLY expected failing startup-only condition.
+            if reasons - {"stage_port_in_use"} or (
+                report.get("admission") != "pass"
+                and reasons != {"stage_port_in_use"}
+            ):
+                tripped.set()
+                return
+        except Exception:
+            # A stale/unreadable governor or unexpected preflight error must
+            # stop the heavy stage, never silently kill just this monitor.
             tripped.set()
             return
 
