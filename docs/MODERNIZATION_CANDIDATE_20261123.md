@@ -57,6 +57,13 @@ validation before optional runtime promotion.
 
 ## Roadmap / acceptance
 
+The canonical docs/ROADMAP.md is protected by the native-roadmap-review
+source-integrity gate. This PR preserves its exact existing bytes and records
+the proposed modernization roadmap below instead. A canonical roadmap edit
+requires separately reviewed source authorization; this review does not
+forge approval or bypass that gate.
+
+
 P0 Issue #133: remains OPEN. PR #134 provides a tested, not-deployed DB
 transaction lifetime fix. Reported real ingest p95 above 10s remains RED,
 and isolated hash/PG timings cannot prove live production SLO. Require >=20
