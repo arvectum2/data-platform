@@ -1,4 +1,5 @@
 """Pin all public endpoints when splitting large FastAPI route registrars."""
+
 from __future__ import annotations
 
 import json
@@ -9,9 +10,11 @@ from arvectum_data.api.config import Settings
 
 
 def test_openapi_path_method_tag_and_status_contract_is_stable():
-    expected = json.loads((
-        Path(__file__).parents[1] / "fixtures" / "data_platform_route_manifest.json"
-    ).read_text(encoding="utf-8"))
+    expected = json.loads(
+        (Path(__file__).parents[1] / "fixtures" / "data_platform_route_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
     api = create_app(Settings(_env_file=None, environment="test"), platform_service=object())
     actual = {}
     for path, methods in api.openapi()["paths"].items():
@@ -28,4 +31,4 @@ def test_openapi_path_method_tag_and_status_contract_is_stable():
                 "response_status": sorted(operation.get("responses", {})),
             }
     assert actual == expected
-    assert len(actual) == 55
+    assert len(actual) == 58  # additive: async intake, status/cancel, queue support

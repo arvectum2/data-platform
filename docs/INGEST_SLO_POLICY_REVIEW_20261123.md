@@ -1,7 +1,8 @@
 # Decision proposal — what the 10-second ingest SLO actually means
 
-Status: **PROPOSED FOR OWNER REVIEW ONLY**. No operational threshold, alert,
-release gate, consumer contract or production setting has been changed.
+Status: **TWO-MODE PRODUCT DIRECTION ACCEPTED; NUMERIC SLO REDESIGN STILL PROPOSED**.
+No operational threshold, alert, release gate, existing consumer contract or
+production setting has been changed.
 
 ## Documented source of the number
 
@@ -105,3 +106,13 @@ source contents, document IDs or secrets; API and SDK contract unchanged.
 **Issue #133 OPEN; production release HOLD.** No owner consent has been
 sought or presumed for changing the 10-second target or adding background
 production infrastructure.
+
+## Owner decision recorded (23 Nov 2026)
+
+The owner accepted two ingestion modes: retain the synchronous existing API
+for small/interactive uploads, and implement a durable, opt-in background
+queue for larger or bulk workloads. This authorizes code and isolated tests,
+not production migrations, a worker launch, or numerical SLO relaxations.
+The additive candidate is documented in
+`docs/ASYNC_INGEST_CANDIDATE_20261123.md`. Background completion targets
+remain unassigned pending representative real-model observations.

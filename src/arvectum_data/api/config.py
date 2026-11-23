@@ -48,6 +48,16 @@ class Settings(BaseSettings):
     tenant_quotas: dict[str, dict[str, int]] = Field(default_factory=dict)
     max_upload_bytes: int = Field(default=10_000_000, ge=1)
     max_chunks_per_ingest: int = Field(default=1000, ge=1)
+    # A separate worker is never auto-started; feature + worker explicitly opt-in.
+    async_ingest_enabled: bool = False
+    async_ingest_max_bytes: int = Field(default=5_000_000, ge=1, le=10_000_000)
+    async_ingest_max_active_jobs: int = Field(default=16, ge=1, le=128)
+    async_ingest_max_global_jobs: int = Field(default=64, ge=1, le=512)
+    async_ingest_max_global_queued_bytes: int = Field(default=100_000_000, ge=1, le=500_000_000)
+    async_ingest_max_queued_bytes: int = Field(default=20_000_000, ge=1, le=50_000_000)
+    async_ingest_max_attempts: int = Field(default=3, ge=1, le=8)
+    async_ingest_lease_seconds: int = Field(default=600, ge=120, le=3600)
+    async_ingest_heartbeat_seconds: int = Field(default=20, ge=5, le=60)
     max_search_collections: int = Field(default=32, ge=1)
     allow_private_fetches: bool = False
     connector_credentials_master_key: str = ""
@@ -103,6 +113,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_deployment_privacy(self):
+        if self.async_ingest_heartbeat_seconds * 3 >= self.async_ingest_lease_seconds:
+            raise ValueError("async ingest heartbeat must be safely below lease duration")
         cross_encoder_provider = self.cross_encoder_provider.strip().lower()
         if cross_encoder_provider not in {"disabled", "http", "sentence_transformers"}:
             raise ValueError(

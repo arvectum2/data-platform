@@ -39,3 +39,14 @@ Overall readiness is red if any sampled operation is red, green when at least on
 5. Use request IDs to correlate logs. Do not copy prompts or documents into support tickets unless the customer explicitly supplies them for debugging.
 
 The rolling latency window is intentionally bounded and in-memory. It is not a billing ledger or long-term telemetry store.
+
+## Background document ingestion (opt-in candidate)
+
+`POST /v1/ingest/jobs` returns `202 Accepted` only on **durable enqueue**;
+that receipt does not prove the document is searchable.
+`GET /v1/support/ingest-jobs` separately reports queue depth/age and p95
+from enqueue until indexed completion, with sample sufficiency and error
+fraction. It does not change the existing synchronous ingest <=10s p95 or
+overall readiness. No background latency target has yet been approved.
+Default OFF, requires a separate worker and migration. See
+`docs/ASYNC_INGEST_CANDIDATE_20261123.md`.

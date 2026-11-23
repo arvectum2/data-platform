@@ -174,3 +174,13 @@ window-specific cohort error rates **without relaxing the existing global
 SLO**. Product-level synchronous vs durable asynchronous ingestion SLIs
 are a **proposal, not approval**, documented in
 `docs/INGEST_SLO_POLICY_REVIEW_20261123.md`. Release HOLD, issue OPEN.
+
+## Owner-accepted sync/background ingestion split (23 Nov)
+
+Prepared default-disabled durable asynchronous document ingest with HTTP
+202/GET/cancel, PostgreSQL migration 0014, bounded admission, leased
+manual workers, idempotent retry after crashes and separate queue-to-search
+operational metrics. Isolated PG17 HTTP E2E tests validate recovery and
+source provenance without changing production services or index dimensions.
+No production migration, daemon, model change or SLO relaxation occurred.
+See `docs/ASYNC_INGEST_CANDIDATE_20261123.md`; release HOLD, Issue #133 OPEN.

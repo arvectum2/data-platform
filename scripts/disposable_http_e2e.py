@@ -33,7 +33,8 @@ settings=Settings(_env_file=None, environment="test", deployment_mode="local-pri
  consumer_api_keys={"growth-agent":os.environ["E2E_CONSUMER"]},
  embedding_provider="hashing", embedding_model="e2e-hash-v1", embedding_dimension=64,
  cross_encoder_provider="disabled", reasoning_policy="disabled", vision_policy="disabled",
- embedding_retry_max_attempts=1, embedding_reuse_cache_entries=64)
+ embedding_retry_max_attempts=1, embedding_reuse_cache_entries=64,
+ async_ingest_enabled=True, async_ingest_max_bytes=1000000)
 app=create_app(settings)
 if os.getenv("E2E_FAIL") == "1":
  old=app.state.platform_service.embedding_provider
@@ -229,6 +230,407 @@ def main():
                     if acl:
                         data["access_policy"] = acl
                     req(c, "POST", "/v1/collections", headers=h, json=data)
+                # Durable async intake: 202 is only a committed queued receipt.
+                async_payload = ("Асинхронный тестовый кабель на отдельном объекте. " * 35).encode()
+                enqueue = {
+                    "collection_id": normal,
+                    "canonical_uri": f"synthetic://{uid}/async-background",
+                }
+                idem_h = dict(h, **{"Idempotency-Key": f"synthetic-{uid}-async-main"})
+                queued = req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=202,
+                    headers=idem_h,
+                    data=enqueue,
+                    files={"file": ("queued.txt", async_payload, "text/plain")},
+                )
+                ok(
+                    queued["status"] == "queued"
+                    and queued["attempts"] == 0
+                    and queued["result"] is None,
+                    "202 inaccurately claimed an indexed source",
+                )
+                receipt_url = f"/v1/ingest/jobs/{queued['job_id']}?collection_id={normal}"
+                original = req(c, "GET", receipt_url, headers=h)
+                ok(original["status"] == "queued", "queued job not durable")
+                retry = req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=202,
+                    headers=idem_h,
+                    data=enqueue,
+                    files={"file": ("queued.txt", async_payload, "text/plain")},
+                )
+                ok(retry["job_id"] == queued["job_id"], "idempotency created duplicate job")
+                req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=409,
+                    headers=idem_h,
+                    data=enqueue,
+                    files={"file": ("queued.txt", b"different content", "text/plain")},
+                )
+                req(
+                    c,
+                    "GET",
+                    f"/v1/ingest/jobs/{queued['job_id']}?collection_id={restricted}",
+                    headers=h,
+                    expected=404,
+                )
+                req(c, "GET", receipt_url, expected=401)
+                req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=401,
+                    data=enqueue,
+                    headers={"Idempotency-Key": "synthetic-unauthorized"},
+                    files={"file": ("queued.txt", async_payload, "text/plain")},
+                )
+                cancelled = req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=202,
+                    headers=dict(h, **{"Idempotency-Key": f"synthetic-{uid}-cancel"}),
+                    data=enqueue,
+                    files={"file": ("queued-cancel.txt", b"cancel-only-not-indexed", "text/plain")},
+                )
+                cancelled_url = f"/v1/ingest/jobs/{cancelled['job_id']}?collection_id={normal}"
+                cancel_ack = req(c, "DELETE", cancelled_url, headers=h)
+                ok(cancel_ack["status"] == "cancelled", "pending job cancellation failed")
+                # Execute a real job via a separately constructed, manually invoked worker;
+                # no production or background daemon automatically starts from HTTP.
+                from arvectum_data.api.config import Settings
+                from arvectum_data.api.service import DataPlatformService
+                from arvectum_data.api.ingest_worker import run_one
+
+                worker_service = DataPlatformService(
+                    Settings(
+                        _env_file=None,
+                        environment="test",
+                        database_url=dsn,
+                        embedding_provider="hashing",
+                        embedding_model="e2e-hash-v1",
+                        embedding_dimension=64,
+                        cross_encoder_provider="disabled",
+                        reasoning_policy="disabled",
+                        vision_policy="disabled",
+                        async_ingest_enabled=True,
+                        async_ingest_max_bytes=1000000,
+                    )
+                )
+                ok(run_one(worker_service), "queued worker did not claim job")
+                done = req(c, "GET", receipt_url, headers=h)
+                ok(
+                    done["status"] == "completed" and done["attempts"] == 1,
+                    "completed worker state not durable",
+                )
+                ok(
+                    done["result"]["chunks"] > 0 and bool(done["result"]["document_id"]),
+                    "completed worker did not report indexed document",
+                )
+                ok(not run_one(worker_service), "cancelled job was claimable")
+                from arvectum_data.storage.postgres import AsyncIngestJobRow
+
+                with worker_service._require_factory()() as sess:
+                    persisted = sess.get(AsyncIngestJobRow, queued["job_id"])
+                    cancelled_row = sess.get(AsyncIngestJobRow, cancelled["job_id"])
+                    ok(
+                        persisted.content is None and cancelled_row.content is None,
+                        "terminal jobs retained raw uploaded source payload",
+                    )
+                found = req(
+                    c,
+                    "POST",
+                    "/v1/search",
+                    headers=h,
+                    json={
+                        "query": "Асинхронный тестовый кабель",
+                        "collections": [normal],
+                        "mode": "lexical",
+                    },
+                )["hits"]
+                ok(
+                    any(
+                        any(
+                            ev["canonical_uri"] == enqueue["canonical_uri"]
+                            for ev in hit.get("evidence", [])
+                        )
+                        for hit in found
+                    ),
+                    "completed background source not searchable with correct provenance",
+                )
+                report = req(c, "GET", "/v1/support/ingest-jobs", headers=h)
+                ok(
+                    report["backlog_active_count_global"] == 0,
+                    "completed/cancelled async jobs leaked into queue backlog",
+                )
+                ok(
+                    report["started_samples"] >= 1 and report["queue_wait_p95_ms"] >= 0,
+                    "background first-start queue wait SLI not aggregated",
+                )
+                ok(
+                    report["completed_samples"] >= 1 and report["completed_p95_ms"] >= 0,
+                    "background completion SLI not aggregated",
+                )
+                ok(
+                    report["terminal_error_rate"] == 0,
+                    "nonfailed asynchronous jobs reported as failed",
+                )
+                ok(
+                    not report["sufficient_completion_samples"],
+                    "sparse async completion samples incorrectly declared sufficient",
+                )
+                ok(
+                    "canonical_uri" not in json.dumps(report) and "content" not in report,
+                    "background read-only support leaked source metadata",
+                )
+                req(c, "GET", "/v1/support/ingest-jobs", expected=401)
+                checks.append("source-free separate async backlog/completion SLI")
+                checks.append("durable async intake/idempotency/ACL/cancel/manual worker/search")
+                from arvectum_data.api.ingest_worker import claim_one, complete_one
+                from sqlalchemy import update
+                from datetime import datetime, timedelta, UTC
+                from arvectum_data.indexing import EmbeddingServerUnavailableError
+
+                # A running job is deliberately NOT cancellable: current ingest is atomic.
+                crash_h = dict(h, **{"Idempotency-Key": f"synthetic-{uid}-crash"})
+                crashed = req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=202,
+                    headers=crash_h,
+                    data={"collection_id": normal},
+                    files={
+                        "file": ("crash.txt", b"synthetic recovered worker " * 50, "text/plain")
+                    },
+                )
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    claims = list(pool.map(lambda _: claim_one(worker_service), range(2)))
+                active_claims = [item for item in claims if item is not None]
+                ok(len(active_claims) == 1, "SKIP LOCKED allowed two workers to claim one job")
+                old_claim = active_claims[0]
+                ok(old_claim["job_id"] == crashed["job_id"], "crash probe claimed wrong job")
+                crash_url = f"/v1/ingest/jobs/{crashed['job_id']}?collection_id={normal}"
+                req(c, "DELETE", crash_url, headers=h, expected=409)
+                with worker_service._require_factory()() as sess:
+                    sess.execute(
+                        update(AsyncIngestJobRow)
+                        .where(AsyncIngestJobRow.job_id == crashed["job_id"])
+                        .values(lease_expires_at=datetime.now(UTC) - timedelta(seconds=1))
+                    )
+                    sess.commit()
+                ok(run_one(worker_service), "expired lease did not recover after crash")
+                recovered = req(c, "GET", crash_url, headers=h)
+                ok(
+                    recovered["status"] == "completed" and recovered["attempts"] == 2,
+                    "lease replay did not complete after simulated worker crash",
+                )
+                complete_one(worker_service, old_claim, failure=RuntimeError("stale worker"))
+                ok(
+                    req(c, "GET", crash_url, headers=h)["status"] == "completed",
+                    "stale lease overwrote completed outcome",
+                )
+                checks.append("worker crash/expired lease replay/stale token blocked")
+
+                # The first failed inference must release the job for retry, not fake 202 completion.
+                retry_h = dict(h, **{"Idempotency-Key": f"synthetic-{uid}-retry"})
+                failed_job = req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=202,
+                    headers=retry_h,
+                    data={"collection_id": normal},
+                    files={"file": ("retry.txt", b"unique synthetic retry " * 51, "text/plain")},
+                )
+                retry_url = f"/v1/ingest/jobs/{failed_job['job_id']}?collection_id={normal}"
+                old_provider = worker_service.embedding_provider
+
+                class TransientOutage:
+                    provider_name = old_provider.provider_name
+                    model_name = old_provider.model_name
+                    dimension = old_provider.dimension
+
+                    def embed_texts(self, _texts):
+                        raise EmbeddingServerUnavailableError("synthetic outage")
+
+                worker_service.embedding_provider = TransientOutage()
+                try:
+                    ok(run_one(worker_service), "failed provider job not claimed")
+                finally:
+                    worker_service.embedding_provider = old_provider
+                state = req(c, "GET", retry_url, headers=h)
+                ok(
+                    state["status"] == "queued" and state["attempts"] == 1,
+                    "failed inference not requeued for bounded retry",
+                )
+                with worker_service._require_factory()() as sess:
+                    sess.execute(
+                        update(AsyncIngestJobRow)
+                        .where(AsyncIngestJobRow.job_id == failed_job["job_id"])
+                        .values(run_after=datetime.now(UTC) - timedelta(seconds=1))
+                    )
+                    sess.commit()
+                ok(run_one(worker_service), "retry did not pick up pending job")
+                state = req(c, "GET", retry_url, headers=h)
+                ok(
+                    state["status"] == "completed" and state["attempts"] == 2,
+                    "recovered retry not committed exactly once",
+                )
+                checks.append("failed model retry and restoration of queue worker")
+                # Bounded collection admission, including read-only idempotency replay
+                # when the queue has reached its active-job limit.
+                from arvectum_data.api.async_ingest import IngestJobQueueFull
+
+                tight = DataPlatformService(
+                    Settings(
+                        _env_file=None,
+                        environment="test",
+                        database_url=dsn,
+                        embedding_provider="hashing",
+                        embedding_model="e2e-hash-v1",
+                        embedding_dimension=64,
+                        cross_encoder_provider="disabled",
+                        async_ingest_enabled=True,
+                        async_ingest_max_active_jobs=1,
+                        async_ingest_max_queued_bytes=2000,
+                    )
+                )
+                first_capacity = tight.enqueue_ingest_document(
+                    collection_id=normal,
+                    filename="capacity.txt",
+                    content=b"bounded-queued-data" * 15,
+                    idempotency_key=f"synthetic-{uid}-capacity-1",
+                )
+                same_capacity = tight.enqueue_ingest_document(
+                    collection_id=normal,
+                    filename="capacity.txt",
+                    content=b"bounded-queued-data" * 15,
+                    idempotency_key=f"synthetic-{uid}-capacity-1",
+                )
+                ok(
+                    first_capacity["job_id"] == same_capacity["job_id"],
+                    "idempotent replay blocked by full queue",
+                )
+                try:
+                    tight.enqueue_ingest_document(
+                        collection_id=normal,
+                        filename="capacity-2.txt",
+                        content=b"another synthetic document",
+                        idempotency_key=f"synthetic-{uid}-capacity-2",
+                    )
+                    raise AssertionError("second job bypassed active capacity")
+                except IngestJobQueueFull:
+                    pass
+                tight.cancel_queued_ingest_job(
+                    collection_id=normal, job_id=first_capacity["job_id"]
+                )
+                # Deterministically invalid input is dead-lettered and raw upload
+                # removed. No unbounded retries or fake searchable completion.
+                invalid_job = tight.enqueue_ingest_document(
+                    collection_id=normal,
+                    filename="invalid.txt",
+                    content=b"synthetic invalid worker content " * 18,
+                    idempotency_key=f"synthetic-{uid}-invalid-1",
+                )
+
+                class InvalidProvider:
+                    provider_name = old_provider.provider_name
+                    model_name = old_provider.model_name
+                    dimension = old_provider.dimension
+
+                    def embed_texts(self, _texts):
+                        raise ValueError("synthetic invalid inference")
+
+                worker_service.embedding_provider = InvalidProvider()
+                try:
+                    ok(run_one(worker_service), "invalid job not claimed")
+                finally:
+                    worker_service.embedding_provider = old_provider
+                invalid_url = f"/v1/ingest/jobs/{invalid_job['job_id']}?collection_id={normal}"
+                terminal_invalid = req(c, "GET", invalid_url, headers=h)
+                ok(
+                    terminal_invalid["status"] == "dead_letter"
+                    and terminal_invalid["attempts"] == 1
+                    and terminal_invalid["result"] is None,
+                    "invalid inference did not terminate fail-closed",
+                )
+                with worker_service._require_factory()() as sess:
+                    row = sess.get(AsyncIngestJobRow, invalid_job["job_id"])
+                    ok(
+                        row.content is None and row.error_class == "ValueError",
+                        "dead-letter payload was retained or error leaked details",
+                    )
+                summary = req(c, "GET", "/v1/support/ingest-jobs", headers=h)
+                ok(
+                    summary["terminal_dead_letter_count"] >= 1
+                    and summary["terminal_error_rate"] > 0,
+                    "terminal error rate did not surface unsuccessful job",
+                )
+                # One globally bounded backlog must not grow unbounded as
+                # collection count grows, even with local quotas available.
+                global_tight = DataPlatformService(
+                    Settings(
+                        _env_file=None,
+                        environment="test",
+                        database_url=dsn,
+                        embedding_provider="hashing",
+                        embedding_model="e2e-hash-v1",
+                        embedding_dimension=64,
+                        cross_encoder_provider="disabled",
+                        async_ingest_enabled=True,
+                        async_ingest_max_global_jobs=1,
+                    )
+                )
+                a_global = global_tight.enqueue_ingest_document(
+                    collection_id=normal,
+                    filename="global-a.txt",
+                    content=b"synthetic bounded global a" * 12,
+                    idempotency_key=f"synthetic-{uid}-global-a",
+                )
+                try:
+                    global_tight.enqueue_ingest_document(
+                        collection_id=restricted,
+                        filename="global-b.txt",
+                        content=b"synthetic bounded global b" * 12,
+                        idempotency_key=f"synthetic-{uid}-global-b",
+                    )
+                    raise AssertionError("global queue limit ignored across collections")
+                except IngestJobQueueFull:
+                    pass
+                global_tight.cancel_queued_ingest_job(
+                    collection_id=normal, job_id=a_global["job_id"]
+                )
+                checks.append("bounded queue admission and dead-letter failed inference")
+
+                # A second pending job remains durable and unindexed until worker starts,
+                # even if the HTTP service process is deliberately restarted below.
+                restart_h = dict(h, **{"Idempotency-Key": f"synthetic-{uid}-restart"})
+                pending_on_restart = req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=202,
+                    headers=restart_h,
+                    data={"collection_id": normal},
+                    files={
+                        "file": (
+                            "after-restart.txt",
+                            b"queue persisted across restart " * 55,
+                            "text/plain",
+                        )
+                    },
+                )
+                pending_restart_url = (
+                    f"/v1/ingest/jobs/{pending_on_restart['job_id']}?collection_id={normal}"
+                )
                 doc = ("Силовой кабель для промышленного объекта. " * 25).encode()
 
                 def ingest(uri, collection, payload=doc):
@@ -419,6 +821,17 @@ def main():
             stop(p)
             p = start(env, ROOT, wd / "restart.log")
             with httpx.Client(base_url=base_url, timeout=15) as c:
+                persisted = req(c, "GET", pending_restart_url, headers=h)
+                ok(
+                    persisted["status"] == "queued" and persisted["attempts"] == 0,
+                    "HTTP restart lost the unprocessed background job",
+                )
+                ok(run_one(worker_service), "worker could not process persisted job")
+                saved = req(c, "GET", pending_restart_url, headers=h)
+                ok(
+                    saved["status"] == "completed" and saved["attempts"] == 1,
+                    "restarted process did not observe committed job result",
+                )
                 ok(
                     bool(
                         req(
@@ -432,6 +845,7 @@ def main():
                     "restart persistence",
                 )
             checks.append("shutdown/restart persistence")
+            checks.append("queued job survives HTTP process restart")
             stop(p)
             p = start(dict(env, E2E_FAIL="1"), ROOT, wd / "failure.log")
             with httpx.Client(base_url=base_url, timeout=15) as c:

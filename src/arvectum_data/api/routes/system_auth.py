@@ -142,6 +142,13 @@ def register_system_auth_routes(router: APIRouter, context: RouteContext) -> Non
             payload["operations"][name] = operation_payload
         return payload
 
+    @router.get("/support/ingest-jobs", tags=["system"])
+    def async_ingest_support(runtime_service=Depends(runtime)) -> dict[str, Any]:
+        try:
+            return runtime_service.async_ingest_readiness()
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
     @router.get("/support/readiness", tags=["system"])
     def support_readiness() -> dict[str, Any]:
         operations = {

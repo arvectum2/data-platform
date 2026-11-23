@@ -1,6 +1,7 @@
 from .base import Base
 from .database import build_engine, build_session_factory
 from .models import (
+    AsyncIngestJobRow,
     ChunkEmbeddingRow,
     ChunkRow,
     CollectionRow,
@@ -25,6 +26,7 @@ from .models import (
 from .repository import DataRepository, VectorSearchHit
 
 __all__ = [
+    "AsyncIngestJobRow",
     "Base",
     "ChunkEmbeddingRow",
     "ChunkRow",

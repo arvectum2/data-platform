@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 
 from arvectum_data.api.service import DataPlatformService
+from arvectum_data.api.async_ingest import AsyncIngestServiceMixin
 from arvectum_data.api.service_mixins import (
     AccessServiceMixin,
     BillingServiceMixin,
@@ -21,6 +22,7 @@ from arvectum_data.api.service_mixins import (
 
 MIXIN_ROOT = Path(__file__).resolve().parents[2] / "src/arvectum_data/api/service_mixins"
 EXPECTED_MIXINS = (
+    AsyncIngestServiceMixin,
     AccessServiceMixin,
     ConsumerKeyServiceMixin,
     ConnectorCredentialServiceMixin,
@@ -42,6 +44,10 @@ def test_public_facade_composes_each_bounded_service_once():
 
 def test_domain_operations_have_one_implementing_owner():
     operation_owners = {
+        "enqueue_ingest_document": AsyncIngestServiceMixin,
+        "get_ingest_job": AsyncIngestServiceMixin,
+        "cancel_queued_ingest_job": AsyncIngestServiceMixin,
+        "async_ingest_readiness": AsyncIngestServiceMixin,
         "create_consumer_key": ConsumerKeyServiceMixin,
         "authenticate_consumer_key": ConsumerKeyServiceMixin,
         "rotate_consumer_key": ConsumerKeyServiceMixin,

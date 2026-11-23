@@ -32,6 +32,7 @@ from ..storage.postgres import (
     build_session_factory,
 )
 from .config import Settings
+from .async_ingest import AsyncIngestServiceMixin
 from .embedding_reuse import EmbeddingReuseCache
 
 from .service_support import (
@@ -70,6 +71,7 @@ from .service_mixins import (
 
 
 class DataPlatformService(
+    AsyncIngestServiceMixin,
     AccessServiceMixin,
     ConsumerKeyServiceMixin,
     ConnectorCredentialServiceMixin,
