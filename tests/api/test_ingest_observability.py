@@ -86,3 +86,45 @@ def test_context_is_propagated_to_bounded_worker_thread() -> None:
 
     result = asyncio.run(scenario())
     assert result.numeric_sample()["phases_ms"]["embedding"] >= 3
+
+
+def test_cohorts_distinguish_small_medium_large_and_unknown_ingest() -> None:
+    """Cohort rates belong to the same cohort; zero chunks can mean early error."""
+    counts = [0] * 2 + [2] * 20 + [5] * 20 + [10] * 20 + [18] * 20
+    rows = []
+    for count in counts:
+        rows.append(
+            {
+                "chunks": count,
+                "embedding_attempts": 0 if count == 0 else 1,
+                "concurrency": 1,
+                "size_bucket": "up_to_8kib" if count < 4 else "up_to_64kib",
+                "phases_ms": {name: 0 for name in ("prepare", "lookup", "embedding", "persist")},
+                "total_ms": count * 1000,
+                "status_code": 500 if count == 0 else 200,
+            }
+        )
+    report = phase_readiness(rows)
+    buckets = report["by_chunk_count"]
+    assert report["total"]["samples"] == len(counts)
+    assert report["total"]["window_error_rate"] == round(2 / len(counts), 6)
+    assert buckets["unknown_or_zero"]["samples"] == 2
+    assert buckets["unknown_or_zero"]["sufficient_samples"] is False
+    assert buckets["unknown_or_zero"]["window_error_rate"] == 1.0
+    assert buckets["one_to_three"]["samples"] == 20
+    assert buckets["one_to_three"]["request_p95_ms"] == 2000
+    assert buckets["four_to_eight"]["request_p95_ms"] == 5000
+    assert buckets["nine_to_sixteen"]["request_p95_ms"] == 10000
+    assert buckets["seventeen_plus"]["request_p95_ms"] == 18000
+    assert all(
+        buckets[name]["window_error_rate"] == 0
+        for name in ("one_to_three", "four_to_eight", "nine_to_sixteen", "seventeen_plus")
+    )
+    assert sum(bucket["samples"] for bucket in buckets.values()) == len(counts)
+
+
+def test_cohort_readiness_handles_empty_group() -> None:
+    empty = phase_readiness([])
+    assert empty["by_chunk_count"] == {}
+    assert empty["total"]["window_error_rate"] is None
+    assert empty["total"]["sufficient_samples"] is False

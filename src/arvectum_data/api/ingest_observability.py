@@ -110,12 +110,14 @@ def _aggregate(samples: list[dict[str, Any]]) -> dict[str, Any]:
         phase: percentile([sample["phases_ms"][phase] for sample in samples], 0.95)
         for phase in PHASES
     }
+    errors = sum(item["status_code"] >= 400 for item in samples)
     return {
         "samples": n,
         "sufficient_samples": n >= 20,
         "phase_p95_ms": p95s,
         "request_p95_ms": percentile([item["total_ms"] for item in samples], 0.95),
-        "errors": sum(item["status_code"] >= 400 for item in samples),
+        "errors": errors,
+        "window_error_rate": round(errors / n, 6) if n else None,
         "embedding_attempts_sum": sum(item["embedding_attempts"] for item in samples),
         "chunks_sum": sum(item["chunks"] for item in samples),
     }
@@ -129,7 +131,12 @@ def phase_readiness(samples: Any) -> dict[str, Any]:
         "total": _aggregate(rows),
         "by_input_size": {},
         "by_concurrency": {},
-        "note": "Phase data alone cannot prove causal attribution or production SLO.",
+        "by_chunk_count": {},
+        "note": (
+            "Chunk cohorts are diagnostic only, not approved per-cohort SLOs. "
+            "Incomplete ingest with unknown chunk count is separated from zero inference. "
+            "Phase data alone cannot prove causal attribution or production SLO."
+        ),
     }
     for bucket in SIZE_BUCKETS:
         group = [row for row in rows if row["size_bucket"] == bucket]
@@ -143,4 +150,15 @@ def phase_readiness(samples: Any) -> dict[str, Any]:
         group = [row for row in rows if check(row["concurrency"])]
         if group:
             result["by_concurrency"][name] = _aggregate(group)
+    chunk_checks = (
+        ("unknown_or_zero", lambda value: value == 0),
+        ("one_to_three", lambda value: 1 <= value <= 3),
+        ("four_to_eight", lambda value: 4 <= value <= 8),
+        ("nine_to_sixteen", lambda value: 9 <= value <= 16),
+        ("seventeen_plus", lambda value: value >= 17),
+    )
+    for name, check in chunk_checks:
+        group = [row for row in rows if check(row["chunks"])]
+        if group:
+            result["by_chunk_count"][name] = _aggregate(group)
     return result

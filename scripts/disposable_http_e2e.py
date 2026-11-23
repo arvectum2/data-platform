@@ -360,6 +360,30 @@ def main():
                     concurrent_results = list(pool.map(concurrent, range(3)))
                 ok(len({x["resource_id"] for x in concurrent_results}) == 3, "concurrency")
                 checks.append("20 synthetic hashing observations + 3 concurrent ingest")
+                for section_count, expected_cohort in (
+                    (80, "four_to_eight"),
+                    (380, "seventeen_plus"),
+                ):
+                    # Unique sections avoid chunk-hash deduplication of periodic text.
+                    source = " ".join(
+                        f"Синтетический номер {i:05d}. Контроль изоляции и монтаж кабеля."
+                        for i in range(section_count)
+                    ).encode()
+                    ingested = req(
+                        c,
+                        "POST",
+                        "/v1/ingest/document",
+                        headers=h,
+                        data={
+                            "collection_id": normal,
+                            "canonical_uri": f"synthetic://{uid}/cohort-{section_count}",
+                        },
+                        files={"file": ("cohort.txt", source, "text/plain")},
+                    )
+                    if expected_cohort == "four_to_eight":
+                        ok(4 <= ingested["chunks"] <= 8, "medium test chunk count drift")
+                    else:
+                        ok(ingested["chunks"] >= 17, "large test chunk count drift")
                 phase_readiness = req(c, "GET", "/v1/support/readiness", headers=h)
                 traces = phase_readiness["ingest_phases"]
                 ok(traces["content_included"] is False, "ingest trace leaked source content")
@@ -369,9 +393,28 @@ def main():
                 ok(traces["total"]["phase_p95_ms"]["lookup"] >= 1, "missing DB lookup span")
                 ok(traces["total"]["phase_p95_ms"]["persist"] >= 1, "missing SQL commit span")
                 ok(f"synthetic://{uid}" not in json.dumps(traces), "source identity leaked")
+                groups = traces["by_chunk_count"]
+                for cohort in ("one_to_three", "four_to_eight", "seventeen_plus"):
+                    ok(groups[cohort]["samples"] > 0, f"missing {cohort} phase cohort")
+                ok(
+                    sum(row["samples"] for row in groups.values()) == traces["total"]["samples"],
+                    "chunk-count cohorts do not partition all HTTP observations",
+                )
+                ok(
+                    groups["four_to_eight"]["sufficient_samples"] is False,
+                    "sparse medium cohort incorrectly called sufficient",
+                )
+                ok(
+                    groups["seventeen_plus"]["sufficient_samples"] is False,
+                    "sparse large cohort incorrectly called sufficient",
+                )
+                ok(
+                    traces["total"]["window_error_rate"] == 0,
+                    "all-success cohort has nonzero error rate",
+                )
                 req(c, "GET", "/v1/support/readiness", expected=401)
                 checks.append(
-                    "numeric-only ingest phases, size cohorts, and authenticated readiness"
+                    "numeric-only ingest phases, size and chunk cohorts, authenticated readiness"
                 )
             stop(p)
             p = start(env, ROOT, wd / "restart.log")

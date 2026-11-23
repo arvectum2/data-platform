@@ -161,3 +161,16 @@ HTTP E2E confirms reuse with distinct source provenance, cross-collection
 isolation and simulated 40ms provider delay avoidance. Neither a real Qwen
 throughput improvement nor production p95<=10s is claimed: see
 `docs/EMBEDDING_REUSE_CANDIDATE_20261123.md`. Production HOLD, issue OPEN.
+
+## Read-only provenance of 10-second ingest policy (23 Nov)
+
+Checked the initial git addition: commit `f0e1834` (6 Oct 2026, PR #52)
+introduced `OPERATION_SLOS["ingest"] = OperationSLO(10_000)` as a general
+internal operational ceiling, with no size-class justification in that PR.
+The owner-supplied modernization TЗ of 23 Nov explicitly reiterated the
+pre-existing <=10s/1%/20-sample Issue #133 acceptance requirement. The
+candidate now adds additive privacy-safe `by_chunk_count` cohorts and
+window-specific cohort error rates **without relaxing the existing global
+SLO**. Product-level synchronous vs durable asynchronous ingestion SLIs
+are a **proposal, not approval**, documented in
+`docs/INGEST_SLO_POLICY_REVIEW_20261123.md`. Release HOLD, issue OPEN.
