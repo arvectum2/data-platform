@@ -5,6 +5,7 @@ from typing import Any, Self, cast
 import httpx
 
 from .models import (
+    AsyncIngestJobReceipt,
     Collection,
     CollectionStats,
     ConsumerContract,
@@ -156,9 +157,7 @@ class DataPlatformClient:
         try:
             actual_major = int(str(contract["version"]).split(".", 1)[0])
         except (KeyError, TypeError, ValueError) as exc:
-            raise DataPlatformError(
-                "Data Platform returned invalid consumer contract"
-            ) from exc
+            raise DataPlatformError("Data Platform returned invalid consumer contract") from exc
         if actual_major != major:
             raise DataPlatformError(
                 "Incompatible Data Platform consumer contract: "
@@ -290,6 +289,86 @@ class DataPlatformClient:
             pre_chunked=pre_chunked,
         )
 
+    def enqueue_ingest_document_bytes(
+        self,
+        *,
+        collection_id: str,
+        canonical_uri: str,
+        title: str,
+        content: bytes,
+        filename: str,
+        idempotency_key: str,
+        content_type: str = "application/octet-stream",
+        pre_chunked: bool = False,
+    ) -> AsyncIngestJobReceipt:
+        """Opt-in durable enqueue: a 202 receipt is NOT searchable completion."""
+        if not idempotency_key or not (8 <= len(idempotency_key) <= 128):
+            raise ValueError("idempotency_key must be 8..128 characters")
+        path = "/v1/ingest/jobs"
+        response = self._request(
+            "POST",
+            path,
+            headers={"Idempotency-Key": idempotency_key},
+            data={
+                "collection_id": collection_id,
+                "canonical_uri": canonical_uri,
+                "title": title,
+                "pre_chunked": "true" if pre_chunked else "false",
+            },
+            files={"file": (filename, content, content_type)},
+        )
+        if response.status_code != 202:
+            raise DataPlatformError(
+                "Data Platform did not acknowledge durable queue admission",
+                status_code=response.status_code,
+                method="POST",
+                path=path,
+            )
+        payload = response.json()
+        if (
+            not isinstance(payload, dict)
+            or payload.get("collection_id") != collection_id
+            or not isinstance(payload.get("job_id"), str)
+            or payload.get("status") not in ("queued", "running", "completed")
+        ):
+            raise DataPlatformError("Invalid durable ingestion receipt")
+        return cast(AsyncIngestJobReceipt, payload)
+
+    def get_ingest_job(
+        self,
+        *,
+        collection_id: str,
+        job_id: str,
+    ) -> AsyncIngestJobReceipt:
+        """Poll a committed job; don't mark data indexed until status=completed."""
+        return cast(
+            AsyncIngestJobReceipt,
+            self.request_json(
+                "GET",
+                f"/v1/ingest/jobs/{job_id}",
+                params={"collection_id": collection_id},
+            ),
+        )
+
+    def cancel_queued_ingest_job(
+        self,
+        *,
+        collection_id: str,
+        job_id: str,
+    ) -> AsyncIngestJobReceipt:
+        """Only queued jobs can be cancelled. Running jobs reject with 409."""
+        return cast(
+            AsyncIngestJobReceipt,
+            self.request_json(
+                "DELETE",
+                f"/v1/ingest/jobs/{job_id}",
+                params={"collection_id": collection_id},
+            ),
+        )
+
+    def async_ingest_metrics(self) -> dict[str, Any]:
+        return cast(dict[str, Any], self.request_json("GET", "/v1/support/ingest-jobs"))
+
     def ingest_url(
         self,
         *,
@@ -412,14 +491,8 @@ class DataPlatformClient:
         )
         hits = payload.get("hits", [])
         if not isinstance(hits, list):
-            raise DataPlatformError(
-                "Data Platform search returned invalid hits payload"
-            )
-        return [
-            cast(SearchHit, item)
-            for item in hits
-            if isinstance(item, dict)
-        ]
+            raise DataPlatformError("Data Platform search returned invalid hits payload")
+        return [cast(SearchHit, item) for item in hits if isinstance(item, dict)]
 
     def search_with_profile(
         self,
@@ -443,9 +516,7 @@ class DataPlatformClient:
             query_variant_weight=float(profile.get("query_variant_weight", 0.5)),
             expand_query=bool(profile.get("expand_query", False)),
             query_expansion_limit=int(profile.get("query_expansion_limit", 4)),
-            collapse_by_canonical_uri=bool(
-                profile.get("collapse_by_canonical_uri", False)
-            ),
+            collapse_by_canonical_uri=bool(profile.get("collapse_by_canonical_uri", False)),
             rerank=bool(profile.get("rerank", False)),
             rerank_candidates=int(profile.get("rerank_candidates", 20)),
             rerank_strategy=str(profile.get("rerank_strategy", "cross_encoder")),

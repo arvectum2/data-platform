@@ -36,3 +36,39 @@ Isolated PG17/pgvector + HTTP E2E: migration and authenticated 202 receipt; idem
 Not yet demonstrated: real Qwen 17+ chunk/format/concurrency p95, sustained production queue/worker capacity, fairness across collections, production interruption/rollback, backup retention, long-running lease heartbeats under resource pressure, user-facing job progress UI. No background p95 target or production activation is implied.
 
 **Issue #133 remains OPEN. Production release HOLD.** The existing sync p95<=10s is not loosened. Staging migration and worker lifecycle and explicit owner release approval are prerequisites to any deployment.
+
+## Additional failure, migration, and consumer evidence (23 Nov)
+
+- The isolated worker failure test now spawns a **real child process** and sends
+  SIGTERM while mock embedding is in progress. The job remains leased in the
+  disposable PostgreSQL database, becomes eligible after lease expiry, and
+  completes on a second invocation with attempt count 2. This does not use
+  real Qwen or terminate a production process.
+- The Alembic migration **refuses downgrade when any async job rows exist**;
+  deleting the table would otherwise silently lose queued source payloads,
+  completed audit receipts and pending work. An isolated PG17 roundtrip first
+  verifies the refusal, then *only in disposable test data* empties the job
+  table, downgrades 0014 to 0013 and re-upgrades. Previously indexed sources
+  and search remain intact. Production rollback should normally roll back
+  application code while **retaining the additive queue table**, not drop it.
+- The source candidate Python SDK now includes typed background enqueue,
+  query, cancellation and read-only queue metrics. MockTransport tests require
+  real HTTP 202 for durable admission; 200/201 fail closed. No production SDK
+  package has been released or pinned.
+- A separate Tender Agent **review-only pilot** preserves its `tender-chunk://`
+  provenance, batches 9 chunks across 8+1 background submissions, blocks
+  premature search and verifies 9/9 completed jobs and 9 mapped RAG hits over
+  an actual disposable HTTP + PG17 connection. This uses synthetic hashing
+  embeddings and does NOT imply real Qwen acceptance or automatic runtime
+  pipeline switching. See Tender Agent candidate branch
+  `chore/ta-dp-dual-ingest-pilot-20261123`.
+
+## Model performance gate still unexecuted
+
+Real shared Qwen cannot be subjected to a new 5/10/18/27 chunk + concurrency
+A/B load window without an explicitly coordinated resource-safe window. This
+candidate has **no numerical background completion SLO**, does not relax the
+historic synchronous 10-second ceiling, and does not automatically run a
+production background worker. Real Qwen relevance/latency/concurrency,
+Tender Agent job receipt persistence and all retrieval/Decision Core gates,
+backup/retention/rollback remain pre-production requirements.

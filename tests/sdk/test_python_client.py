@@ -186,18 +186,21 @@ def test_search_with_profile_forwards_consumer_owned_weights() -> None:
         return httpx.Response(200, json={"query": "q", "hits": []})
 
     client = _client(handler)
-    assert client.search_with_profile(
-        query="q",
-        collections=["domain:scope:rev1"],
-        limit=10,
-        profile={
-            "mode": "hybrid",
-            "lexical_weight": 1.0,
-            "vector_weight": 4.0,
-            "query_variant_weight": 0.7,
-            "collapse_by_canonical_uri": True,
-        },
-    ) == []
+    assert (
+        client.search_with_profile(
+            query="q",
+            collections=["domain:scope:rev1"],
+            limit=10,
+            profile={
+                "mode": "hybrid",
+                "lexical_weight": 1.0,
+                "vector_weight": 4.0,
+                "query_variant_weight": 0.7,
+                "collapse_by_canonical_uri": True,
+            },
+        )
+        == []
+    )
 
 
 def test_connector_credential_sdk_contract() -> None:
@@ -264,18 +267,24 @@ def test_connector_credential_sdk_contract() -> None:
     )
     assert created["credential_id"] == "cred-1"
     assert client.list_connector_credentials() == []
-    assert client.discover(
-        connector="private-search",
-        query="supplier",
-        credential_id="cred-1",
-    )["resources"] == []
-    assert client.research(
-        query="supplier",
-        collection_id="research:private",
-        connector="private-search",
-        credential_id="cred-1",
-        execution_mode="research",
-    )["abstained"] is True
+    assert (
+        client.discover(
+            connector="private-search",
+            query="supplier",
+            credential_id="cred-1",
+        )["resources"]
+        == []
+    )
+    assert (
+        client.research(
+            query="supplier",
+            collection_id="research:private",
+            connector="private-search",
+            credential_id="cred-1",
+            execution_mode="research",
+        )["abstained"]
+        is True
+    )
     assert calls == [
         ("POST", "/v1/connectors/credentials"),
         ("GET", "/v1/connectors/credentials"),
@@ -326,6 +335,7 @@ def test_sdk_404_aware_collection_lookup_still_works():
 
 def test_sdk_sends_generic_ontology_to_data_platform_not_handcrafted_variants() -> None:
     """Supplier products beyond Power Quality can use same generic DP contract."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/v1/search"
         body = json.loads(request.content)
@@ -333,37 +343,153 @@ def test_sdk_sends_generic_ontology_to_data_platform_not_handcrafted_variants() 
         assert body["query_variants"] == []
         assert body["terminology_expansion_limit"] == 3
         assert body["terminology_version"] == "medical-imaging/0.1"
-        assert body["terminology_groups"] == [{
-            "id": "medical-imaging",
-            "aliases": ["МРТ", "MRI", "магнитно-резонансная томография"],
-            "contexts": ["диагностика"],
-            "exclusions": [],
-            "ambiguous_aliases": [],
-        }]
-        return httpx.Response(200, json={"hits": [{
-            "chunk_id": "c-1", "document_id": "d-1", "resource_id": "r-1",
-            "canonical_uri": "https://example.org/medical-technical.xml",
-            "title": "Medical",
-            "text": "Поставка МРТ", "preview": "Поставка МРТ",
-            "scores": {"lexical": 0.5, "vector": 0.8, "fusion": 0.75},
-            "evidence": [], "metadata": {"terminology_matches": [{
-                "id": "medical-imaging", "terms": ["МРТ"],
-                "contexts": [], "classification": "explicit_technical_candidate"
-            }]}
-        }]})
+        assert body["terminology_groups"] == [
+            {
+                "id": "medical-imaging",
+                "aliases": ["МРТ", "MRI", "магнитно-резонансная томография"],
+                "contexts": ["диагностика"],
+                "exclusions": [],
+                "ambiguous_aliases": [],
+            }
+        ]
+        return httpx.Response(
+            200,
+            json={
+                "hits": [
+                    {
+                        "chunk_id": "c-1",
+                        "document_id": "d-1",
+                        "resource_id": "r-1",
+                        "canonical_uri": "https://example.org/medical-technical.xml",
+                        "title": "Medical",
+                        "text": "Поставка МРТ",
+                        "preview": "Поставка МРТ",
+                        "scores": {"lexical": 0.5, "vector": 0.8, "fusion": 0.75},
+                        "evidence": [],
+                        "metadata": {
+                            "terminology_matches": [
+                                {
+                                    "id": "medical-imaging",
+                                    "terms": ["МРТ"],
+                                    "contexts": [],
+                                    "classification": "explicit_technical_candidate",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
 
     client = _client(handler)
     hits = client.search(
         query="МРТ в техническом задании",
         collections=["tenant:medical-source"],
         limit=10,
-        terminology_groups=[{
-            "id": "medical-imaging",
-            "aliases": ["МРТ", "MRI", "магнитно-резонансная томография"],
-            "contexts": ["диагностика"], "exclusions": [],
-            "ambiguous_aliases": [],
-        }],
+        terminology_groups=[
+            {
+                "id": "medical-imaging",
+                "aliases": ["МРТ", "MRI", "магнитно-резонансная томография"],
+                "contexts": ["диагностика"],
+                "exclusions": [],
+                "ambiguous_aliases": [],
+            }
+        ],
         terminology_expansion_limit=3,
         terminology_version="medical-imaging/0.1",
     )
     assert hits[0]["metadata"]["terminology_matches"][0]["id"] == "medical-imaging"
+
+
+def test_durable_async_ingest_sdk_receipt_and_poll_do_not_claim_searchability() -> None:
+    calls: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.url.path))
+        if request.url.path == "/v1/ingest/jobs":
+            assert request.method == "POST"
+            assert request.headers["Idempotency-Key"] == "synthetic-document-012345"
+            assert request.headers["X-Arvectum-Key"] == "internal-secret"
+            body = request.read()
+            assert b"synthetic large content" in body
+            assert b'name="collection_id"' in body
+            assert b"tender:stable:revision" in body
+            return httpx.Response(
+                202,
+                json={
+                    "job_id": "job-01",
+                    "collection_id": "tender:stable:revision",
+                    "status": "queued",
+                    "attempts": 0,
+                    "created_at": "2026-11-23T00:00:00Z",
+                    "completed_at": None,
+                    "result": None,
+                },
+            )
+        if request.url.path == "/v1/ingest/jobs/job-01":
+            assert request.url.params["collection_id"] == "tender:stable:revision"
+            if request.method == "DELETE":
+                return httpx.Response(409, json={"detail": "running"})
+            return httpx.Response(
+                200,
+                json={
+                    "job_id": "job-01",
+                    "collection_id": "tender:stable:revision",
+                    "status": "completed",
+                    "attempts": 1,
+                    "created_at": "2026-11-23T00:00:00Z",
+                    "completed_at": "2026-11-23T00:00:04Z",
+                    "result": {"resource_id": "resource-01", "document_id": "doc-01", "chunks": 5},
+                },
+            )
+        if request.url.path == "/v1/support/ingest-jobs":
+            return httpx.Response(200, json={"status": "diagnostic_only_no_slo_assigned"})
+        raise AssertionError(str(request.url))
+
+    c = _client(handler)
+    receipt = c.enqueue_ingest_document_bytes(
+        collection_id="tender:stable:revision",
+        canonical_uri="tender-chunk://chunk-123",
+        title="Tender evidence",
+        content=b"synthetic large content",
+        filename="evidence.txt",
+        idempotency_key="synthetic-document-012345",
+        content_type="text/plain",
+        pre_chunked=True,
+    )
+    assert receipt["status"] == "queued" and receipt["result"] is None
+    polled = c.get_ingest_job(collection_id="tender:stable:revision", job_id=receipt["job_id"])
+    assert polled["status"] == "completed"
+    assert polled["result"]["chunks"] == 5
+    with pytest.raises(DataPlatformConflictError):
+        c.cancel_queued_ingest_job(collection_id="tender:stable:revision", job_id="job-01")
+    assert c.async_ingest_metrics()["status"] == "diagnostic_only_no_slo_assigned"
+    assert calls == [
+        ("POST", "/v1/ingest/jobs"),
+        ("GET", "/v1/ingest/jobs/job-01"),
+        ("DELETE", "/v1/ingest/jobs/job-01"),
+        ("GET", "/v1/support/ingest-jobs"),
+    ]
+
+
+@pytest.mark.parametrize("status", [200, 201])
+def test_async_sdk_refuses_non_202_admission(status: int) -> None:
+    c = _client(
+        lambda r: httpx.Response(
+            status,
+            json={
+                "job_id": "pretend-job",
+                "collection_id": "test-collection",
+                "status": "queued",
+            },
+        )
+    )
+    with pytest.raises(DataPlatformError, match="durable queue admission"):
+        c.enqueue_ingest_document_bytes(
+            collection_id="test-collection",
+            canonical_uri="synth://sample",
+            title="Synthetic",
+            content=b"data",
+            filename="sample.txt",
+            idempotency_key="valid-key-000000",
+        )

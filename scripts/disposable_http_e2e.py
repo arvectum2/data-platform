@@ -61,6 +61,31 @@ uvicorn.run(app,host="127.0.0.1",port=int(os.environ["E2E_PORT"]),log_level="err
 """
 
 
+# A real child PID, deliberately stopped only in the disposable DB test.
+# Its mock inference sleeps until the parent sends SIGTERM; no live model used.
+KILLABLE_WORKER = """
+import os, time
+from arvectum_data.api.config import Settings
+from arvectum_data.api.service import DataPlatformService
+from arvectum_data.api.ingest_worker import run_one
+service=DataPlatformService(Settings(_env_file=None,environment='test',
+ database_url=os.environ['E2E_DB'],embedding_provider='hashing',
+ embedding_model='e2e-hash-v1',embedding_dimension=64,
+ cross_encoder_provider='disabled',reasoning_policy='disabled',
+ vision_policy='disabled',async_ingest_enabled=True))
+original=service.embedding_provider
+class Slow:
+ provider_name=original.provider_name
+ model_name=original.model_name
+ dimension=original.dimension
+ def embed_texts(self,texts):
+  time.sleep(20)
+  return original.embed_texts(texts)
+service.embedding_provider=Slow()
+run_one(service)
+"""
+
+
 def sh(*cmd, timeout=60):
     return subprocess.run(
         cmd, capture_output=True, text=True, check=True, timeout=timeout
@@ -438,6 +463,71 @@ def main():
                     "stale lease overwrote completed outcome",
                 )
                 checks.append("worker crash/expired lease replay/stale token blocked")
+                # A REAL child process is SIGTERM'd while embedding (not merely
+                # a synthetic lease manipulation). Only this owned test PID dies.
+                killed_h = dict(h, **{"Idempotency-Key": f"synthetic-{uid}-pid-kill"})
+                killed = req(
+                    c,
+                    "POST",
+                    "/v1/ingest/jobs",
+                    expected=202,
+                    headers=killed_h,
+                    data={
+                        "collection_id": normal,
+                        "canonical_uri": f"synthetic://{uid}/killed-worker",
+                    },
+                    files={
+                        "file": (
+                            "pid-kill.txt",
+                            b"synthetic killable pending source " * 48,
+                            "text/plain",
+                        )
+                    },
+                )
+                kill_url = f"/v1/ingest/jobs/{killed['job_id']}?collection_id={normal}"
+                fault_worker = subprocess.Popen(
+                    [sys.executable, "-c", KILLABLE_WORKER],
+                    cwd=ROOT,
+                    env=dict(env, PYTHONPATH=str(ROOT / "src")),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                try:
+                    for _ in range(120):
+                        if fault_worker.poll() is not None:
+                            raise AssertionError("isolated killable worker quit unexpectedly")
+                        state = req(c, "GET", kill_url, headers=h)
+                        if state["status"] == "running":
+                            break
+                        time.sleep(0.05)
+                    else:
+                        raise AssertionError("isolated killable worker did not claim job")
+                    fault_worker.terminate()  # Own disposable child PID only.
+                    fault_worker.wait(timeout=5)
+                    state = req(c, "GET", kill_url, headers=h)
+                    ok(
+                        state["status"] == "running" and state["attempts"] == 1,
+                        "SIGTERM failed to leave a durable leased job",
+                    )
+                finally:
+                    stop(fault_worker)
+                with worker_service._require_factory()() as sess:
+                    sess.execute(
+                        update(AsyncIngestJobRow)
+                        .where(AsyncIngestJobRow.job_id == killed["job_id"])
+                        .values(lease_expires_at=datetime.now(UTC) - timedelta(seconds=1))
+                    )
+                    sess.commit()
+                ok(run_one(worker_service), "actual SIGTERM worker lease was not recovered")
+                state = req(c, "GET", kill_url, headers=h)
+                ok(
+                    state["status"] == "completed" and state["attempts"] == 2,
+                    "actual SIGTERM recovery failed",
+                )
+                with worker_service._require_factory()() as sess:
+                    row = sess.get(AsyncIngestJobRow, killed["job_id"])
+                    ok(row.content is None, "completed worker retained sensitive upload")
+                checks.append("real isolated worker SIGTERM, lease expiry, durable replay")
 
                 # The first failed inference must release the job for retry, not fake 202 completion.
                 retry_h = dict(h, **{"Idempotency-Key": f"synthetic-{uid}-retry"})
@@ -980,6 +1070,100 @@ def main():
                     "forward recovery",
                 )
             checks.append("candidate forward recovery")
+            # Schema rollback drills are destructive to async job rows; execute
+            # ONLY after all synthetic job tests and ONLY on the owned PG17 DB.
+            stop(p)
+            previous = os.environ.get("ARVECTUM_DATA_DATABASE_URL")
+            try:
+                os.environ["ARVECTUM_DATA_DATABASE_URL"] = dsn
+                check_engine = create_engine(dsn)
+                try:
+                    with check_engine.connect() as conn:
+                        original_resource_count = conn.execute(
+                            text("select count(*) from dp_resources")
+                        ).scalar_one()
+                        ok(original_resource_count > 0, "migration drill missing baseline data")
+                        ok(
+                            conn.execute(
+                                text("select to_regclass('public.dp_async_ingest_jobs')")
+                            ).scalar_one()
+                            is not None,
+                            "pre-rollback async table missing",
+                        )
+                    try:
+                        command.downgrade(
+                            Config(str(ROOT / "alembic.ini")),
+                            "0013_invoice_provider_status",
+                        )
+                    except RuntimeError as exc:
+                        ok(
+                            "nonempty jobs" in str(exc),
+                            "nonempty async queue downgrade failed for wrong reason",
+                        )
+                    else:
+                        raise AssertionError("downgrade erased jobs without explicit drain")
+                    with check_engine.begin() as conn:
+                        ok(
+                            conn.execute(
+                                text("select count(*) from dp_async_ingest_jobs")
+                            ).scalar_one()
+                            > 0,
+                            "refused downgrade unexpectedly cleared pending audit",
+                        )
+                        # Only on the owned, disposable DB after all job tests.
+                        conn.execute(text("DELETE FROM dp_async_ingest_jobs"))
+                    command.downgrade(
+                        Config(str(ROOT / "alembic.ini")), "0013_invoice_provider_status"
+                    )
+                    with check_engine.connect() as conn:
+                        ok(
+                            conn.execute(
+                                text("select to_regclass('public.dp_async_ingest_jobs')")
+                            ).scalar_one()
+                            is None,
+                            "0014 downgrade left queue table",
+                        )
+                        ok(
+                            conn.execute(text("select count(*) from dp_resources")).scalar_one()
+                            == original_resource_count,
+                            "0014 downgrade modified old indexed resources",
+                        )
+                    command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
+                    with check_engine.connect() as conn:
+                        ok(
+                            conn.execute(
+                                text("select count(*) from dp_async_ingest_jobs")
+                            ).scalar_one()
+                            == 0,
+                            "upgrade recovered deleted queue payload",
+                        )
+                        ok(
+                            conn.execute(text("select count(*) from dp_resources")).scalar_one()
+                            == original_resource_count,
+                            "0014 re-upgrade lost indexed resources",
+                        )
+                finally:
+                    check_engine.dispose()
+            finally:
+                if previous is None:
+                    os.environ.pop("ARVECTUM_DATA_DATABASE_URL", None)
+                else:
+                    os.environ["ARVECTUM_DATA_DATABASE_URL"] = previous
+            p = start(env, ROOT, wd / "post-migration-drill.log")
+            with httpx.Client(base_url=base_url, timeout=15) as c:
+                ok(
+                    bool(
+                        req(
+                            c,
+                            "POST",
+                            "/v1/search",
+                            headers=h,
+                            json={"query": "кабель", "collections": [normal]},
+                        )["hits"]
+                    ),
+                    "search failed after isolated migration rollback/re-upgrade",
+                )
+            checks.append("0014 downgrade/re-upgrade preserves pre-existing index; jobs drained")
             sorted_ms = sorted(lat)
             print(
                 json.dumps(

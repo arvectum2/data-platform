@@ -184,3 +184,15 @@ operational metrics. Isolated PG17 HTTP E2E tests validate recovery and
 source provenance without changing production services or index dimensions.
 No production migration, daemon, model change or SLO relaxation occurred.
 See `docs/ASYNC_INGEST_CANDIDATE_20261123.md`; release HOLD, Issue #133 OPEN.
+
+## Controlled worker-crash, guarded downgrade and Tender Agent pilot (23 Nov)
+
+Additional isolated E2E used real SIGTERM of a disposable worker and confirmed
+bounded replay; Alembic 0014 now refuses schema deletion when durable job rows
+remain. A disposable downgrade/re-upgrade after test-only queue draining
+preserves the original indexed documents. Python consumer SDK gained typed
+opt-in job APIs and HTTP 202 fail-closed tests. The separate Tender Agent
+candidate bridge passed nine actual HTTP submissions through isolated PG17,
+completion/readiness gating and nine source-faithful RAG hits (hashing only).
+No active runtime/SDK release or Qwen test window changes. Documentation:
+`docs/ASYNC_INGEST_CANDIDATE_20261123.md`. Issue #133 OPEN, HOLD.

@@ -69,6 +69,14 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # A rollback must never destroy queued source bytes or completed job
+    # provenance. Keep the additive schema until operators explicitly export
+    # and drain/retain every job under a separately approved retention plan.
+    remaining = (
+        op.get_bind().execute(sa.text("SELECT count(*) FROM dp_async_ingest_jobs")).scalar_one()
+    )
+    if remaining:
+        raise RuntimeError("refusing async ingest schema downgrade with nonempty jobs")
     op.drop_index("ix_dp_async_ingest_created", table_name="dp_async_ingest_jobs")
     op.drop_index("ix_dp_async_ingest_collection_status", table_name="dp_async_ingest_jobs")
     op.drop_index("ix_dp_async_ingest_claim", table_name="dp_async_ingest_jobs")
