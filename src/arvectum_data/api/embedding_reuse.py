@@ -33,6 +33,14 @@ class EmbeddingReuseCache:
         self._clock = clock
         self._lock = threading.Lock()
         self._entries: OrderedDict[CacheKey, tuple[float, tuple[float, ...]]] = OrderedDict()
+        self._active_provider: Any | None = None
+
+    def _guard_provider_locked(self, provider: Any) -> None:
+        # A Python id() can be reused after an object is released. Retain the
+        # real provider reference and wipe old vectors on any provider swap.
+        if self._active_provider is not provider:
+            self._entries.clear()
+            self._active_provider = provider
 
     @staticmethod
     def _key(collection_id: str, provider: Any, content_hash: str) -> CacheKey | None:
@@ -55,6 +63,7 @@ class EmbeddingReuseCache:
         result: dict[str, list[float]] = {}
         now = self._clock()
         with self._lock:
+            self._guard_provider_locked(provider)
             for chunk in chunks:
                 key = self._key(collection_id, provider, chunk.content_hash)
                 if key is None:
@@ -81,6 +90,7 @@ class EmbeddingReuseCache:
             return
         expires = self._clock() + self.ttl_seconds
         with self._lock:
+            self._guard_provider_locked(provider)
             for chunk in chunks:
                 key = self._key(collection_id, provider, chunk.content_hash)
                 vector = vectors.get(chunk.chunk_id)

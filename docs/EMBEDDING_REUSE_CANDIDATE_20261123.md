@@ -19,6 +19,8 @@ launchd or Tender Agent code changes. No new vector index or migration.
 - Therefore reusing a previously embedded chunk can save one model invocation
   for repeat content, but a 4% duplicate rate is **not** a solution for the
   sustained production ingest p95 ~21s vs the <=10s acceptance target.
+  A sample duplicate is only a *possible* cache hit: a completed prior
+  source must still be in this one process within the 300-second TTL.
 
 ## Implemented candidate behavior
 
@@ -30,7 +32,10 @@ launchd or Tender Agent code changes. No new vector index or migration.
   chunk hash; values are immutable tuples of vector floats. The cache stores
   **no** source text, filename, canonical URI, resource/document ID, tenant
   secrets, or request payload. This does not share vectors across collections.
-- Retrieved vectors are copied before use. Provider dimension must be known;
+- Retrieved vectors are copied before use. The cache retains a reference
+  to its active provider and immediately invalidates all entries on a
+  provider-object swap; recycled Python `id()` values cannot resurrect vectors
+  from an old provider. Provider dimension must be known;
   empty/inconsistent vectors do not enter the cache. An alias/provider swap
   under a different object is isolated; expiry limits old entries.
 - Normal SQL read-only embedding lookup and post-inference SQL

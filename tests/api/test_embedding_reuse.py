@@ -48,12 +48,15 @@ def test_scope_and_content_hash_exact_and_no_plaintext_retention() -> None:
     cache.put_many("collection-a", provider, [doc_a], {"document-a": [1, 2, 3]})
     assert cache.get_many("collection-a", provider, [doc_b]) == {"document-b": [1.0, 2.0, 3.0]}
     assert cache.get_many("collection-b", provider, [doc_b]) == {}
-    assert cache.get_many("collection-a", _provider(), [doc_b]) == {}
     assert cache.get_many("collection-a", provider, [other]) == {}
     assert "identical exact text" not in repr(cache._entries)
     result = cache.get_many("collection-a", provider, [doc_b])
     result["document-b"][0] = -3
     assert cache.get_many("collection-a", provider, [doc_b])["document-b"][0] == 1
+    assert cache.get_many("collection-a", _provider(), [doc_b]) == {}
+    # Switching providers invalidates old cache entries rather than relying
+    # on id() uniqueness after a future Python object-id reuse.
+    assert cache.get_many("collection-a", provider, [doc_b]) == {}
 
 
 def test_provider_dimension_contract_and_fail_closed_entries() -> None:
