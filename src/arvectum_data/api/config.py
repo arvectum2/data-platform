@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     # Bound each local/HTTP inference call without splitting source chunks.
     embedding_inference_batch_size: int = Field(default=32, ge=1, le=512)
     embedding_inference_batch_chars: int = Field(default=32768, ge=1024, le=1000000)
+    # Opt-in: bounded, process-local, collection-scoped reuse of already committed
+    # identical chunk vectors. Default OFF; no durable cache or schema migration.
+    embedding_reuse_cache_entries: int = Field(default=0, ge=0, le=512)
     embedding_retry_max_attempts: int = Field(default=3, ge=1, le=10)
     embedding_retry_base_delay_seconds: float = Field(default=0.25, ge=0.0)
     embedding_retry_max_delay_seconds: float = Field(default=2.0, ge=0.0)
@@ -120,9 +123,8 @@ class Settings(BaseSettings):
         if self.database_url and not _url_is_local(self.database_url):
             violations.append("database_url must be local")
         embedding_provider = self.embedding_provider.strip().lower()
-        if (
-            embedding_provider not in {"hashing", "sentence_transformers"}
-            and not _url_is_local(self.embedding_base_url)
+        if embedding_provider not in {"hashing", "sentence_transformers"} and not _url_is_local(
+            self.embedding_base_url
         ):
             violations.append("embedding endpoint must be loopback")
         if self.ocr_provider.strip().lower() not in {"disabled", "tesseract"}:
@@ -138,17 +140,14 @@ class Settings(BaseSettings):
             allowlist = str(getattr(self, f"{role}_remote_allowlist")).strip()
             if policy not in {"disabled", "local-only"}:
                 violations.append(f"{role} policy must be disabled or local-only")
-            if policy == "local-only" and (
-                locality != "local" or not _url_is_local(base_url)
-            ):
+            if policy == "local-only" and (locality != "local" or not _url_is_local(base_url)):
                 violations.append(f"{role} local-only endpoint must be loopback")
             if allowlist:
                 violations.append(f"{role} remote allowlist must be empty")
 
         if violations:
             raise ValueError(
-                "local-private deployment rejects configuration: "
-                + "; ".join(violations)
+                "local-private deployment rejects configuration: " + "; ".join(violations)
             )
         return self
 

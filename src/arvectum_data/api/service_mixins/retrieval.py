@@ -39,7 +39,10 @@ from ...storage.postgres import (
 )
 
 from ..ingest_observability import (
-    observe_chunks, observe_embedding_attempts, timed_call, timed_session,
+    observe_chunks,
+    observe_embedding_attempts,
+    timed_call,
+    timed_session,
 )
 from ..search_hit_policy import (
     _collapse_canonical_hits,
@@ -223,22 +226,37 @@ class RetrievalServiceMixin:
         pending_chunks = [
             chunk for chunk in result.chunks if chunk.chunk_id not in previously_indexed
         ]
+        # Reuse only previously committed, identical text from THIS collection,
+        # pinned to the actual provider object/model/dimension, with short TTL.
+        cache = getattr(self, "_embedding_reuse_cache", None)
+        cached_vectors = (
+            cache.get_many(result.resource.collection_id, self.embedding_provider, pending_chunks)
+            if cache is not None
+            else {}
+        )
+        uncached_chunks = [
+            chunk for chunk in pending_chunks if chunk.chunk_id not in cached_vectors
+        ]
         vectors, embedding_attempts = timed_call(
-            "embedding", self._embed_texts_with_retry,
-            [chunk.text for chunk in pending_chunks],
+            "embedding",
+            self._embed_texts_with_retry,
+            [chunk.text for chunk in uncached_chunks],
         )
         observe_embedding_attempts(embedding_attempts)
-        if len(vectors) != len(pending_chunks):
+        if len(vectors) != len(uncached_chunks):
             raise RuntimeError("embedding provider returned unexpected vector count")
-        dimensions = {len(vector) for vector in vectors}
+        pending_vectors = {
+            **cached_vectors,
+            **{chunk.chunk_id: vector for chunk, vector in zip(uncached_chunks, vectors)},
+        }
+        if len(pending_vectors) != len(pending_chunks):
+            raise RuntimeError("embedding coverage incomplete before ingest commit")
+        dimensions = {len(vector) for vector in pending_vectors.values()}
         if len(dimensions) > 1 or 0 in dimensions:
             raise EmbeddingContractMismatch(
                 f"embedding provider returned invalid or inconsistent dimensions: "
                 f"{sorted(dimensions)}"
             )
-        pending_vectors = {
-            chunk.chunk_id: vector for chunk, vector in zip(pending_chunks, vectors)
-        }
 
         # Validate/requery under one fresh write transaction. An independent
         # writer may have indexed our chunks during inference; preserve reuse
@@ -267,10 +285,7 @@ class RetrievalServiceMixin:
 
             repo.persist_ingest(result)
             repo.upsert_embeddings(
-                (
-                    (chunk.chunk_id, pending_vectors[chunk.chunk_id])
-                    for chunk in remaining_chunks
-                ),
+                ((chunk.chunk_id, pending_vectors[chunk.chunk_id]) for chunk in remaining_chunks),
                 provider=self.embedding_provider.provider_name,
                 model=self.embedding_provider.model_name,
             )
@@ -284,6 +299,15 @@ class RetrievalServiceMixin:
                         f"dimension {collection.embedding_dimension}, got {dimension}"
                     )
             session.commit()
+            # Publish reusable vectors only AFTER their SQL transaction commits.
+            # Neither failed inference nor a rolled-back persist can poison cache.
+            if cache is not None and remaining_chunks:
+                cache.put_many(
+                    result.resource.collection_id,
+                    self.embedding_provider,
+                    remaining_chunks,
+                    pending_vectors,
+                )
 
             return {
                 "collection_id": result.resource.collection_id,

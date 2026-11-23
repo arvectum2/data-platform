@@ -149,3 +149,15 @@ remained RED at ingest p95 21635ms/latest 256 after window; the 20-sample
 series under-samples its documented 18-chunk p95 and had concurrency 1.
 Full evidence and limitations: `docs/INGEST_SLO_SHARED_QWEN_STAGE_20261123.md`.
 Release remains HOLD; Issue #133 OPEN.
+
+## 23 Nov opt-in embedding reuse candidate (not deployed)
+
+Read-only production database snapshot of 1500 recent chunks showed 61
+same-collection exact SHA-256 repeats (~4.07%). Candidate now contains a
+**disabled-by-default**, 300s TTL, bounded 0..512-vector, same-collection
+process-local embedding reuse cache. It stores only content hashes and vectors
+and only publishes after successful PostgreSQL commit. Opt-in isolated PG17
+HTTP E2E confirms reuse with distinct source provenance, cross-collection
+isolation and simulated 40ms provider delay avoidance. Neither a real Qwen
+throughput improvement nor production p95<=10s is claimed: see
+`docs/EMBEDDING_REUSE_CANDIDATE_20261123.md`. Production HOLD, issue OPEN.

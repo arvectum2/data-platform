@@ -33,7 +33,7 @@ settings=Settings(_env_file=None, environment="test", deployment_mode="local-pri
  consumer_api_keys={"growth-agent":os.environ["E2E_CONSUMER"]},
  embedding_provider="hashing", embedding_model="e2e-hash-v1", embedding_dimension=64,
  cross_encoder_provider="disabled", reasoning_policy="disabled", vision_policy="disabled",
- embedding_retry_max_attempts=1)
+ embedding_retry_max_attempts=1, embedding_reuse_cache_entries=64)
 app=create_app(settings)
 if os.getenv("E2E_FAIL") == "1":
  old=app.state.platform_service.embedding_provider
@@ -252,7 +252,23 @@ def main():
                     a["resource_id"] == b["resource_id"] and b["embeddings_written"] == 0,
                     "idempotency",
                 )
-                ingest(f"synthetic://{uid}/protected", restricted)
+                reused_uri = f"synthetic://{uid}/reuse"
+                reused = ingest(reused_uri, normal)
+                ok(reused["chunks"] == a["chunks"], "cached text chunk count changed")
+                ok(
+                    reused["embeddings_written"] == reused["chunks"],
+                    "new source did not persist its own vectors",
+                )
+                ok(
+                    reused["embedding_attempts"] == 0,
+                    "identical same-collection chunk did not reuse committed vector",
+                )
+                isolated = ingest(f"synthetic://{uid}/protected", restricted)
+                ok(
+                    isolated["embedding_attempts"] > 0,
+                    "embedding cache leaked across collection boundary",
+                )
+                checks.append("opt-in cached embedding reuse, strict collection isolation")
                 checks.append("ingest/chunk/index/idempotency")
                 for mode in ("lexical", "vector", "hybrid"):
                     hits = req(
@@ -263,7 +279,7 @@ def main():
                         json={"query": "силовой кабель", "collections": [normal], "mode": mode},
                     )["hits"]
                     ok(
-                        bool(hits) and hits[0]["evidence"][0]["canonical_uri"] == uri,
+                        bool(hits) and hits[0]["evidence"][0]["canonical_uri"] in {uri, reused_uri},
                         f"{mode} provenance",
                     )
                 req(
@@ -416,7 +432,8 @@ def main():
             stop(p)
             p = start(dict(env, E2E_SLOW="1"), ROOT, wd / "slow-provider.log")
             with httpx.Client(base_url=base_url, timeout=15) as c:
-                req(
+                slow_payload = b"synthetic local inference " * 25
+                first_slow = req(
                     c,
                     "POST",
                     "/v1/ingest/document",
@@ -426,8 +443,9 @@ def main():
                         "canonical_uri": f"synthetic://{uid}/slow-inference",
                         "pre_chunked": "true",
                     },
-                    files={"file": ("slow.txt", b"synthetic local inference " * 25, "text/plain")},
+                    files={"file": ("slow.txt", slow_payload, "text/plain")},
                 )
+                ok(first_slow["embedding_attempts"] >= 1, "simulated provider not invoked")
                 timings = req(c, "GET", "/v1/support/readiness", headers=h)
                 phase = timings["ingest_phases"]["total"]
                 ok(phase["samples"] >= 1, "slow ingest metrics absent")
@@ -439,7 +457,28 @@ def main():
                     phase["request_p95_ms"] >= 40,
                     "simulated model wait was not counted in request wall time",
                 )
+                second_slow = req(
+                    c,
+                    "POST",
+                    "/v1/ingest/document",
+                    headers=h,
+                    data={
+                        "collection_id": normal,
+                        "canonical_uri": f"synthetic://{uid}/slow-reuse",
+                        "pre_chunked": "true",
+                    },
+                    files={"file": ("slow.txt", slow_payload, "text/plain")},
+                )
+                ok(
+                    second_slow["embedding_attempts"] == 0,
+                    "same-collection cache did not skip simulated 40ms inference",
+                )
+                ok(
+                    second_slow["embeddings_written"] == second_slow["chunks"],
+                    "cached vector not persisted for new source",
+                )
             checks.append("40ms isolated inference delay attributed to embedding phase")
+            checks.append("opt-in cache skips slow provider after committed identical text")
             stop(p)
             baseline = wd / "baseline"
             baseline.mkdir()
