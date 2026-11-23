@@ -7,6 +7,7 @@ from typing import Any
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import (
     BigInteger,
+    LargeBinary,
     Boolean,
     Computed,
     DateTime,
@@ -48,11 +49,14 @@ class CollectionRow(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     default_language: Mapped[str] = mapped_column(String(32), default="simple", nullable=False)
     access_policy: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict, nullable=False)
-    retention_policy: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict, nullable=False)
+    retention_policy: Mapped[dict[str, Any]] = mapped_column(
+        JSON_TYPE, default=dict, nullable=False
+    )
     embedding_provider: Mapped[str | None] = mapped_column(String(128), nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(256), nullable=True)
     embedding_dimension: Mapped[int | None] = mapped_column(Integer, nullable=True)
     active_index_revision: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
 
 class ResourceRow(TimestampMixin, Base):
     __tablename__ = "dp_resources"
@@ -98,6 +102,49 @@ class ResourceRow(TimestampMixin, Base):
     )
 
 
+class AsyncIngestJobRow(Base):
+    __tablename__ = "dp_async_ingest_jobs"
+
+    job_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    collection_id: Mapped[str] = mapped_column(
+        ForeignKey("dp_collections.collection_id", ondelete="CASCADE"), nullable=False
+    )
+    idempotency_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    request_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    filename: Mapped[str] = mapped_column(String(256), nullable=False)
+    canonical_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    title: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    pre_chunked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    input_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[bytes | None] = mapped_column(LargeBinary(), nullable=True)
+    status: Mapped[str] = mapped_column(String(24), default="queued", nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    lease_token: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    run_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    )
+    result_json: Mapped[dict[str, Any] | None] = mapped_column(JSON_TYPE, nullable=True)
+    error_class: Mapped[str | None] = mapped_column(String(96), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "collection_id", "idempotency_digest", name="uq_dp_async_ingest_idempotency"
+        ),
+        Index("ix_dp_async_ingest_claim", "status", "run_after", "lease_expires_at", "created_at"),
+        Index("ix_dp_async_ingest_collection_status", "collection_id", "status"),
+        Index("ix_dp_async_ingest_created", "created_at"),
+    )
+
+
 class RefreshRunRow(Base):
     __tablename__ = "dp_refresh_runs"
 
@@ -114,11 +161,11 @@ class RefreshRunRow(Base):
     outcome: Mapped[str] = mapped_column(String(32), nullable=False)
     previous_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     current_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    detail_json: Mapped[dict[str, Any]] = mapped_column("detail", JSON_TYPE, default=dict, nullable=False)
-
-    __table_args__ = (
-        Index("ix_dp_refresh_runs_resource_started", "resource_id", "started_at"),
+    detail_json: Mapped[dict[str, Any]] = mapped_column(
+        "detail", JSON_TYPE, default=dict, nullable=False
     )
+
+    __table_args__ = (Index("ix_dp_refresh_runs_resource_started", "resource_id", "started_at"),)
 
 
 class DocumentRow(TimestampMixin, Base):
@@ -163,16 +210,16 @@ class DataRecordRow(TimestampMixin, Base):
         nullable=True,
     )
     record_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    data_json: Mapped[dict[str, Any]] = mapped_column("data", JSON_TYPE, default=dict, nullable=False)
+    data_json: Mapped[dict[str, Any]] = mapped_column(
+        "data", JSON_TYPE, default=dict, nullable=False
+    )
     revision: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     review_status: Mapped[str] = mapped_column(String(32), default="unreviewed", nullable=False)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(
         "metadata", JSON_TYPE, default=dict, nullable=False
     )
 
-    __table_args__ = (
-        Index("ix_dp_records_resource_type", "resource_id", "record_type"),
-    )
+    __table_args__ = (Index("ix_dp_records_resource_type", "resource_id", "record_type"),)
 
 
 class ChunkRow(TimestampMixin, Base):
@@ -296,10 +343,6 @@ class ProvenanceRow(Base):
     )
 
 
-
-
-
-
 class EntityRow(TimestampMixin, Base):
     __tablename__ = "dp_entities"
 
@@ -316,9 +359,7 @@ class EntityRow(TimestampMixin, Base):
         back_populates="entity", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (
-        Index("ix_dp_entities_type_name", "entity_type", "canonical_name"),
-    )
+    __table_args__ = (Index("ix_dp_entities_type_name", "entity_type", "canonical_name"),)
 
 
 class EntityAliasRow(Base):
@@ -363,7 +404,6 @@ class EntityAliasRow(Base):
         ),
         Index("ix_dp_entity_alias_entity", "entity_id"),
     )
-
 
 
 class EntityRelationRow(Base):
@@ -420,6 +460,7 @@ class EntityRelationRow(Base):
         Index("ix_dp_entity_relations_status", "status"),
     )
 
+
 class RelevanceFeedbackRow(Base):
     __tablename__ = "dp_relevance_feedback"
 
@@ -475,12 +516,8 @@ class ConsumerApiKeyRow(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
-    expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    revoked_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_dp_consumer_api_keys_consumer_status", "consumer_id", "status"),
@@ -507,9 +544,7 @@ class ConnectorCredentialRow(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
-    revoked_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index(
@@ -541,9 +576,7 @@ class BillingCatalogRow(Base):
         "rules", JSON_TYPE, default=list, nullable=False
     )
     status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)
-    effective_from: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
@@ -573,19 +606,11 @@ class TenantBillingAssignmentRow(Base):
         ForeignKey("dp_billing_catalogs.catalog_id", ondelete="RESTRICT"),
         nullable=False,
     )
-    payment_provider: Mapped[str] = mapped_column(
-        String(64), default="manual", nullable=False
-    )
-    external_customer_id: Mapped[str | None] = mapped_column(
-        String(256), nullable=True
-    )
+    payment_provider: Mapped[str] = mapped_column(String(64), default="manual", nullable=False)
+    external_customer_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)
-    effective_from: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    effective_to: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
@@ -633,12 +658,8 @@ class InvoiceRow(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
-    finalized_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    paid_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
@@ -748,9 +769,7 @@ class PipelineRunRow(Base):
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_dp_pipeline_runs_collection_type", "collection_id", "run_type"),

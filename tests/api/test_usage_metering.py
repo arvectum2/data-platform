@@ -147,3 +147,62 @@ def test_metering_failure_does_not_take_search_down() -> None:
     )
     assert status.status_code == 200
     assert status.json()["metrics"]["usage_metering_errors"] == 1
+
+
+def test_slow_usage_metering_does_not_block_async_request_loop() -> None:
+    """Synchronous DB metering must run off the event loop after the response."""
+    import asyncio
+    import threading
+
+    import httpx
+
+    entered = threading.Event()
+    release = threading.Event()
+
+    class SlowUsagePlatform(UsagePlatformService):
+        def record_usage_event(self, **kwargs):
+            entered.set()
+            release.wait(timeout=2)
+            return super().record_usage_event(**kwargs)
+
+    platform = SlowUsagePlatform()
+    app = create_app(
+        Settings(
+            _env_file=None,
+            environment="test",
+            log_level="WARNING",
+            internal_api_key="admin-secret",
+            consumer_api_keys={"external": "consumer-secret"},
+        ),
+        platform_service=platform,
+    )
+
+    async def scenario():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            task = asyncio.create_task(
+                client.post(
+                    "/v1/search",
+                    headers={
+                        "X-Arvectum-Consumer": "external",
+                        "X-Arvectum-Consumer-Key": "consumer-secret",
+                    },
+                    json={
+                        "query": "synthetic",
+                        "collections": ["tests:knowledge"],
+                        "mode": "lexical",
+                    },
+                )
+            )
+            try:
+                assert await asyncio.to_thread(entered.wait, 2)
+                await asyncio.sleep(0)
+                assert not task.done(), "metering blocked event loop until DB write completed"
+            finally:
+                release.set()
+            assert (await task).status_code == 200
+
+    asyncio.run(scenario())
+    assert len(platform.usage_events) == 1

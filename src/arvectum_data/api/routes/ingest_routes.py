@@ -6,6 +6,8 @@ from fastapi import (
     Depends,
     File,
     Form,
+    Header,
+    Query,
     HTTPException,
     UploadFile,
 )
@@ -14,12 +16,12 @@ from starlette.concurrency import run_in_threadpool
 
 from ..schemas import (
     IngestResponse,
+    AsyncIngestJobResponse,
     ProcessDocumentResponse,
     UrlIngestRequest,
 )
 
 from .context import RouteContext
-
 
 
 def register_ingest_routes(router: APIRouter, context: RouteContext) -> None:
@@ -82,6 +84,74 @@ def register_ingest_routes(router: APIRouter, context: RouteContext) -> None:
                 overlap_chars=overlap_chars,
                 min_chunk_chars=min_chunk_chars,
                 max_chars=max_chars,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.post(
+        "/ingest/jobs",
+        response_model=AsyncIngestJobResponse,
+        status_code=202,
+        tags=["ingest"],
+    )
+    async def queue_document_ingest(
+        collection_id: str = Form(..., min_length=1, max_length=128),
+        file: UploadFile = File(...),
+        idempotency_key: str = Header(..., alias="Idempotency-Key"),
+        title: str | None = Form(default=None),
+        canonical_uri: str | None = Form(default=None),
+        pre_chunked: bool = Form(default=False),
+        runtime_service=Depends(runtime),
+    ):
+        if not resolved.async_ingest_enabled:
+            raise HTTPException(status_code=503, detail="asynchronous ingest disabled")
+        content = await file.read(
+            min(resolved.max_upload_bytes, resolved.async_ingest_max_bytes) + 1
+        )
+        if len(content) > min(resolved.max_upload_bytes, resolved.async_ingest_max_bytes):
+            raise HTTPException(status_code=413, detail="asynchronous upload too large")
+        try:
+            return await run_in_threadpool(
+                runtime_service.enqueue_ingest_document,
+                collection_id=collection_id,
+                filename=file.filename or "document.bin",
+                content=content,
+                idempotency_key=idempotency_key,
+                title=title,
+                canonical_uri=canonical_uri,
+                pre_chunked=pre_chunked,
+            )
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.get(
+        "/ingest/jobs/{job_id}",
+        response_model=AsyncIngestJobResponse,
+        tags=["ingest"],
+    )
+    def get_document_ingest_job(
+        job_id: str,
+        collection_id: str = Query(..., min_length=1, max_length=128),
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.get_ingest_job(collection_id=collection_id, job_id=job_id)
+        except Exception as exc:
+            raise map_service_error(exc) from exc
+
+    @router.delete(
+        "/ingest/jobs/{job_id}",
+        response_model=AsyncIngestJobResponse,
+        tags=["ingest"],
+    )
+    def cancel_document_ingest_job(
+        job_id: str,
+        collection_id: str = Query(..., min_length=1, max_length=128),
+        runtime_service=Depends(runtime),
+    ):
+        try:
+            return runtime_service.cancel_queued_ingest_job(
+                collection_id=collection_id, job_id=job_id
             )
         except Exception as exc:
             raise map_service_error(exc) from exc

@@ -25,6 +25,7 @@ from ...storage.postgres import (
     ResourceRow,
 )
 
+from ..ingest_observability import observe_input_size, timed_call
 from ..service_support import (
     CollectionNotFound,
     EmbeddingContractMismatch,
@@ -455,7 +456,9 @@ class CollectionServiceMixin:
         canonical_uri: str | None = None,
         pre_chunked: bool = False,
     ) -> dict[str, Any]:
-        result = ingest_bytes(
+        observe_input_size(len(content))
+        result = timed_call(
+            "prepare", ingest_bytes,
             content,
             filename=filename,
             collection_id=collection_id,
@@ -476,7 +479,8 @@ class CollectionServiceMixin:
     ) -> dict[str, Any]:
         if not self.settings.allow_private_fetches:
             validate_public_url(url)
-        result = ingest_url(
+        result = timed_call(
+            "prepare", ingest_url,
             url,
             collection_id=collection_id,
             title=title,

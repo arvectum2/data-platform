@@ -9,6 +9,7 @@ from .client import (
 )
 from .naming import build_collection_id
 from .models import (
+    AsyncIngestJobReceipt,
     Collection,
     CollectionStats,
     ConsumerContract,
@@ -31,6 +32,7 @@ from .models import (
 )
 
 __all__ = [
+    "AsyncIngestJobReceipt",
     "Collection",
     "CollectionStats",
     "ConsumerContract",

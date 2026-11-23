@@ -5,7 +5,12 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, model_validator
 
-from ..modes import ExecutionMode, mode_profile, validate_research_envelope, validate_search_envelope
+from ..modes import (
+    ExecutionMode,
+    mode_profile,
+    validate_research_envelope,
+    validate_search_envelope,
+)
 from ..search import RerankStrategy, SearchMode
 from ..search.terminology import TerminologyGroup
 
@@ -179,6 +184,7 @@ class CollectionAccessPolicy(BaseModel):
             self.tenant_id = self.tenant_id.strip()
         return self
 
+
 class CollectionRetentionPolicy(BaseModel):
     max_age_days: int | None = Field(default=None, ge=1, le=36500)
 
@@ -268,6 +274,18 @@ class IngestResponse(BaseModel):
     embedding_attempts: int = 0
     canonical_uri: str | None = None
     extraction_status: str = "unknown"
+
+
+class AsyncIngestJobResponse(BaseModel):
+    """A durable receipt, never evidence that indexing has completed."""
+
+    job_id: str
+    collection_id: str
+    status: str
+    attempts: int = 0
+    created_at: datetime
+    completed_at: datetime | None = None
+    result: dict[str, Any] | None = None
 
 
 class ProcessedChunkResponse(BaseModel):
@@ -364,16 +382,26 @@ class ExtractResponse(BaseModel):
 
 class SearchTerminologyGroup(BaseModel):
     id: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]{1,63}$")
-    aliases: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(min_length=1, max_length=20)
-    contexts: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(default_factory=list, max_length=16)
-    exclusions: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(default_factory=list, max_length=16)
-    ambiguous_aliases: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(default_factory=list, max_length=16)
+    aliases: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(
+        min_length=1, max_length=20
+    )
+    contexts: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(
+        default_factory=list, max_length=16
+    )
+    exclusions: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(
+        default_factory=list, max_length=16
+    )
+    ambiguous_aliases: list[Annotated[str, Field(min_length=2, max_length=120)]] = Field(
+        default_factory=list, max_length=16
+    )
 
     @model_validator(mode="after")
     def valid_group(self):
         TerminologyGroup(
-            id=self.id, aliases=tuple(self.aliases),
-            contexts=tuple(self.contexts), exclusions=tuple(self.exclusions),
+            id=self.id,
+            aliases=tuple(self.aliases),
+            contexts=tuple(self.contexts),
+            exclusions=tuple(self.exclusions),
             ambiguous_aliases=tuple(self.ambiguous_aliases),
         )
         return self
@@ -392,7 +420,9 @@ class SearchRequest(BaseModel):
     terminology_groups: list[SearchTerminologyGroup] = Field(default_factory=list, max_length=12)
     terminology_expansion_limit: int = Field(default=5, ge=1, le=8)
     terminology_version: str | None = Field(
-        default=None, min_length=2, max_length=128,
+        default=None,
+        min_length=2,
+        max_length=128,
         pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._/-]{1,127}$",
     )
     expand_query: bool = False
@@ -620,9 +650,7 @@ class RelevanceFeedbackRequest(BaseModel):
     def validate_feedback(self):
         allowed = {"relevant", "partially_relevant", "not_relevant"}
         if self.label not in allowed:
-            raise ValueError(
-                "label must be relevant, partially_relevant or not_relevant"
-            )
+            raise ValueError("label must be relevant, partially_relevant or not_relevant")
         if len(self.context) > 20:
             raise ValueError("feedback context may contain at most 20 keys")
         return self

@@ -1633,6 +1633,121 @@
       ]
     }
   },
+  "/v1/ingest/jobs": {
+    "post": {
+      "operation_id": "queue_document_ingest_v1_ingest_jobs_post",
+      "parameters": [
+        [
+          "Idempotency-Key",
+          "header",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [
+        "multipart/form-data"
+      ],
+      "response_status": [
+        "202",
+        "422"
+      ],
+      "tags": [
+        "ingest"
+      ]
+    }
+  },
+  "/v1/ingest/jobs/{job_id}": {
+    "delete": {
+      "operation_id": "cancel_document_ingest_job_v1_ingest_jobs__job_id__delete",
+      "parameters": [
+        [
+          "job_id",
+          "path",
+          true
+        ],
+        [
+          "collection_id",
+          "query",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "ingest"
+      ]
+    },
+    "get": {
+      "operation_id": "get_document_ingest_job_v1_ingest_jobs__job_id__get",
+      "parameters": [
+        [
+          "job_id",
+          "path",
+          true
+        ],
+        [
+          "collection_id",
+          "query",
+          true
+        ],
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "ingest"
+      ]
+    }
+  },
   "/v1/ingest/url": {
     "post": {
       "operation_id": "ingest_url_endpoint_v1_ingest_url_post",
@@ -2008,6 +2123,36 @@
   "/v1/status": {
     "get": {
       "operation_id": "status_v1_status_get",
+      "parameters": [
+        [
+          "x-arvectum-key",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer",
+          "header",
+          false
+        ],
+        [
+          "x-arvectum-consumer-key",
+          "header",
+          false
+        ]
+      ],
+      "request_content": [],
+      "response_status": [
+        "200",
+        "422"
+      ],
+      "tags": [
+        "system"
+      ]
+    }
+  },
+  "/v1/support/ingest-jobs": {
+    "get": {
+      "operation_id": "async_ingest_support_v1_support_ingest_jobs_get",
       "parameters": [
         [
           "x-arvectum-key",

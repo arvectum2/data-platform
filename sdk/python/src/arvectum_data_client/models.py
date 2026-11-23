@@ -52,6 +52,18 @@ class IngestResult(TypedDict, total=False):
     extraction_status: str
 
 
+class AsyncIngestJobReceipt(TypedDict):
+    """Durable queue receipt, never proof a source is searchable before completion."""
+
+    job_id: str
+    collection_id: str
+    status: str
+    attempts: int
+    created_at: str
+    completed_at: str | None
+    result: NotRequired[IngestResult | None]
+
+
 class ProcessedChunk(TypedDict):
     chunk_id: str
     ordinal: int

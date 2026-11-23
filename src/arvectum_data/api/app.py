@@ -16,9 +16,11 @@ from fastapi import (
     Request,
 )
 import uvicorn
+from starlette.concurrency import run_in_threadpool
 
 from ..observability import configure_logging
 from .config import Settings
+from .ingest_observability import IngestTrace, begin, end
 from .operation_metrics import operation_name, usage_operation_name
 from .errors import map_service_error
 from .routes import (
@@ -59,6 +61,8 @@ def create_app(
     )
     service.state.request_count = 0
     service.state.usage_metering_errors = 0
+    service.state.ingest_phase_samples = deque(maxlen=256)
+    service.state.ingest_active_requests = 0
     operation_names = (
         "process",
         "ingest",
@@ -81,6 +85,11 @@ def create_app(
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         service.state.request_count += 1
         operation = operation_name(request.method, request.url.path)
+        ingest_trace = IngestTrace() if operation == "ingest" else None
+        trace_token = begin(ingest_trace) if ingest_trace is not None else None
+        if ingest_trace is not None:
+            service.state.ingest_active_requests += 1
+            ingest_trace.concurrency = service.state.ingest_active_requests
         started = time.perf_counter()
         status_code = 500
         try:
@@ -90,6 +99,12 @@ def create_app(
             return response
         finally:
             duration_ms = max(0, int(round((time.perf_counter() - started) * 1000)))
+            if ingest_trace is not None:
+                ingest_trace.total_ms = duration_ms
+                ingest_trace.status_code = status_code
+                service.state.ingest_phase_samples.append(ingest_trace.numeric_sample())
+                service.state.ingest_active_requests -= 1
+                end(trace_token)
             if operation is not None:
                 metric = service.state.operation_metrics[operation]
                 metric["requests"] += 1
@@ -118,7 +133,8 @@ def create_app(
                         except ValueError:
                             request_bytes = None
                     try:
-                        platform.record_usage_event(
+                        await run_in_threadpool(
+                            platform.record_usage_event,
                             consumer_id=consumer_id,
                             operation=usage_operation,
                             request_id=request_id,

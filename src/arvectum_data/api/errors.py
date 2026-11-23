@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 from fastapi import HTTPException
+from .async_ingest import (
+    IngestFeatureDisabled,
+    IngestJobNotFound,
+    IngestJobConflict,
+    IngestJobQueueFull,
+)
 from ..acquisition.security import UnsafeURL
 from .service import (
     CollectionAccessDenied,
@@ -19,7 +25,16 @@ from .service import (
     TenantQuotaExceeded,
 )
 
+
 def map_service_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, IngestFeatureDisabled):
+        return HTTPException(status_code=503, detail="asynchronous ingest disabled")
+    if isinstance(exc, IngestJobNotFound):
+        return HTTPException(status_code=404, detail="ingest job or collection not found")
+    if isinstance(exc, IngestJobConflict):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, IngestJobQueueFull):
+        return HTTPException(status_code=429, detail="asynchronous ingest queue at capacity")
     if isinstance(exc, PlatformNotConfigured):
         return HTTPException(status_code=503, detail=str(exc))
     if isinstance(exc, CollectionNotFound):

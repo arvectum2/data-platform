@@ -32,6 +32,8 @@ from ..storage.postgres import (
     build_session_factory,
 )
 from .config import Settings
+from .async_ingest import AsyncIngestServiceMixin
+from .embedding_reuse import EmbeddingReuseCache
 
 from .service_support import (
     BillingAssignmentNotFound,
@@ -69,6 +71,7 @@ from .service_mixins import (
 
 
 class DataPlatformService(
+    AsyncIngestServiceMixin,
     AccessServiceMixin,
     ConsumerKeyServiceMixin,
     ConnectorCredentialServiceMixin,
@@ -122,6 +125,7 @@ class DataPlatformService(
                 dimension=settings.embedding_dimension,
             )
         )
+        self._embedding_reuse_cache = EmbeddingReuseCache(settings.embedding_reuse_cache_entries)
         if session_factory is not None:
             self.session_factory = session_factory
         elif settings.database_url.strip():
