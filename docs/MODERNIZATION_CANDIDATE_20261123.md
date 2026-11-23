@@ -29,7 +29,9 @@ Qwen/Reranker change, migration, reindex, production data write or deployment.
 | pypdf | 6.20.0 | 6.21.4 |
 | python-multipart | 0.0.32 | 0.0.34 |
 | Ruff | 0.17.0 | 0.17.6 |
-| openpyxl / cryptography | 3.1.5 / 46.0.7 | unchanged |
+| openpyxl | 3.1.5 | unchanged |
+| cryptography | 46.0.7 | 50.0.2 (OSV security remediation) |
+| pytest | 8.4.2 | 9.2.0 (OSV security remediation) |
 
 CI actions were also modernized to the official latest releases verified on
 GitHub on 2026-11-23: checkout v7.0.1, setup-node v7.1.0 and
@@ -54,8 +56,12 @@ validation before optional runtime promotion.
 - Actual PostgreSQL17/pgvector disposable integration: 35 PASS, 1 expected
   CI-identity-only SKIP, in container limited to 384 MiB and 1 CPU on loopback
   127.0.0.1:15543; test DB identity verified before migrations. Container removed.
-- Protected GitHub CI on final candidate SHA: pending.
-- Exact Tender Agent/Arvectum OS/Growth consumer cross-repo parity: pending.
+- Original 2026-11-23 candidate SHA e8052579: GitHub CI **11/11 PASS**,
+  GitVerse mirror HEALTHY. Expanded 12-job workflow with actual HTTP E2E and
+  dependency security fixes requires fresh exact-SHA CI before claiming PASS.
+- Tender Agent focused SDK / RAG / knowledge boundary tests on its unchanged
+  working tree: 33 PASS. Real candidate HTTP exercised with Python SDK in
+  disposable E2E; Arvectum OS/Growth full consumer parity remains pending.
 - Qwen synthetic isolated stage: BLOCKED by resource governor: memory headroom,
   memory pressure and swap. No second model started.
 
@@ -75,8 +81,11 @@ representative samples, p95 <=10s, <=1% error rate and documented load/window.
 
 P1 DP-MACMINI-E2E-STACK-001: partially covered by disposable PostgreSQL tests
 for migrations, ingestion, identity reuse, hybrid search, ACL, provenance,
-transactions and index revisions. A complete separately started HTTP service,
-restart/rollback, full resource and consumer soak remain OPEN.
+transactions and index revisions. **New** isolated actual HTTP E2E also PASSED:
+20 synthetic hashing ingests, consumer SDK, ACL, index revision, concurrent
+ingestion, failure recovery, graceful restart, source rollback to PR #134 and
+forward restoration. This is mocked embedding, not real Qwen/answer/24GB soak;
+the original broader roadmap item remains OPEN.
 
 P2 DP-INT-002: real KnowledgeAssetRecord acceptance remains OPEN for missing
 genuine upstream data. Model promotions, distributed crawlers, hosted services
@@ -97,5 +106,12 @@ and billing activation remain deferred pending explicit business decisions.
 5. If the release gate fails, restore the saved checkout and its environment,
    validate previous API and consumers, and do not silently change retrieval
    backends or attempt destructive schema downgrade.
+
+Additional checks: frozen-lock package provenance 99 PyPI registry entries,
+zero affected packages in post-fix OSV batch on 2026-11-23; see
+`docs/DEPENDENCY_AUDIT_20261123.md`. Corrected synchronous usage metering
+in ASGI middleware by moving DB work to threadpool; unit regression PASS.
+Canonical roadmap source is unchanged; see separate
+`docs/MODERNIZATION_ROADMAP_PROPOSAL_20261123.md`.
 
 Candidate is reviewable after exact protected CI; release is HOLD meanwhile.

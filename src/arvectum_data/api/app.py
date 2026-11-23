@@ -16,6 +16,7 @@ from fastapi import (
     Request,
 )
 import uvicorn
+from starlette.concurrency import run_in_threadpool
 
 from ..observability import configure_logging
 from .config import Settings
@@ -118,7 +119,8 @@ def create_app(
                         except ValueError:
                             request_bytes = None
                     try:
-                        platform.record_usage_event(
+                        await run_in_threadpool(
+                            platform.record_usage_event,
                             consumer_id=consumer_id,
                             operation=usage_operation,
                             request_id=request_id,
