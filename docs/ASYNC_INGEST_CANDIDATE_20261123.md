@@ -72,3 +72,13 @@ historic synchronous 10-second ceiling, and does not automatically run a
 production background worker. Real Qwen relevance/latency/concurrency,
 Tender Agent job receipt persistence and all retrieval/Decision Core gates,
 backup/retention/rollback remain pre-production requirements.
+
+## Next Qwen A/B preflight
+
+Prepared offline-only exact-chunk synthetic inputs for 5/10/18/27 chunks
+(`scripts/ingest_qwen_cohort_preflight.py --check-only`), with zero Qwen calls
+or live database mutations. The controlled 1/2-concurrency, >=20 samples per
+stratum matrix and resource abort gates are specified in
+`docs/QWEN_ASYNC_AB_WINDOW_PROTOCOL_20261123.md`. The 160-observation
+real-model window **has not run**; high swap and shared production Qwen make
+its separate owner-approved test window essential.

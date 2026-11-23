@@ -196,3 +196,10 @@ candidate bridge passed nine actual HTTP submissions through isolated PG17,
 completion/readiness gating and nine source-faithful RAG hits (hashing only).
 No active runtime/SDK release or Qwen test window changes. Documentation:
 `docs/ASYNC_INGEST_CANDIDATE_20261123.md`. Issue #133 OPEN, HOLD.
+
+## Offline representative Qwen cohort plan (23 Nov)
+
+Added synthetic offline exact-chunk preflight for 5/10/18/27 chunks with a
+minimum 20 observations per 1/2-concurrency stratum, planned 160 total
+real-model observations; no inference/load has been run. See
+`docs/QWEN_ASYNC_AB_WINDOW_PROTOCOL_20261123.md`. Qwen/production untouched.
