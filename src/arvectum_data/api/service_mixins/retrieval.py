@@ -201,7 +201,43 @@ class RetrievalServiceMixin:
             raise ValueError(
                 f"ingest exceeds max_chunks_per_ingest={self.settings.max_chunks_per_ingest}"
             )
-        with self._require_factory()() as session:
+        factory = self._require_factory()
+        chunk_ids = [chunk.chunk_id for chunk in result.chunks]
+        # Release the read-only transaction and its checked-out SQL connection
+        # BEFORE potentially slow/queued external embedding inference.
+        with factory() as lookup_session:
+            collection = lookup_session.get(CollectionRow, result.resource.collection_id)
+            if collection is None:
+                raise CollectionNotFound(result.resource.collection_id)
+            self._validate_embedding_contract(collection)
+            previously_indexed = DataRepository(lookup_session).existing_embedding_chunk_ids(
+                chunk_ids,
+                provider=self.embedding_provider.provider_name,
+                model=self.embedding_provider.model_name,
+            )
+
+        pending_chunks = [
+            chunk for chunk in result.chunks if chunk.chunk_id not in previously_indexed
+        ]
+        vectors, embedding_attempts = self._embed_texts_with_retry(
+            [chunk.text for chunk in pending_chunks]
+        )
+        if len(vectors) != len(pending_chunks):
+            raise RuntimeError("embedding provider returned unexpected vector count")
+        dimensions = {len(vector) for vector in vectors}
+        if len(dimensions) > 1 or 0 in dimensions:
+            raise EmbeddingContractMismatch(
+                f"embedding provider returned invalid or inconsistent dimensions: "
+                f"{sorted(dimensions)}"
+            )
+        pending_vectors = {
+            chunk.chunk_id: vector for chunk, vector in zip(pending_chunks, vectors)
+        }
+
+        # Validate/requery under one fresh write transaction. An independent
+        # writer may have indexed our chunks during inference; preserve reuse
+        # and never replace their existing vectors with stale inference.
+        with factory() as session:
             collection = session.get(CollectionRow, result.resource.collection_id)
             if collection is None:
                 raise CollectionNotFound(result.resource.collection_id)
@@ -209,32 +245,31 @@ class RetrievalServiceMixin:
 
             repo = DataRepository(session)
             existing_embedding_ids = repo.existing_embedding_chunk_ids(
-                [chunk.chunk_id for chunk in result.chunks],
+                chunk_ids,
                 provider=self.embedding_provider.provider_name,
                 model=self.embedding_provider.model_name,
             )
-            repo.persist_ingest(result)
-            pending_chunks = [
+            remaining_chunks = [
                 chunk for chunk in result.chunks if chunk.chunk_id not in existing_embedding_ids
             ]
-            vectors, embedding_attempts = self._embed_texts_with_retry(
-                [chunk.text for chunk in pending_chunks]
-            )
-            if len(vectors) != len(pending_chunks):
-                raise RuntimeError("embedding provider returned unexpected vector count")
-            dimensions = {len(vector) for vector in vectors}
-            if len(dimensions) > 1 or 0 in dimensions:
-                raise EmbeddingContractMismatch(
-                    f"embedding provider returned invalid or inconsistent dimensions: "
-                    f"{sorted(dimensions)}"
-                )
+            # If a previously present embedding disappeared between sessions,
+            # fail closed. Re-embedding while holding this transaction would
+            # reintroduce the stalled-connection problem, and writing without
+            # a vector would silently misreport coverage.
+            if any(chunk.chunk_id not in pending_vectors for chunk in remaining_chunks):
+                raise RuntimeError("embedding coverage changed during ingest; retry")
+
+            repo.persist_ingest(result)
             repo.upsert_embeddings(
-                ((chunk.chunk_id, vector) for chunk, vector in zip(pending_chunks, vectors)),
+                (
+                    (chunk.chunk_id, pending_vectors[chunk.chunk_id])
+                    for chunk in remaining_chunks
+                ),
                 provider=self.embedding_provider.provider_name,
                 model=self.embedding_provider.model_name,
             )
-            if vectors:
-                dimension = len(vectors[0])
+            if remaining_chunks:
+                dimension = len(pending_vectors[remaining_chunks[0].chunk_id])
                 if collection.embedding_dimension is None:
                     collection.embedding_dimension = dimension
                 elif collection.embedding_dimension != dimension:
@@ -251,7 +286,7 @@ class RetrievalServiceMixin:
                 "chunks": len(result.chunks),
                 "chunks_indexed": len(result.chunks),
                 "embeddings": len(result.chunks),
-                "embeddings_written": len(vectors),
+                "embeddings_written": len(remaining_chunks),
                 "embeddings_skipped_existing": len(existing_embedding_ids),
                 "embedding_attempts": embedding_attempts,
                 "canonical_uri": result.resource.canonical_uri,
