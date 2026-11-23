@@ -31,6 +31,9 @@ def test_ci_covers_legacy_and_current_python_node() -> None:
         "20", "22", "24", "26"
     }
     assert 'node-version: ${{ matrix.node-version }}' in ci
+    assert "actions/checkout@v7.0.1" in ci
+    assert "actions/setup-node@v7.1.0" in ci
+    assert "actions/setup-python@v7.1.0" in ci
     assert "locked-reproducibility:" in ci
     assert "uv sync --python 3.14 --frozen --extra dev" in ci
     package = json.loads((ROOT / "package.json").read_text())

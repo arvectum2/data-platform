@@ -31,6 +31,10 @@ Qwen/Reranker change, migration, reindex, production data write or deployment.
 | Ruff | 0.17.0 | 0.17.6 |
 | openpyxl / cryptography | 3.1.5 / 46.0.7 | unchanged |
 
+CI actions were also modernized to the official latest releases verified on
+GitHub on 2026-11-23: checkout v7.0.1, setup-node v7.1.0 and
+setup-python v7.1.0 (instead of deprecated Node 20 action runtimes).
+
 Python >=3.11 and Node engines >=18 are preserved for existing clients;
 Python 3.15 passed locally but is not the default. Python and JavaScript
 SDK package versions and HTTP consumer contract 1.x were not changed.
