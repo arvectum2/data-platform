@@ -910,3 +910,18 @@ See [refactor acceptance and reproducibility](REFACTOR_ACCEPTANCE_2026-10-09.md)
 ## Spec Kit — candidate roadmap linkage (2026-11-20)
 
 [Specification](../specs/001-consumer-roadmap-traceability/spec.md) · [Plan](../specs/001-consumer-roadmap-traceability/plan.md) · [Integration tasks](../specs/001-consumer-roadmap-traceability/tasks.md). The original DP roadmap, checkpoint, product contracts and priorities remain unchanged; the new package tracks integration/verification only.
+
+## Modernization tracking — 2026-11-23
+
+- [x] Audit exact GitHub main, PR #134, runtime checkout and open roadmap items.
+- [x] Resolve current compatible Python dependencies and test full local suite
+  against Python 3.11, 3.12, 3.14, 3.15; keep >=3.11 compatibility.
+- [x] Expand Python/Node CI matrices and add exact frozen-lock CI job.
+- [x] Run real PG17/pgvector integration in disposable, isolated 384 MiB container.
+- [ ] Run final protected CI on exact SHA and cross-repository consumer parity.
+- [ ] Complete the full isolated HTTP E2E, restart/rollback and resource tests
+  before closing DP-MACMINI-E2E-STACK-001.
+- [ ] Keep Issue #133 OPEN until representative production ingest SLO is measured.
+- [ ] Keep DP-INT-002 OPEN until real authorized KnowledgeAssetRecord acceptance.
+
+See [modernization evidence and rollback](MODERNIZATION_CANDIDATE_20261123.md).
