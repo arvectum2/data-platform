@@ -130,3 +130,22 @@ limitations and future owner-gated acceptance conditions are in
 
 This telemetry is **not deployed**. Real production p95 remains RED; do not
 interpret synthetic phase timing or hashing p95 as Qwen acceptance.
+
+## Owner-authorized shared-model synthetic ingest stage (23 Nov)
+
+The user approved a short controlled window. The existing production Qwen3
+embedding endpoint was queried by a **separate, loopback-only candidate API**
+backed by a fresh disposable PostgreSQL17 instance. The periodic
+`tender-agent-technical-sibur` future-start gate was briefly disabled and
+restored; in-flight tasks were not killed, Qwen and all production services
+were not restarted. Fixed synthetic text passed offline 2–27 chunk preflight.
+
+Corrected 20-HTTP-request stage: **20/20 PASS**, 0 errors, interpolated
+**request p95 9050ms**, **embedding-phase p95 8952ms**,
+prepare p95 3ms, lookup p95 8ms, persist p95 96ms. The 27-chunk large
+synthetic source required **24079ms**. This establishes the dominant stage on
+isolated text inputs, **not** production-class p95 acceptance: production
+remained RED at ingest p95 21635ms/latest 256 after window; the 20-sample
+series under-samples its documented 18-chunk p95 and had concurrency 1.
+Full evidence and limitations: `docs/INGEST_SLO_SHARED_QWEN_STAGE_20261123.md`.
+Release remains HOLD; Issue #133 OPEN.
