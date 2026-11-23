@@ -38,6 +38,9 @@ from ...storage.postgres import (
     ResourceRow,
 )
 
+from ..ingest_observability import (
+    observe_chunks, observe_embedding_attempts, timed_call, timed_session,
+)
 from ..search_hit_policy import (
     _collapse_canonical_hits,
     _dedupe_federated_hits,
@@ -202,10 +205,11 @@ class RetrievalServiceMixin:
                 f"ingest exceeds max_chunks_per_ingest={self.settings.max_chunks_per_ingest}"
             )
         factory = self._require_factory()
+        observe_chunks(len(result.chunks))
         chunk_ids = [chunk.chunk_id for chunk in result.chunks]
         # Release the read-only transaction and its checked-out SQL connection
         # BEFORE potentially slow/queued external embedding inference.
-        with factory() as lookup_session:
+        with timed_session(factory, "lookup") as lookup_session:
             collection = lookup_session.get(CollectionRow, result.resource.collection_id)
             if collection is None:
                 raise CollectionNotFound(result.resource.collection_id)
@@ -219,9 +223,11 @@ class RetrievalServiceMixin:
         pending_chunks = [
             chunk for chunk in result.chunks if chunk.chunk_id not in previously_indexed
         ]
-        vectors, embedding_attempts = self._embed_texts_with_retry(
-            [chunk.text for chunk in pending_chunks]
+        vectors, embedding_attempts = timed_call(
+            "embedding", self._embed_texts_with_retry,
+            [chunk.text for chunk in pending_chunks],
         )
+        observe_embedding_attempts(embedding_attempts)
         if len(vectors) != len(pending_chunks):
             raise RuntimeError("embedding provider returned unexpected vector count")
         dimensions = {len(vector) for vector in vectors}
@@ -237,7 +243,7 @@ class RetrievalServiceMixin:
         # Validate/requery under one fresh write transaction. An independent
         # writer may have indexed our chunks during inference; preserve reuse
         # and never replace their existing vectors with stale inference.
-        with factory() as session:
+        with timed_session(factory, "persist") as session:
             collection = session.get(CollectionRow, result.resource.collection_id)
             if collection is None:
                 raise CollectionNotFound(result.resource.collection_id)

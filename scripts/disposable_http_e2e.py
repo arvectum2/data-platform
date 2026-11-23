@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BASE = "7eb86bd3da350ef3318790ce07b6a28aadac267e"
 LABEL = "arvectum.dp.disposable_http_e2e"
 SERVER = """
-import os, uvicorn
+import os, uvicorn, time
 import importlib; source=importlib.import_module("arvectum_data.api.app")
 from arvectum_data.api.app import create_app
 from arvectum_data.api.config import Settings
@@ -44,6 +44,17 @@ if os.getenv("E2E_FAIL") == "1":
   def embed_texts(self, texts): raise RuntimeError("synthetic provider outage")
   def embed_query(self, query): return old.embed_query(query)
  app.state.platform_service.embedding_provider=Failed()
+if os.getenv("E2E_SLOW") == "1":
+ old=app.state.platform_service.embedding_provider
+ class Slow:
+  provider_name=old.provider_name
+  model_name=old.model_name
+  dimension=old.dimension
+  def embed_texts(self, texts):
+   time.sleep(.04)
+   return old.embed_texts(texts)
+  def embed_query(self, query): return old.embed_query(query)
+ app.state.platform_service.embedding_provider=Slow()
 print("E2E_SOURCE="+str(source.__file__), flush=True)
 uvicorn.run(app,host="127.0.0.1",port=int(os.environ["E2E_PORT"]),log_level="error")
 """
@@ -333,6 +344,19 @@ def main():
                     concurrent_results = list(pool.map(concurrent, range(3)))
                 ok(len({x["resource_id"] for x in concurrent_results}) == 3, "concurrency")
                 checks.append("20 synthetic hashing observations + 3 concurrent ingest")
+                phase_readiness = req(c, "GET", "/v1/support/readiness", headers=h)
+                traces = phase_readiness["ingest_phases"]
+                ok(traces["content_included"] is False, "ingest trace leaked source content")
+                ok(traces["total"]["samples"] >= 20, "missing ingest phase observations")
+                ok(traces["total"]["sufficient_samples"], "insufficient ingest phase window")
+                ok(traces["total"]["phase_p95_ms"]["embedding"] >= 1, "missing embedding span")
+                ok(traces["total"]["phase_p95_ms"]["lookup"] >= 1, "missing DB lookup span")
+                ok(traces["total"]["phase_p95_ms"]["persist"] >= 1, "missing SQL commit span")
+                ok(f"synthetic://{uid}" not in json.dumps(traces), "source identity leaked")
+                req(c, "GET", "/v1/support/readiness", expected=401)
+                checks.append(
+                    "numeric-only ingest phases, size cohorts, and authenticated readiness"
+                )
             stop(p)
             p = start(env, ROOT, wd / "restart.log")
             with httpx.Client(base_url=base_url, timeout=15) as c:
@@ -389,6 +413,33 @@ def main():
                     "failed inference partial data",
                 )
             checks.append("provider failure fail-closed and recovery")
+            stop(p)
+            p = start(dict(env, E2E_SLOW="1"), ROOT, wd / "slow-provider.log")
+            with httpx.Client(base_url=base_url, timeout=15) as c:
+                req(
+                    c,
+                    "POST",
+                    "/v1/ingest/document",
+                    headers=h,
+                    data={
+                        "collection_id": normal,
+                        "canonical_uri": f"synthetic://{uid}/slow-inference",
+                        "pre_chunked": "true",
+                    },
+                    files={"file": ("slow.txt", b"synthetic local inference " * 25, "text/plain")},
+                )
+                timings = req(c, "GET", "/v1/support/readiness", headers=h)
+                phase = timings["ingest_phases"]["total"]
+                ok(phase["samples"] >= 1, "slow ingest metrics absent")
+                ok(
+                    phase["phase_p95_ms"]["embedding"] >= 40,
+                    "simulated model wait was not attributed to embedding",
+                )
+                ok(
+                    phase["request_p95_ms"] >= 40,
+                    "simulated model wait was not counted in request wall time",
+                )
+            checks.append("40ms isolated inference delay attributed to embedding phase")
             stop(p)
             baseline = wd / "baseline"
             baseline.mkdir()

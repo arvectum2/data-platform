@@ -115,3 +115,18 @@ Canonical roadmap source is unchanged; see separate
 `docs/MODERNIZATION_ROADMAP_PROPOSAL_20261123.md`.
 
 Candidate is reviewable after exact protected CI; release is HOLD meanwhile.
+
+## 23 Nov read-only production diagnostic follow-up
+
+A fresh authenticated GET (no production mutation) observed **ingest p95
+21635ms / latest 256 samples / 8665 cumulative requests / 0 cumulative
+errors**, while process p95 was 61ms and search p95 248ms. Mac mini used
+~15.6GiB swap; isolated second-Qwen admission refused. The cause remains
+unknown; single-slot Qwen is a hypothesis, not proven attribution. The branch
+adds bounded numeric-only `ingest_phases` telemetry and a 40ms synthetic
+provider-delay attribution check in isolated HTTP/pgvector E2E. Full receipt,
+limitations and future owner-gated acceptance conditions are in
+`docs/INGEST_P95_READONLY_TRIAGE_20261123.md`.
+
+This telemetry is **not deployed**. Real production p95 remains RED; do not
+interpret synthetic phase timing or hashing p95 as Qwen acceptance.

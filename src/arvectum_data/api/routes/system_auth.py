@@ -9,6 +9,7 @@ from fastapi import (
 
 from ...modes import MODE_PROFILES
 from ...supportability import evaluate_operation_slo, overall_readiness, percentile
+from ..ingest_observability import phase_readiness
 from ..contract import (
     CONSUMER_CONTRACT_CAPABILITIES,
     CONSUMER_CONTRACT_NAME,
@@ -156,6 +157,7 @@ def register_system_auth_routes(router: APIRouter, context: RouteContext) -> Non
             "status": overall_readiness(operations),
             "window_size": 256,
             "operations": operations,
+            "ingest_phases": phase_readiness(service.state.ingest_phase_samples),
         }
 
     @router.get("/models/status", tags=["system"])
