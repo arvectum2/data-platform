@@ -28,6 +28,8 @@ class IngestTrace:
     concurrency: int = 1
     chunks: int = 0
     embedding_attempts: int = 0
+    embedding_batches: int = 0
+    embedding_retries: int = 0
     total_ms: int = 0
     status_code: int = 500
 
@@ -38,6 +40,8 @@ class IngestTrace:
             "concurrency": max(1, self.concurrency),
             "chunks": max(0, self.chunks),
             "embedding_attempts": max(0, self.embedding_attempts),
+            "embedding_batches": max(0, self.embedding_batches),
+            "embedding_retries": max(0, self.embedding_retries),
             "total_ms": max(0, self.total_ms),
             "status_code": self.status_code,
         }
@@ -75,6 +79,20 @@ def observe_embedding_attempts(count: int) -> None:
     trace = _ACTIVE.get()
     if trace is not None:
         trace.embedding_attempts = max(0, count)
+
+
+def observe_embedding_batch_start() -> None:
+    """Count unique batch submissions, including a failed final batch."""
+    trace = _ACTIVE.get()
+    if trace is not None:
+        trace.embedding_batches += 1
+
+
+def observe_embedding_retry() -> None:
+    """Count actual repeat submissions, not normal consecutive batches."""
+    trace = _ACTIVE.get()
+    if trace is not None:
+        trace.embedding_retries += 1
 
 
 @contextmanager
@@ -119,6 +137,13 @@ def _aggregate(samples: list[dict[str, Any]]) -> dict[str, Any]:
         "errors": errors,
         "window_error_rate": round(errors / n, 6) if n else None,
         "embedding_attempts_sum": sum(item["embedding_attempts"] for item in samples),
+        # Keep legacy attempts unchanged. Batches and retries are separately
+        # observed during inference, including an unsuccessful final batch.
+        "embedding_batches_sum": sum(item.get("embedding_batches", 0) for item in samples),
+        "embedding_retries_sum": sum(item.get("embedding_retries", 0) for item in samples),
+        "requests_with_embedding_retries": sum(
+            item.get("embedding_retries", 0) > 0 for item in samples
+        ),
         "chunks_sum": sum(item["chunks"] for item in samples),
     }
 

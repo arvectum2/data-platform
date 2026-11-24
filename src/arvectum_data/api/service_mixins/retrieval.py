@@ -41,6 +41,8 @@ from ...storage.postgres import (
 from ..ingest_observability import (
     observe_chunks,
     observe_embedding_attempts,
+    observe_embedding_batch_start,
+    observe_embedding_retry,
     timed_call,
     timed_session,
 )
@@ -160,7 +162,10 @@ class RetrievalServiceMixin:
         def execute_batch(batch_texts: list[str]) -> None:
             nonlocal attempts_total, expected_dimension
             max_attempts = self.settings.embedding_retry_max_attempts
+            observe_embedding_batch_start()
             for attempt in range(1, max_attempts + 1):
+                if attempt > 1:
+                    observe_embedding_retry()
                 attempts_total += 1
                 try:
                     vectors = self.embedding_provider.embed_texts(batch_texts)
