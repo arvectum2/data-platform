@@ -50,3 +50,42 @@ fraction. It does not change the existing synchronous ingest <=10s p95 or
 overall readiness. No background latency target has yet been approved.
 Default OFF, requires a separate worker and migration. See
 `docs/ASYNC_INGEST_CANDIDATE_20261123.md`.
+
+## Search phase attribution (source-only candidate, 24 November 2026)
+
+The search operation's HTTP readiness remains authoritative: p95 target 1,500ms,
+minimum 20 requests, error rate at most 1%. If this source candidate is
+independently approved and deployed, the existing GET /v1/support/readiness
+additionally exposes a separate search_phases numeric snapshot from completed,
+successful search executions. This is not enabled on the previously running
+production release merely by merging code.
+
+It captures only fixed names and rounded, finite numeric durations already
+produced by the search engine: query-expansion, terminology-expansion,
+embedding-query, lexical-retrieval, vector-retrieval, fusion, product-ranker,
+rerank, total-search. A ring buffer retains at most 256 successful responses.
+Skipped/unavailable stages are not recorded as false zeroes. Per-stage sample
+counts and their own 20-sample sufficiency are explicit.
+
+No query text, document content, snippets, source/collection IDs, URLs,
+provider/model names, request metadata, customer information, secrets, or
+exception text enters this buffer or its support summary. Only the
+aggregate sample counters, p95 and a no-content indicator are returned.
+
+Per-stage total-search latency is measured inside the search engine and
+excludes HTTP transport, application serialization and middleware overhead.
+Stage-specific p95s are independently distributed and do not sum to an
+HTTP p95. Search execution errors are still counted by the existing
+HTTP operation SLO, but failed calls without completed stage diagnostics
+are not included in this successful-execution phase breakdown.
+
+The observed 24-Nov production GET-only snapshot was search RED (p95
+10,086ms / 40 samples; target 1,500ms; zero API errors). Source-only
+instrumentation cannot establish root cause or production improvement by
+itself. No synthetic search/model requests, provider changes, reindex,
+database mutation, or production service restart were performed for this
+candidate. Real-model capacity admission, upstream protected CI, independent
+representative SLO proof and owner deployment approval remain mandatory.
+
+See issue arvectum2/data-platform#137 and the separate earlier ingest SLO
+issue #133. A green rolling ingest sample does not close the search problem.
