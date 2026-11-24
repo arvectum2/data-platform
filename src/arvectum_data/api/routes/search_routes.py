@@ -182,7 +182,12 @@ def register_search_routes(router: APIRouter, context: RouteContext) -> None:
             ),
         )
         if stage_diagnostics and hasattr(context.app.state, "search_phase_samples"):
-            numeric = numeric_search_sample(stage_diagnostics)
+            numeric = numeric_search_sample(
+                stage_diagnostics,
+                mode=search_query.mode,
+                rerank_requested=search_query.rerank,
+                expansion_requested=search_query.expand_query,
+            )
             if numeric is not None:
                 context.app.state.search_phase_samples.append(numeric)
         return response
