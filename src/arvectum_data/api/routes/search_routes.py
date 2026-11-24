@@ -11,6 +11,7 @@ from fastapi import (
 from ...modes import mode_profile
 from ...search import SearchQuery
 from ...search.terminology import TerminologyGroup
+from ..search_observability import numeric_search_sample
 from ..schemas import (
     SearchHitResponse,
     SearchExecutionDiagnosticsResponse,
@@ -114,7 +115,7 @@ def register_search_routes(router: APIRouter, context: RouteContext) -> None:
             mode_profile(payload.execution_mode) if payload.execution_mode is not None else None
         )
 
-        return SearchResponse(
+        response = SearchResponse(
             query=payload.query,
             execution_mode=payload.execution_mode,
             hits=[
@@ -180,3 +181,8 @@ def register_search_routes(router: APIRouter, context: RouteContext) -> None:
                 ],
             ),
         )
+        if stage_diagnostics and hasattr(context.app.state, "search_phase_samples"):
+            numeric = numeric_search_sample(stage_diagnostics)
+            if numeric is not None:
+                context.app.state.search_phase_samples.append(numeric)
+        return response

@@ -62,6 +62,7 @@ def create_app(
     service.state.request_count = 0
     service.state.usage_metering_errors = 0
     service.state.ingest_phase_samples = deque(maxlen=256)
+    service.state.search_phase_samples = deque(maxlen=256)
     service.state.ingest_active_requests = 0
     operation_names = (
         "process",
